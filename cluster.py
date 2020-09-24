@@ -21,11 +21,12 @@ np.random.seed(SEED_VALUE)
 torch.manual_seed(SEED_VALUE)
 
 flags = AttrDict(
-    model='ResNet50',
+    model='ResNet34',
     batch_size=64,
     num_workers=4,
     num_epochs=100,
     lr=1e-3,
+    weight_decay=1e-4,
     num_classes=20,
     num_classes_over=100,
     outdir='/content',
@@ -39,7 +40,7 @@ args = parser.parse_args()
 
 hdf_file = args.path_to_hdf
 
-train_set, test_set = datasets.HDF5Dataset(hdf_file).split_dataset(0.8)
+train_set, test_set = datasets.HDF5Dataset(hdf_file).split_dataset(0.7)
 
 train_loader = torch.utils.data.DataLoader(
     train_set, batch_size=flags.batch_size, num_workers=flags.num_workers,
@@ -97,7 +98,8 @@ def perturb(x, noise_rate=0.1):
 model = models.IIC(flags.model, in_channels=4, num_classes=flags.num_classes,
                    num_classes_over=flags.num_classes_over,
                    perturb_fn=lambda x: perturb(x)).to(device)
-optimizer = torch.optim.Adam(model.parameters(), lr=flags.lr)
+optimizer = torch.optim.Adam(model.parameters(), lr=flags.lr,
+    weight_decay=flags.weight_decay)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
     optimizer, T_0=2, T_mult=2)
 
@@ -120,7 +122,7 @@ for epoch in range(1, flags.num_epochs):
 
     if epoch % flags.eval_step != 0:
         continue
-        
+
     model.eval()
     result = defaultdict(lambda: [])
     with torch.no_grad():
@@ -138,9 +140,9 @@ for epoch in range(1, flags.num_epochs):
         cm[i, j] += 1
     plot_cm(cm, list(range(flags.num_classes)), list(range(max(trues) + 1)),
             f'{flags.outdir}/cm_{epoch}.png')
-    cm_over = np.zeros((flags.num_classes_over, max(trues) + 1), dtype=np.int)
-    for i, j in zip(preds_over, trues):
-        cm_over[i, j] += 1
-    plot_cm(cm_over, list(range(flags.num_classes_over)), list(range(max(trues) + 1)),
-            f'{flags.outdir}/cm_over_{epoch}.png')
+    # cm_over = np.zeros((flags.num_classes_over, max(trues) + 1), dtype=np.int)
+    # for i, j in zip(preds_over, trues):
+    #     cm_over[i, j] += 1
+    # plot_cm(cm_over, list(range(flags.num_classes_over)), list(range(max(trues) + 1)),
+    #         f'{flags.outdir}/cm_over_{epoch}.png')
     logger(log, epoch, flags.outdir)
