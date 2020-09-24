@@ -127,6 +127,7 @@ log = defaultdict(lambda: [])
 for epoch in range(1, flags.num_epochs):
     model.train()
     loss = defaultdict(lambda: 0)
+    head_selecter = torch.zeros(flags.num_heads).to(device)
     for x, targets in tqdm(train_loader):
         x = x.to(device)
         y_outputs, y_over_outputs = model(x)
@@ -141,14 +142,16 @@ for epoch in range(1, flags.num_epochs):
         loss_step_for_each_head = torch.stack(loss_step_for_each_head)
         loss_step = torch.sum(loss_step_for_each_head) / flags.num_heads
         print('loss_step_for_each_head:', loss_step_for_each_head)
-        head_idx = loss_step_for_each_head.argmin(dim=-1)
-        print('head_idx:', head_idx.item())
+        head_selecter += loss_step_for_each_head
 
         optimizer.zero_grad()
         loss_step.backward()
         optimizer.step()
 
         loss['train'] += loss_step.item()
+
+    best_head_idx = head_selecter.argmin(dim=-1).item()
+    print('best_head_idx:', best_head_idx)
 
     scheduler.step()
     print(f'train loss at epoch {epoch} = {loss["train"]:.3f}')
