@@ -21,7 +21,8 @@ np.random.seed(SEED_VALUE)
 torch.manual_seed(SEED_VALUE)
 
 flags = AttrDict(
-    batch_size=96,
+    model='ResNet50',
+    batch_size=64,
     num_workers=4,
     num_epochs=100,
     lr=1e-3,
@@ -92,7 +93,7 @@ def perturb(x, noise_rate=0.1):
     xt += noise
     return xt
 
-model = models.IIC('ResNet50', in_channels=4, num_classes=flags.num_classes,
+model = models.IIC(flags.model, in_channels=4, num_classes=flags.num_classes,
                    num_classes_over=flags.num_classes_over,
                    perturb_fn=lambda x: perturb(x)).to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=flags.lr)
