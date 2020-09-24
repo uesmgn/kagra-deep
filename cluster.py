@@ -86,6 +86,7 @@ flags = AttrDict(
     num_classes_over=100,
     outdir='/content',
     eval_step=10,
+    num_heads=10
 )
 
 parser = argparse.ArgumentParser()
@@ -115,6 +116,7 @@ if torch.cuda.is_available():
 
 model = models.IIC(flags.model, in_channels=4, num_classes=flags.num_classes,
                    num_classes_over=flags.num_classes_over,
+                   num_heads=flags.num_heads,
                    perturb_fn=lambda x: perturb(x)).to(device)
 optimizer = torch.optim.SGD(model.parameters(), lr=flags.lr,
                             weight_decay=flags.weight_decay)
@@ -127,13 +129,24 @@ for epoch in range(1, flags.num_epochs):
     loss = defaultdict(lambda: 0)
     for x, targets in tqdm(train_loader):
         x = x.to(device)
-        y, y_over = model(x)
-        yt, yt_over = model(x, perturb=True)
-        loss_step = model.criterion(y, yt) + model.criterion(y_over, yt_over)
+        y_outputs, y_over_outputs = model(x)
+        yt_outputs, yt_over_outputs = model(x, perturb=True)
+
+        loss_step_for_each_head = []
+        for i in range(flags.num_heads):
+            y, y_over = y_outputs[i], y_over_outputs[i]
+            yt, yt_over = yt_outputs[i], yt_over_outputs[i]
+            loss_step_head = model.criterion(y, yt) + model.criterion(y_over, yt_over)
+            loss_step_for_each_head.append(loss_step_head)
+        loss_step_for_each_head = torch.stack(loss_step_for_each_head)
+        loss_step = torch.sum(loss_step_for_each_head)
+
         optimizer.zero_grad()
         loss_step.backward()
         optimizer.step()
+
         loss['train'] += loss_step.item()
+        
     scheduler.step()
     print(f'train loss at epoch {epoch} = {loss["train"]:.3f}')
     log['train_loss'].append(loss['train'])
