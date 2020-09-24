@@ -1,8 +1,6 @@
 import h5py
 import os
 
-path = '/Users/gen/workspace/github/GravitySpy/processed/dataset.h5'
-
 def get_hdf_items(path):
     cache = []
     def init_cache(item):
@@ -14,5 +12,3 @@ def get_hdf_items(path):
     with h5py.File(path, 'r') as fp:
         init_cache(fp)
     return cache
-
-get_hdf_items(path)
