@@ -39,7 +39,7 @@ class IIC(nn.Module):
         p[(p < eps).data] = eps
         pi = p.sum(dim=1).view(k, 1).expand(k, k)
         pj = p.sum(dim=0).view(1, k).expand(k, k)
-        return -(p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
+        return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
 
     def forward(self, x, perturb=False):
         if perturb:
