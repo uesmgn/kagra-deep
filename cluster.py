@@ -71,6 +71,21 @@ def plot_cm(cm, xlabels, ylabels, out):
     plt.savefig(out)
     plt.close()
 
+def logger(log, epoch, outdir):
+    for k, v in log.items():
+        plt.figure(figsize=(8, 6))
+        out = f'{outdir}/{k}_{epoch}.png'
+        yy = np.array(v)
+        xx = np.array(range(len(v))) + 1
+        plt.plot(xx, yy)
+        plt.xlabel('epoch')
+        plt.ylabel(k)
+        plt.xlim((min(xx), max(xx)))
+        plt.tight_layout()
+        plt.savefig(out)
+        plt.close()
+
+
 def perturb(x, noise_rate=0.1):
     xt = x.clone()
     noise = torch.randn_like(x) * noise_rate
@@ -84,6 +99,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=flags.lr)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
     optimizer, T_0=2, T_mult=2)
 
+log = defaultdict(lambda: [])
 for epoch in range(1, flags.num_epochs):
     model.train()
     loss = defaultdict(lambda: 0)
@@ -98,6 +114,7 @@ for epoch in range(1, flags.num_epochs):
         loss['train'] += loss_step.item()
     scheduler.step()
     print(f'train loss at epoch {epoch} = {loss["train"]:.3f}')
+    log['train_loss'].append(loss['train'])
 
     model.eval()
     result = defaultdict(lambda: [])
@@ -121,3 +138,4 @@ for epoch in range(1, flags.num_epochs):
         cm_over[i, j] += 1
     plot_cm(cm_over, list(range(flags.num_classes_over)), list(range(max(trues) + 1)),
             f'{flags.outdir}/cm_over_{epoch}.png')
+    logger(log, epoch, flags.outdir)
