@@ -76,6 +76,7 @@ def plot_cm(cm, xlabels, ylabels, out):
     plt.savefig(out)
     plt.close()
 
+
 for epoch in range(1, flags.num_epochs):
     model.train()
     loss = defaultdict(lambda: 0)
@@ -92,6 +93,7 @@ for epoch in range(1, flags.num_epochs):
     print(f'train loss at epoch {epoch} = {loss["train"]:.3f}')
 
     model.eval()
+    result = defaultdict(lambda: [])
     with torch.no_grad():
         for x, targets in tqdm(test_loader):
             x = x.to(device)
