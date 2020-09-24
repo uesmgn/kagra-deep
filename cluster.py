@@ -140,8 +140,8 @@ for epoch in range(1, flags.num_epochs):
             loss_step_for_each_head.append(loss_step_head)
         loss_step_for_each_head = torch.stack(loss_step_for_each_head)
         loss_step = torch.sum(loss_step_for_each_head) / flags.num_heads
-        print('loss_step_for_each_head:', loss_step_for_each_head.cpu().numpy())
-        head_idx = loss_step_for_each_head.argmin(dim=-1).cpu()
+        print('loss_step_for_each_head:', loss_step_for_each_head)
+        head_idx = loss_step_for_each_head.argmin(dim=-1)
         print('head_idx:', head_idx)
 
         optimizer.zero_grad()
