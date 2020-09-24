@@ -7,6 +7,8 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from attrdict import AttrDict
 from collections import defaultdict
+from sklearn import preprocessing
+import itertools
 
 import src.utils.validation as validation
 import src.models as models
@@ -19,13 +21,13 @@ np.random.seed(SEED_VALUE)
 torch.manual_seed(SEED_VALUE)
 
 flags = AttrDict(
-    batch_size=8,
-    num_workers=1,
+    batch_size=96,
+    num_workers=4,
     num_epochs=100,
-    lr=3e-4,
-    weight_decay=1e-4,
-    num_classes=10,
+    lr=1e-3,
+    num_classes=20,
     num_classes_over=100,
+    outdir='/content',
 )
 
 parser = argparse.ArgumentParser()
@@ -48,11 +50,31 @@ device = torch.device(
     'cuda:0') if torch.cuda.is_available() else torch.device('cpu')
 if torch.cuda.is_available():
     torch.backends.cudnn.benchmark = True
-model = models.IIC('VGG11', in_channels=4, num_classes=flags.num_classes,
+model = models.IIC('ResNet50', in_channels=4, num_classes=flags.num_classes,
                    num_classes_over=flags.num_classes_over).to(device)
-optimizer = torch.optim.Adam(
-    model.parameters(), lr=flags.lr, weight_decay=flags.weight_decay)
+optimizer = torch.optim.Adam(model.parameters(), lr=flags.lr)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
+    optimizer, T_0=2, T_mult=2)
 
+def plot_cm(cm, xlabels, ylabels, out):
+    plt.figure(figsize=(len(xlabels) / 2.5, len(ylabels) / 2.5))
+    cmap = plt.get_cmap('Blues')
+    cm_norm = preprocessing.normalize(cm, axis=0, norm='l1')
+    plt.imshow(cm_norm.T, interpolation='nearest', cmap=cmap, origin='lower')
+    ax = plt.gca()
+    ax.set_xticks(np.arange(len(xlabels)))
+    ax.set_yticks(np.arange(len(ylabels)))
+    ax.set_xticklabels(xlabels)
+    ax.set_yticklabels(ylabels)
+    plt.setp(ax.get_yticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+    thresh = 1. / 1.5
+    for i, j in itertools.product(range(len(xlabels)), range(len(ylabels))):
+        num = "{}".format(cm[i, j])
+        color = "white" if cm_norm[i, j] > thresh else "black"
+        ax.text(i, j, num, fontsize=8, color=color, ha='center', va='center')
+    plt.tight_layout()
+    plt.savefig(out)
+    plt.close()
 
 for epoch in range(1, flags.num_epochs):
     model.train()
@@ -66,6 +88,7 @@ for epoch in range(1, flags.num_epochs):
         loss_step.backward()
         optimizer.step()
         loss['train'] += loss_step.item()
+    scheduler.step()
     print(f'train loss at epoch {epoch} = {loss["train"]:.3f}')
 
     model.eval()
@@ -80,7 +103,12 @@ for epoch in range(1, flags.num_epochs):
     preds_over = torch.cat(result['pred_over']).numpy()
     trues = torch.cat(result['true']).numpy()
     cm = np.zeros((flags.num_classes, max(trues) + 1), dtype=np.int)
-    print('cm.shape:', cm.shape)
     for i, j in zip(preds, trues):
         cm[i, j] += 1
-    print(cm)
+    plot_cm(cm, list(range(flags.num_classes)), list(range(max(trues) + 1)),
+            f'{flags.outdir}/cm_{epoch}.png')
+    cm_over = np.zeros((flags.num_classes_over, max(trues) + 1), dtype=np.int)
+    for i, j in zip(preds_over, trues):
+        cm_over[i, j] += 1
+    plot_cm(cm_over, list(range(flags.num_classes_over)), list(range(max(trues) + 1)),
+            f'{flags.outdir}/cm_over_{epoch}.png')
