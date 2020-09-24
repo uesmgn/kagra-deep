@@ -11,7 +11,7 @@ backbones = [
     'ResNet18', 'ResNet34', 'ResNet50',
 ]
 
-def perturb_default(x, noise_rate=0.05):
+def perturb_default(x, noise_rate=0.1):
     xt = x.clone()
     noise = torch.randn_like(x) * noise_rate
     xt += noise
