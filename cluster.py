@@ -24,6 +24,8 @@ flags = AttrDict(
     num_epochs=100,
     lr=3e-4,
     weight_decay=1e-4,
+    num_classes=10,
+    num_classes_over=100,
 )
 
 parser = argparse.ArgumentParser()
@@ -42,11 +44,14 @@ test_loader = torch.utils.data.DataLoader(
     test_set, batch_size=flags.batch_size, num_workers=flags.num_workers,
     shuffle=False)
 
-device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
+device = torch.device(
+    'cuda:0') if torch.cuda.is_available() else torch.device('cpu')
 if torch.cuda.is_available():
     torch.backends.cudnn.benchmark = True
-model = models.IIC('VGG11', in_channels=4, num_classes=10, num_classes_over=100).to(device)
-optimizer = torch.optim.Adam(model.parameters(), lr=flags.lr, weight_decay=flags.weight_decay)
+model = models.IIC('VGG11', in_channels=4, num_classes=flags.num_classes,
+                   num_classes_over=flags.num_classes_over).to(device)
+optimizer = torch.optim.Adam(
+    model.parameters(), lr=flags.lr, weight_decay=flags.weight_decay)
 
 
 for epoch in range(1, flags.num_epochs):
@@ -62,3 +67,20 @@ for epoch in range(1, flags.num_epochs):
         optimizer.step()
         loss['train'] += loss_step.item()
     print(f'train loss at epoch {epoch} = {loss["train"]:.3f}')
+
+    model.eval()
+    with torch.no_grad():
+        for x, targets in tqdm(test_loader):
+            x = x.to(device)
+            y, y_over = model(x)
+            result['pred'].append(y.argmax(dim=-1).cpu())
+            result['pred_over'].append(y_over.argmax(dim=-1).cpu())
+            result['true'].append(targets['target_index'])
+    preds = torch.cat(result['pred']).numpy()
+    preds_over = torch.cat(result['pred_over']).numpy()
+    trues = torch.cat(result['true']).numpy()
+    cm = np.zeros((flags.num_classes, max(trues) + 1), dtype=np.int)
+    print('cm.shape:', cm.shape)
+    for i, j in zip(preds, trues):
+        cm[i, j] += 1
+    print(cm)
