@@ -26,7 +26,7 @@ def acronym(name):
 
 
 def plot_cm(cm, xlabels, ylabels, out):
-    plt.figure(figsize=(len(xlabels) / 2.5, len(ylabels) / 2.5))
+    plt.figure(figsize=(10 * len(xlabels) / len(ylabels), 10))
     cmap = plt.get_cmap('Blues')
     cm_norm = preprocessing.normalize(cm, axis=0, norm='l1')
     plt.imshow(cm_norm.T, interpolation='nearest', cmap=cmap, origin='lower')
@@ -37,7 +37,7 @@ def plot_cm(cm, xlabels, ylabels, out):
     ax.set_yticklabels(ylabels)
     plt.setp(ax.get_yticklabels(), rotation=45,
              ha="right", rotation_mode="anchor")
-    thresh = 1. / 1.5
+    thresh = 1. / 1.8
     for i, j in itertools.product(range(len(xlabels)), range(len(ylabels))):
         num = "{}".format(cm[i, j])
         color = "white" if cm_norm[i, j] > thresh else "black"
@@ -116,8 +116,8 @@ if torch.cuda.is_available():
 model = models.IIC(flags.model, in_channels=4, num_classes=flags.num_classes,
                    num_classes_over=flags.num_classes_over,
                    perturb_fn=lambda x: perturb(x)).to(device)
-optimizer = torch.optim.Adam(model.parameters(), lr=flags.lr,
-                             weight_decay=flags.weight_decay)
+optimizer = torch.optim.SGD(model.parameters(), lr=flags.lr,
+                            weight_decay=flags.weight_decay)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
     optimizer, T_0=2, T_mult=2)
 
