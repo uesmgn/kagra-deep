@@ -19,14 +19,16 @@ def perturb_default(x, noise_rate=0.1):
 
 class IIC(nn.Module):
     def __init__(self, backbone, in_channels=4, num_classes=10,
-                 num_classes_over=100, perturb_fn=None):
+                 num_classes_over=100, num_heads=10, perturb_fn=None):
       super().__init__()
       assert backbone in backbones
       net = getattr(bb, backbone)(in_channels=in_channels)
       # remove last fc layer
       self.net = nn.Sequential(*list(net.children())[:-1])
-      self.clustering = nn.Linear(net.fc_in, num_classes)
-      self.over_clustering = nn.Linear(net.fc_in, num_classes_over)
+      self.clustering_heads = nn.ModuleList([
+            nn.Linear(net.fc_in, num_classes) for _ in range(num_heads)])
+      self.over_clustering_heads = nn.ModuleList([
+            nn.Linear(net.fc_in, num_classes_over) for _ in range(num_heads)])
       self.perturb_fn = perturb_fn
       if perturb_fn is None:
           self.perturb_fn = lambda x: perturb_default(x)
@@ -45,6 +47,6 @@ class IIC(nn.Module):
         if perturb:
             x = self.perturb_fn(x)
         x_densed = self.net(x)
-        y = F.softmax(self.clustering(x_densed), dim=-1)
-        y_over = F.softmax(self.over_clustering(x_densed), dim=-1)
-        return y, y_over
+        y_outputs = [F.softmax(head(x_densed), dim=-1) for head in self.clustering_heads]
+        y_over_outputs = [F.softmax(head(x_densed), dim=-1) for head in self.over_clustering_heads]
+        return y_outputs, y_over_outputs
