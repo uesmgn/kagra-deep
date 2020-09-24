@@ -50,11 +50,6 @@ device = torch.device(
     'cuda:0') if torch.cuda.is_available() else torch.device('cpu')
 if torch.cuda.is_available():
     torch.backends.cudnn.benchmark = True
-model = models.IIC('ResNet50', in_channels=4, num_classes=flags.num_classes,
-                   num_classes_over=flags.num_classes_over).to(device)
-optimizer = torch.optim.Adam(model.parameters(), lr=flags.lr)
-scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
-    optimizer, T_0=2, T_mult=2)
 
 def plot_cm(cm, xlabels, ylabels, out):
     plt.figure(figsize=(len(xlabels) / 2.5, len(ylabels) / 2.5))
@@ -76,6 +71,18 @@ def plot_cm(cm, xlabels, ylabels, out):
     plt.savefig(out)
     plt.close()
 
+def perturb(x, noise_rate=0.1):
+    xt = x.clone()
+    noise = torch.randn_like(x) * noise_rate
+    xt += noise
+    return xt
+
+model = models.IIC('ResNet50', in_channels=4, num_classes=flags.num_classes,
+                   num_classes_over=flags.num_classes_over,
+                   perturb_fn=lambda x: perturb(x)).to(device)
+optimizer = torch.optim.Adam(model.parameters(), lr=flags.lr)
+scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
+    optimizer, T_0=2, T_mult=2)
 
 for epoch in range(1, flags.num_epochs):
     model.train()
