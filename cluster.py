@@ -41,6 +41,10 @@ args = parser.parse_args()
 hdf_file = args.path_to_hdf
 
 train_set, test_set = datasets.HDF5Dataset(hdf_file).split_dataset(0.7)
+target_dict = {}
+for _, target in train_set:
+    target_dict[target['target_index']] = target['target_name']
+print('target_dict:', target_dict)
 
 train_loader = torch.utils.data.DataLoader(
     train_set, batch_size=flags.batch_size, num_workers=flags.num_workers,
@@ -76,7 +80,7 @@ def plot_cm(cm, xlabels, ylabels, out):
 
 def logger(log, epoch, outdir):
     for k, v in log.items():
-        plt.figure(figsize=(8, 6))
+        plt.figure(figsize=(10, 6))
         out = f'{outdir}/{k}_{epoch}.png'
         yy = np.array(v)
         xx = np.array(range(len(v))) + 1
@@ -138,7 +142,8 @@ for epoch in range(1, flags.num_epochs):
     cm = np.zeros((flags.num_classes, max(trues) + 1), dtype=np.int)
     for i, j in zip(preds, trues):
         cm[i, j] += 1
-    plot_cm(cm, list(range(flags.num_classes)), list(range(max(trues) + 1)),
+    cm_ylabels = [target_dict[i] for i in range(max(trues)]
+    plot_cm(cm, list(range(flags.num_classes)), cm_ylabels),
             f'{flags.outdir}/cm_{epoch}.png')
     # cm_over = np.zeros((flags.num_classes_over, max(trues) + 1), dtype=np.int)
     # for i, j in zip(preds_over, trues):
