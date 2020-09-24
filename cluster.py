@@ -29,6 +29,7 @@ flags = AttrDict(
     num_classes=20,
     num_classes_over=100,
     outdir='/content',
+    eval_step=10,
 )
 
 parser = argparse.ArgumentParser()
@@ -117,6 +118,9 @@ for epoch in range(1, flags.num_epochs):
     print(f'train loss at epoch {epoch} = {loss["train"]:.3f}')
     log['train_loss'].append(loss['train'])
 
+    if epoch % flags.eval_step != 0:
+        continue
+        
     model.eval()
     result = defaultdict(lambda: [])
     with torch.no_grad():
