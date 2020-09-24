@@ -156,7 +156,7 @@ for epoch in range(1, flags.num_epochs):
     cm = np.zeros((flags.num_classes, max(trues) + 1), dtype=np.int)
     for i, j in zip(preds, trues):
         cm[i, j] += 1
-    cm_ylabels = [f'{i}-{target_dict[i]}' for i in range(max(trues))]
+    cm_ylabels = [f'{i}-{target_dict[i]}' for i in range(max(trues)+1)]
     plot_cm(cm, list(range(flags.num_classes)), cm_ylabels,
             f'{flags.outdir}/cm_{epoch}.png')
     # cm_over = np.zeros((flags.num_classes_over, max(trues) + 1), dtype=np.int)
