@@ -105,7 +105,7 @@ flags = AttrDict(
 parser = argparse.ArgumentParser()
 parser.add_argument('path_to_hdf', type=validation.is_hdf,
                     help='path to hdf file.')
-parser.add_argument('-m', 'path_to_model', type=validation.is_file,
+parser.add_argument('-m', '--path_to_model', type=validation.is_file,
                     help='path to pre-trained model.state_dict().')
 args = parser.parse_args()
 
