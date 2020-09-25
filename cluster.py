@@ -15,6 +15,13 @@ import src.utils.validation as validation
 import src.models as models
 import src.datasets as datasets
 
+def get_optimizer(model, optimizer, lr=1e-3, weight_decay=1e-4):
+    if optimizer is 'SGD':
+        return torch.optim.SGD(model.parameters(), lr=lr, weight_decay=weight_decay)
+    elif optimizer is 'Adam':
+        return torch.optim.Adam(model.parameters(), lr=lr)
+    else:
+        raise ValueError(f'optimizer {optimizer} is invalid.')
 
 def acronym(name):
     name = re.sub(r'(^[0-9a-zA-Z]{5,}(?=_))|((?<=_)[0-9a-zA-Z]*)',
@@ -87,7 +94,8 @@ flags = AttrDict(
     outdir='/content',
     eval_step=10,
     num_heads=8,
-    avg_for_heads=True
+    avg_for_heads=True,
+    optimizer='Adam'
 )
 
 parser = argparse.ArgumentParser()
@@ -119,8 +127,7 @@ model = models.IIC(flags.model, in_channels=4, num_classes=flags.num_classes,
                    num_classes_over=flags.num_classes_over,
                    num_heads=flags.num_heads,
                    perturb_fn=lambda x: perturb(x)).to(device)
-optimizer = torch.optim.SGD(model.parameters(), lr=flags.lr,
-                            weight_decay=flags.weight_decay)
+optimizer = get_optimizer(model, flags.optimizer, lr=flags.lr, weight_decay=flags.weight_decay)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
     optimizer, T_0=2, T_mult=2)
 
