@@ -4,7 +4,7 @@ class Module(nn.Module):
   def __init__(self):
     super().__init__()
 
-  def _initialize_weights(self, mode='fan_in'):
+  def initialize_weights(self, mode='fan_in'):
     for m in self.modules():
       if isinstance(m, nn.Conv2d):
         nn.init.kaiming_normal_(m.weight, mode=mode, nonlinearity='relu')
@@ -14,5 +14,5 @@ class Module(nn.Module):
         m.weight.data.fill_(1)
         m.bias.data.zero_()
       elif isinstance(m, nn.Linear):
-        m.weight.data.normal_(0, 0.01)
+        m.weight.data.normal_(0, 0.1)
         m.bias.data.zero_()
