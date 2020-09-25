@@ -102,7 +102,7 @@ torch.manual_seed(SEED_VALUE)
 
 flags = AttrDict(
     # setup params
-    batch_size=64,
+    batch_size=128,
     num_workers=4,
     num_epochs=100,
     use_perturb=False,
