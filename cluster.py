@@ -86,7 +86,8 @@ flags = AttrDict(
     num_classes_over=100,
     outdir='/content',
     eval_step=10,
-    num_heads=32
+    num_heads=32,
+    avg_for_heads=False
 )
 
 parser = argparse.ArgumentParser()
@@ -140,7 +141,9 @@ for epoch in range(1, flags.num_epochs):
             loss_step_head = model.criterion(y, yt) + model.criterion(y_over, yt_over)
             loss_step_for_each_head.append(loss_step_head)
         loss_step_for_each_head = torch.stack(loss_step_for_each_head)
-        loss_step = torch.sum(loss_step_for_each_head) / flags.num_heads
+        loss_step = torch.sum(loss_step_for_each_head)
+        if flags.avg_for_heads:
+            loss_step /= flags.num_heads
         head_selecter += loss_step_for_each_head
 
         optimizer.zero_grad()
