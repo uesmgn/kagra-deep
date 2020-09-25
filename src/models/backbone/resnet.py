@@ -27,7 +27,7 @@ class ResNet(Module):
         self.fc = nn.Sequential(
             nn.Linear(512 * expansion, num_classes)
         )
-        self._initialize_weights()
+        self.initialize_weights()
 
     def forward(self, x):
         x = self.head(x)
