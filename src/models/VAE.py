@@ -54,12 +54,12 @@ class VAE(Module):
         self.initialize_weights()
 
     def criterion(self, x, x_generated, z_mean, z_var):
-        bce = F.binary_cross_entropy(x_generated, x, reduction='none').view(x.shape[0], -1).mean(-1)
+        bce = F.binary_cross_entropy(x_generated, x, reduction='none').view(x.shape[0], -1).sum(-1)
         mean_ = torch.zeros_like(z_mean)
         var_ = torch.ones_like(z_var)
         kl = 0.5 * ( torch.log(var_ / z_var) \
-             + (z_var + torch.pow(z_mean - mean_, 2)) / var_ - 1).mean(-1)
-        return (bce + kl).sum()
+             + (z_var + torch.pow(z_mean - mean_, 2)) / var_ - 1).sum(-1)
+        return (bce + kl).mean()
 
     def forward(self, x, reparameterize=True):
         x_densed = self.encoder(x)
