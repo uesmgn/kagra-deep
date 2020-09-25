@@ -126,6 +126,7 @@ scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
 
 log = defaultdict(lambda: [])
 for epoch in range(1, flags.num_epochs):
+    print(f'---------- epoch {epoch} ----------')
     model.train()
     model.initialize_headers_weights()
     loss = defaultdict(lambda: 0)
@@ -153,11 +154,10 @@ for epoch in range(1, flags.num_epochs):
         loss['train'] += loss_step.item()
 
     scheduler.step()
-    print(f'train loss at epoch {epoch} = {loss["train"]:.3f}')
+    print(f'train loss: {loss["train"]:.3f}')
     log['train_loss'].append(loss['train'])
-    print('head_selecter:', head_selecter)
     best_head_idx = head_selecter.argmin(dim=-1).item()
-    print('best_head_idx:', best_head_idx)
+    print(f'best_head_idx: {best_head_idx}')
 
     if epoch % flags.eval_step != 0:
         continue
