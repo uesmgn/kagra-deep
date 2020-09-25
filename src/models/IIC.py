@@ -43,10 +43,15 @@ class IIC(nn.Module):
         pj = p.sum(dim=0).view(1, k).expand(k, k)
         return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
 
-    def forward(self, x, perturb=False):
+    def forward(self, x, perturb=False, head_index=None):
         if perturb:
             x = self.perturb_fn(x)
         x_densed = self.net(x)
-        y_outputs = [F.softmax(head(x_densed), dim=-1) for head in self.clustering_heads]
-        y_over_outputs = [F.softmax(head(x_densed), dim=-1) for head in self.over_clustering_heads]
-        return y_outputs, y_over_outputs
+        if isinstance(head_index, int):
+            y_output = F.softmax(self.clustering_heads[head_index](x_densed), dim=-1)
+            y_over_output = F.softmax(self.over_clustering_heads[head_index](x_densed), dim=-1)
+            return y_output, y_over_output
+        else:
+            y_outputs = [F.softmax(head(x_densed), dim=-1) for head in self.clustering_heads]
+            y_over_outputs = [F.softmax(head(x_densed), dim=-1) for head in self.over_clustering_heads]
+            return y_outputs, y_over_outputs
