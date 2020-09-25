@@ -36,11 +36,11 @@ class IIC(bb.Module):
 
     def initialize_headers_weights(self):
         for m in self.clustering_heads:
-            m.weight.data.normal_(0, 0.1)
-            m.bias.data.zero_()
+            nn.init.xavier_normal_(m.weight)
+            nn.init.zeros_(m.bias)
         for m in self.over_clustering_heads:
-            m.weight.data.normal_(0, 0.1)
-            m.bias.data.zero_()
+            nn.init.xavier_normal_(m.weight)
+            nn.init.zeros_(m.bias)
 
     def criterion(self, z, zt):
         _, k = z.size()
