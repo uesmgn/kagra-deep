@@ -97,7 +97,7 @@ flags = AttrDict(
     lr=1e-3,
     weight_decay=1e-4,
     # log params
-    outdir='/content',
+    outdir='/content/run_iic',
     eval_step=10,
     avg_for_heads=True,
 )
@@ -107,10 +107,14 @@ parser.add_argument('path_to_hdf', type=validation.is_hdf,
                     help='path to hdf file.')
 parser.add_argument('-m', '--path_to_model', type=validation.is_file,
                     help='path to pre-trained model.state_dict().')
+parser.add_argument('-o', '--path_to_outdir', type=validation.is_dir,
+                    help='path to output directory.')
 args = parser.parse_args()
 
 path_to_hdf = args.path_to_hdf
 path_to_model = args.path_to_model
+path_to_outdir = args.path_to_outdir
+outdir = path_to_outdir or flags.outdir
 
 train_set, test_set = datasets.HDF5Dataset(path_to_hdf).split_dataset(0.7)
 target_dict = {}
@@ -193,15 +197,18 @@ for epoch in range(1, flags.num_epochs):
     preds = torch.cat(result['pred']).numpy()
     preds_over = torch.cat(result['pred_over']).numpy()
     trues = torch.cat(result['true']).numpy()
+
+    # write result
+    os.makedirs(outdir, exist_ok=True)
     cm_ylabels = [f'{i}-{target_dict[i]}' for i in range(max(trues)+1)]
     cm = np.zeros((flags.num_classes, max(trues) + 1), dtype=np.int)
     for i, j in zip(preds, trues):
         cm[i, j] += 1
     plot_cm(cm, list(range(flags.num_classes)), cm_ylabels,
-            f'{flags.outdir}/cm_{epoch}.png')
+            f'{outdir}/cm_{epoch}.png')
     cm_over = np.zeros((flags.num_classes_over, max(trues) + 1), dtype=np.int)
     for i, j in zip(preds_over, trues):
         cm_over[i, j] += 1
     plot_cm(cm_over, list(range(flags.num_classes_over)), cm_ylabels,
-            f'{flags.outdir}/cm_over_{epoch}.png')
-    logger(log, epoch, flags.outdir)
+            f'{outdir}/cm_over_{epoch}.png')
+    logger(log, epoch, outdir)
