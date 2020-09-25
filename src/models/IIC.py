@@ -32,8 +32,15 @@ class IIC(bb.Module):
         self.perturb_fn = perturb_fn
         if perturb_fn is None:
             self.perturb_fn = lambda x: perturb_default(x)
-        self._initialize_weights()
+        self.initialize_weights()
 
+    def initialize_headers_weights(self):
+        for m in self.clustering_heads:
+            m.weight.data.normal_(0, 0.1)
+            m.bias.data.zero_()
+        for m in self.over_clustering_heads:
+            m.weight.data.normal_(0, 0.1)
+            m.bias.data.zero_()
 
     def criterion(self, z, zt):
         _, k = z.size()
