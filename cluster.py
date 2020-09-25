@@ -26,7 +26,7 @@ def acronym(name):
 
 
 def plot_cm(cm, xlabels, ylabels, out):
-    plt.figure(figsize=(10 * len(xlabels) / len(ylabels), 10))
+    plt.figure(figsize=(6 * len(xlabels) / len(ylabels), 6))
     cmap = plt.get_cmap('Blues')
     cm_norm = preprocessing.normalize(cm, axis=0, norm='l1')
     plt.imshow(cm_norm.T, interpolation='nearest', cmap=cmap, origin='lower')
@@ -37,11 +37,11 @@ def plot_cm(cm, xlabels, ylabels, out):
     ax.set_yticklabels(ylabels)
     plt.setp(ax.get_yticklabels(), rotation=45,
              ha="right", rotation_mode="anchor")
-    thresh = 1. / 1.8
+    thresh = 1. / 1.75
     for i, j in itertools.product(range(len(xlabels)), range(len(ylabels))):
         num = "{}".format(cm[i, j])
         color = "white" if cm_norm[i, j] > thresh else "black"
-        ax.text(i, j, num, fontsize=8, color=color, ha='center', va='center')
+        ax.text(i, j, num, fontsize=6, color=color, ha='center', va='center')
     plt.tight_layout()
     plt.savefig(out)
     plt.close()
@@ -82,7 +82,7 @@ flags = AttrDict(
     num_epochs=100,
     lr=1e-3,
     weight_decay=1e-4,
-    num_classes=20,
+    num_classes=22,
     num_classes_over=100,
     outdir='/content',
     eval_step=10,
@@ -180,9 +180,9 @@ for epoch in range(1, flags.num_epochs):
     cm_ylabels = [f'{i}-{target_dict[i]}' for i in range(max(trues)+1)]
     plot_cm(cm, list(range(flags.num_classes)), cm_ylabels,
             f'{flags.outdir}/cm_{epoch}.png')
-    # cm_over = np.zeros((flags.num_classes_over, max(trues) + 1), dtype=np.int)
-    # for i, j in zip(preds_over, trues):
-    #     cm_over[i, j] += 1
-    # plot_cm(cm_over, list(range(flags.num_classes_over)), list(range(max(trues) + 1)),
-    #         f'{flags.outdir}/cm_over_{epoch}.png')
+    cm_over = np.zeros((flags.num_classes_over, max(trues) + 1), dtype=np.int)
+    for i, j in zip(preds_over, trues):
+        cm_over[i, j] += 1
+    plot_cm(cm_over, list(range(flags.num_classes_over)), list(range(max(trues) + 1)),
+            f'{flags.outdir}/cm_over_{epoch}.png')
     logger(log, epoch, flags.outdir)
