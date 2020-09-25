@@ -32,6 +32,23 @@ def acronym(name):
     name = name.replace('_', '.')
     return name
 
+def plot_features_2d(xx, yy, labels, out):
+    plt.figure(figsize=(8, 8))
+    xx, yy, labels = validation.check_array(
+        xx, yy, labels, check_size=True, dtype=[np.float, np.float, np.str])
+    labels_unique = validation.check_array(labels, unique=True, sort=True, dtype=np.str)
+    for i, label in enumerate(labels_unique):
+        if label not in labels:
+            continue
+        idx = np.where(labels==label)
+        x = xx[idx]
+        y = yy[idx]
+        plt.scatter(x, y, s=8.0, label=label)
+    plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left',
+               borderaxespad=0, fontsize=8)
+    plt.tight_layout()
+    plt.savefig(out)
+    plt.close()
 
 def plot_cm(cm, xlabels, ylabels, out):
     plt.figure(figsize=(8 * len(xlabels) / len(ylabels), 8))
@@ -212,8 +229,9 @@ for epoch in range(1, flags.num_epochs):
     preds_over = torch.cat(result['pred_over']).numpy()
     trues = torch.cat(result['true']).numpy()
     z = torch.cat(result['z']).numpy()
+    print('z.shape:', z.shape)
     z = decomposition.TSNE(n_components=2).fit_transform(z)
-    print(z.shape)
+    print('decomposed z.shape:', z.shape)
 
     cm_ylabels = [f'{i}-{target_dict[i]}' for i in range(max(trues)+1)]
     cm = np.zeros((flags.num_classes, max(trues) + 1), dtype=np.int)
@@ -227,3 +245,5 @@ for epoch in range(1, flags.num_epochs):
     plot_cm(cm_over, list(range(flags.num_classes_over)), cm_ylabels,
             f'{flags.outdir}/cm_over_{epoch}.png')
     logger(log, epoch, flags.outdir)
+    z_labels = [f'{i}-{target_dict[i]}' for i in trues]
+    plot_features_2d(z[:, 0], z[:, 1], z_labels, f'{flags.outdir}/z_{epoch}.png')
