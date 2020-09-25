@@ -6,6 +6,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from .backbone import *
 
+__all__ = [
+    'IIC'
+]
+
 backbones = [
     'VGG11', 'VGG13', 'VGG16', 'VGG19',
     'ResNet18', 'ResNet34', 'ResNet50',
@@ -22,7 +26,7 @@ class IIC(Module):
              num_classes_over=100, num_heads=10, perturb_fn=None):
         super().__init__()
         assert backbone in backbones
-        net = getattr(None, backbone)(in_channels=in_channels)
+        net = globals()[backbone](in_channels=in_channels)
         # remove last fc layer
         self.net = nn.Sequential(*list(net.children())[:-1])
         self.clustering_heads = nn.ModuleList([
