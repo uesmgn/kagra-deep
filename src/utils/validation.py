@@ -24,6 +24,13 @@ def is_dir(path):
     else:
         raise None
 
+def is_file(path):
+    path = os.path.abspath(path)
+    if os.path.isfile(path):
+        return path
+    else:
+        raise None
+
 def is_hdf(path):
     path = os.path.abspath(path)
     assert os.path.splitext(path)[-1] in ('.h5', '.hdf5')
