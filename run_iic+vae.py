@@ -12,6 +12,7 @@ from sklearn import preprocessing
 import itertools
 
 import src.utils.validation as validation
+import src.utils.decomposition as decomposition
 import src.models as models
 import src.datasets as datasets
 
@@ -99,7 +100,7 @@ flags = AttrDict(
     weight_decay=1e-4,
     # log params
     outdir='/content',
-    eval_step=10,
+    eval_step=2,
     avg_for_heads=True,
 )
 
@@ -190,30 +191,39 @@ for epoch in range(1, flags.num_epochs):
     print(f'train vae loss: {loss["train_vae"]:.3f}')
     print(f'best_head_idx: {best_head_idx}')
 
-    # if epoch % flags.eval_step != 0:
-    #     continue
-    #
-    # model.eval()
-    # result = defaultdict(lambda: [])
-    # with torch.no_grad():
-    #     for x, targets in tqdm(test_loader):
-    #         x = x.to(device)
-    #         y, y_over = model(x, head_index=best_head_idx)
-    #         result['pred'].append(y.argmax(dim=-1).cpu())
-    #         result['pred_over'].append(y_over.argmax(dim=-1).cpu())
-    #         result['true'].append(targets['target_index'])
-    # preds = torch.cat(result['pred']).numpy()
-    # preds_over = torch.cat(result['pred_over']).numpy()
-    # trues = torch.cat(result['true']).numpy()
-    # cm_ylabels = [f'{i}-{target_dict[i]}' for i in range(max(trues)+1)]
-    # cm = np.zeros((flags.num_classes, max(trues) + 1), dtype=np.int)
-    # for i, j in zip(preds, trues):
-    #     cm[i, j] += 1
-    # plot_cm(cm, list(range(flags.num_classes)), cm_ylabels,
-    #         f'{flags.outdir}/cm_{epoch}.png')
-    # cm_over = np.zeros((flags.num_classes_over, max(trues) + 1), dtype=np.int)
-    # for i, j in zip(preds_over, trues):
-    #     cm_over[i, j] += 1
-    # plot_cm(cm_over, list(range(flags.num_classes_over)), cm_ylabels,
-    #         f'{flags.outdir}/cm_over_{epoch}.png')
-    # logger(log, epoch, flags.outdir)
+    if epoch % flags.eval_step != 0:
+        continue
+
+    model.eval()
+    result = defaultdict(lambda: [])
+    with torch.no_grad():
+        for x, targets in tqdm(test_loader):
+            x = x.to(device)
+            x_densed = model(x)
+            y, y_over = model.iic(x_densed, head_index=best_head_idx)
+            result['pred'].append(y.argmax(dim=-1).cpu())
+            result['pred_over'].append(y_over.argmax(dim=-1).cpu())
+            result['true'].append(targets['target_index'])
+
+            x_generated, z, z_mean, z_var = model.vae(x_densed)
+            result['z'].append(z.cpu())
+
+    preds = torch.cat(result['pred']).numpy()
+    preds_over = torch.cat(result['pred_over']).numpy()
+    trues = torch.cat(result['true']).numpy()
+    z = torch.cat(result['z']).numpy()
+    z = decomposition.TSNE(n_components=2).fit_transform(z)
+    print(z.shape)
+
+    cm_ylabels = [f'{i}-{target_dict[i]}' for i in range(max(trues)+1)]
+    cm = np.zeros((flags.num_classes, max(trues) + 1), dtype=np.int)
+    for i, j in zip(preds, trues):
+        cm[i, j] += 1
+    plot_cm(cm, list(range(flags.num_classes)), cm_ylabels,
+            f'{flags.outdir}/cm_{epoch}.png')
+    cm_over = np.zeros((flags.num_classes_over, max(trues) + 1), dtype=np.int)
+    for i, j in zip(preds_over, trues):
+        cm_over[i, j] += 1
+    plot_cm(cm_over, list(range(flags.num_classes_over)), cm_ylabels,
+            f'{flags.outdir}/cm_over_{epoch}.png')
+    logger(log, epoch, flags.outdir)
