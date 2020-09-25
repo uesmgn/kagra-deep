@@ -26,7 +26,7 @@ def acronym(name):
 
 
 def plot_cm(cm, xlabels, ylabels, out):
-    plt.figure(figsize=(6 * len(xlabels) / len(ylabels), 6))
+    plt.figure(figsize=(10 * len(xlabels) / len(ylabels), 8))
     cmap = plt.get_cmap('Blues')
     cm_norm = preprocessing.normalize(cm, axis=0, norm='l1')
     plt.imshow(cm_norm.T, interpolation='nearest', cmap=cmap, origin='lower')
@@ -41,7 +41,7 @@ def plot_cm(cm, xlabels, ylabels, out):
     for i, j in itertools.product(range(len(xlabels)), range(len(ylabels))):
         num = "{}".format(cm[i, j])
         color = "white" if cm_norm[i, j] > thresh else "black"
-        ax.text(i, j, num, fontsize=6, color=color, ha='center', va='center')
+        ax.text(i, j, num, fontsize=8, color=color, ha='center', va='center')
     plt.tight_layout()
     plt.savefig(out)
     plt.close()
@@ -86,7 +86,7 @@ flags = AttrDict(
     num_classes_over=100,
     outdir='/content',
     eval_step=10,
-    num_heads=5,
+    num_heads=8,
     avg_for_heads=True
 )
 
@@ -142,21 +142,22 @@ for epoch in range(1, flags.num_epochs):
             loss_step_head = model.criterion(y, yt) + model.criterion(y_over, yt_over)
             loss_step_for_each_head.append(loss_step_head)
         loss_step_for_each_head = torch.stack(loss_step_for_each_head)
-        loss_step = torch.sum(loss_step_for_each_head)
         if flags.avg_for_heads:
-            loss_step /= flags.num_heads
+            loss_step_for_each_head /= flags.num_heads
         head_selecter += loss_step_for_each_head
+        loss_step = torch.sum(loss_step_for_each_head)
 
         optimizer.zero_grad()
         loss_step.backward()
         optimizer.step()
 
-        loss['train'] += loss_step.item()
+        loss["train"] += loss_step.item()
 
     scheduler.step()
-    print(f'train loss: {loss["train"]:.3f}')
     log['train_loss'].append(loss['train'])
     best_head_idx = head_selecter.argmin(dim=-1).item()
+
+    print(f'train loss (avg/sum for heads): {loss["train"]:.3f}')
     print(f'best_head_idx: {best_head_idx}')
 
     if epoch % flags.eval_step != 0:
@@ -174,15 +175,15 @@ for epoch in range(1, flags.num_epochs):
     preds = torch.cat(result['pred']).numpy()
     preds_over = torch.cat(result['pred_over']).numpy()
     trues = torch.cat(result['true']).numpy()
+    cm_ylabels = [f'{i}-{target_dict[i]}' for i in range(max(trues)+1)]
     cm = np.zeros((flags.num_classes, max(trues) + 1), dtype=np.int)
     for i, j in zip(preds, trues):
         cm[i, j] += 1
-    cm_ylabels = [f'{i}-{target_dict[i]}' for i in range(max(trues)+1)]
     plot_cm(cm, list(range(flags.num_classes)), cm_ylabels,
             f'{flags.outdir}/cm_{epoch}.png')
     cm_over = np.zeros((flags.num_classes_over, max(trues) + 1), dtype=np.int)
     for i, j in zip(preds_over, trues):
         cm_over[i, j] += 1
-    plot_cm(cm_over, list(range(flags.num_classes_over)), list(range(max(trues) + 1)),
+    plot_cm(cm_over, list(range(flags.num_classes_over)), cm_ylabels,
             f'{flags.outdir}/cm_over_{epoch}.png')
     logger(log, epoch, flags.outdir)
