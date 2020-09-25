@@ -80,14 +80,14 @@ flags = AttrDict(
     batch_size=64,
     num_workers=4,
     num_epochs=100,
-    lr=3e-3,
+    lr=1e-3,
     weight_decay=1e-4,
     num_classes=20,
     num_classes_over=100,
     outdir='/content',
     eval_step=10,
     num_heads=32,
-    avg_for_heads=False
+    avg_for_heads=True
 )
 
 parser = argparse.ArgumentParser()
