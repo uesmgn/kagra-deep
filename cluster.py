@@ -152,6 +152,7 @@ for epoch in range(1, flags.num_epochs):
 
         loss['train'] += loss_step.item()
 
+    model.initialize_headers_weights()
     scheduler.step()
     print(f'train loss at epoch {epoch} = {loss["train"]:.3f}')
     log['train_loss'].append(loss['train'])
