@@ -107,7 +107,6 @@ flags = AttrDict(
     num_epochs=100,
     use_perturb=False,
     save_step=10,
-    save_path='/content/model.pt',
     # model params
     model='ResNet34',
     z_dim=512,
@@ -123,9 +122,12 @@ flags = AttrDict(
 parser = argparse.ArgumentParser()
 parser.add_argument('path_to_hdf', type=validation.is_hdf,
                     help='path to hdf file.')
+parser.add_argument('path_to_model', type=validation.is_file,
+                    help='path to save model.state_dict().')
 args = parser.parse_args()
 
 hdf_file = args.path_to_hdf
+model_file = args.path_to_model
 
 train_set = datasets.HDF5Dataset(hdf_file)
 _, test_set = train_set.split_dataset(0.7)
@@ -197,4 +199,4 @@ for epoch in range(1, flags.num_epochs):
 
     if epoch % flags.save_step == 0:
         print(f'---------- saving check point at epoch {epoch} ----------')
-        torch.save(model.state_dict(), flags.save_path)
+        torch.save(model.state_dict(), model_file)
