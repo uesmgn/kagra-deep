@@ -85,7 +85,7 @@ class IIC_VAE(Module):
         var_ = torch.ones_like(z_var)
         kl = 0.5 * ( torch.log(var_ / z_var) \
                + (z_var + torch.pow(z_mean - mean_, 2)) / var_ - 1)
-        return (bce.sum(-1) + kl.sum(-1)).mean()
+        return (bce.mean(-1) + kl.mean(-1)).sum()
 
     def forward(self, x, perturb=False):
         if perturb:
