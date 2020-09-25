@@ -4,7 +4,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from . import backbone as bb
+from .backbone import *
 
 backbones = [
     'VGG11', 'VGG13', 'VGG16', 'VGG19',
@@ -17,12 +17,12 @@ def perturb_default(x, noise_rate=0.1):
     xt += noise
     return xt
 
-class IIC(bb.Module):
+class IIC(Module):
     def __init__(self, backbone, in_channels=4, num_classes=10,
              num_classes_over=100, num_heads=10, perturb_fn=None):
         super().__init__()
         assert backbone in backbones
-        net = getattr(bb, backbone)(in_channels=in_channels)
+        net = getattr(backbone)(in_channels=in_channels)
         # remove last fc layer
         self.net = nn.Sequential(*list(net.children())[:-1])
         self.clustering_heads = nn.ModuleList([
