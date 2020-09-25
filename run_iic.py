@@ -105,11 +105,14 @@ flags = AttrDict(
 parser = argparse.ArgumentParser()
 parser.add_argument('path_to_hdf', type=validation.is_hdf,
                     help='path to hdf file.')
+parser.add_argument('-m', 'path_to_model', type=validation.is_file,
+                    help='path to pre-trained model.state_dict().')
 args = parser.parse_args()
 
-hdf_file = args.path_to_hdf
+path_to_hdf = args.path_to_hdf
+path_to_model = args.path_to_model
 
-train_set, test_set = datasets.HDF5Dataset(hdf_file).split_dataset(0.7)
+train_set, test_set = datasets.HDF5Dataset(path_to_hdf).split_dataset(0.7)
 target_dict = {}
 for _, target in train_set:
     target_dict[target['target_index']] = acronym(target['target_name'])
@@ -134,6 +137,8 @@ model = models.IIC(flags.model, in_channels=4, num_classes=flags.num_classes,
 optimizer = get_optimizer(model, flags.optimizer, lr=flags.lr, weight_decay=flags.weight_decay)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
     optimizer, T_0=2, T_mult=2)
+if os.path.exist(path_to_model):
+    model.load_part_of_state_dict(torch.load(path_to_model))
 
 log = defaultdict(lambda: [])
 for epoch in range(1, flags.num_epochs):
