@@ -77,3 +77,23 @@ def check_array(*args, allow_2d=True, sort=False, reverse=False,
             arr = arr.astype(_list_get(dtype, i) or dtype)
         values.append(arr)
     return tuple(values) if len(values) > 1 else values[0]
+
+def _list_get(arr, idx):
+  try:
+    return arr[idx]
+  except:
+    return None
+
+def _cast_array(arg):
+    arr = np.array(arg).astype(np.str)
+    flat = np.ravel(arr)
+    cast_type = None
+    if all(list(map(lambda x: x.isnumeric(), flat))):
+        cast_type = np.int
+    else:
+        try:
+            _ = list(map(lambda x: float(x), flat))
+            cast_type = np.float
+        except:
+            pass
+    return arr.astype(cast_type) if cast_type else arr
