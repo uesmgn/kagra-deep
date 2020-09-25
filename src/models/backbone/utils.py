@@ -8,17 +8,17 @@ __all__ = [
 ]
 
 class Module(nn.Module):
-  def __init__(self):
-    super().__init__()
+    def __init__(self):
+        super().__init__()
 
     def load_part_of_state_dict(self, state_dict):
         own_state = self.state_dict()
         for name, param in state_dict.items():
             if name not in own_state:
                 continue
-            if isinstance(param, torch.Tensor):
-                param = param.data
             own_state[name].copy_(param)
+        for name, param in self.state_dict().items():
+            print(param)
 
     def initialize_weights(self, mode='fan_in'):
         for m in self.modules():
