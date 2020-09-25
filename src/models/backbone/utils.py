@@ -11,18 +11,27 @@ class Module(nn.Module):
   def __init__(self):
     super().__init__()
 
-  def initialize_weights(self, mode='fan_in'):
-    for m in self.modules():
-      if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
-        nn.init.kaiming_normal_(m.weight, mode=mode, nonlinearity='relu')
-        if m.bias is not None:
-            nn.init.zeros_(m.bias)
-      elif isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d):
-        nn.init.constant_(m.weight, 1)
-        nn.init.zeros_(m.bias)
-      elif isinstance(m, nn.Linear):
-        nn.init.xavier_normal_(m.weight)
-        nn.init.zeros_(m.bias)
+    def load_part_of_state_dict(self, state_dict):
+        own_state = self.state_dict()
+        for name, param in state_dict.items():
+            if name not in own_state:
+                continue
+            if isinstance(param, torch.Tensor):
+                param = param.data
+            own_state[name].copy_(param)
+
+    def initialize_weights(self, mode='fan_in'):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
+                nn.init.kaiming_normal_(m.weight, mode=mode, nonlinearity='relu')
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
+            elif isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.zeros_(m.bias)
+            elif isinstance(m, nn.Linear):
+                nn.init.xavier_normal_(m.weight)
+                nn.init.zeros_(m.bias)
 
 class Reshape(nn.Module):
     def __init__(self, outer_shape):
