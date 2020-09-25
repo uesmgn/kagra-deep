@@ -33,7 +33,7 @@ def acronym(name):
 
 
 def plot_cm(cm, xlabels, ylabels, out):
-    plt.figure(figsize=(10 * len(xlabels) / len(ylabels), 8))
+    plt.figure(figsize=(8 * len(xlabels) / len(ylabels), 8))
     cmap = plt.get_cmap('Blues')
     cm_norm = preprocessing.normalize(cm, axis=0, norm='l1')
     plt.imshow(cm_norm.T, interpolation='nearest', cmap=cmap, origin='lower')
