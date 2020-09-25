@@ -141,7 +141,6 @@ for epoch in range(1, flags.num_epochs):
             loss_step_for_each_head.append(loss_step_head)
         loss_step_for_each_head = torch.stack(loss_step_for_each_head)
         loss_step = torch.sum(loss_step_for_each_head) / flags.num_heads
-        print('loss_step_for_each_head:', loss_step_for_each_head)
         head_selecter += loss_step_for_each_head
 
         optimizer.zero_grad()
@@ -153,6 +152,7 @@ for epoch in range(1, flags.num_epochs):
     scheduler.step()
     print(f'train loss at epoch {epoch} = {loss["train"]:.3f}')
     log['train_loss'].append(loss['train'])
+    print('head_selecter:', head_selecter)
     best_head_idx = head_selecter.argmin(dim=-1).item()
     print('best_head_idx:', best_head_idx)
 
