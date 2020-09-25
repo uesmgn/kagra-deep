@@ -167,8 +167,10 @@ for epoch in range(1, flags.num_epochs):
     scheduler.step()
     log['train_loss'].append(loss['train'])
     best_head_idx = head_selecter.argmin(dim=-1).item()
+    loss["train_loss_head_min"] = head_selecter[best_head_idx].item()
 
     print(f'train loss (avg/sum for heads): {loss["train"]:.3f}')
+    print(f'train loss (min of heads): {loss["train_loss_head_min"]:.3f}')
     print(f'best_head_idx: {best_head_idx}')
 
     if epoch % flags.eval_step != 0:
