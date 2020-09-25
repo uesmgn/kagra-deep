@@ -91,7 +91,7 @@ flags = AttrDict(
     model='ResNet34',
     num_classes=22,
     num_classes_over=100,
-    num_heads=8,
+    num_heads=10,
     # optimizer params
     optimizer='Adam'
     lr=1e-3,
