@@ -6,6 +6,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from .backbone import *
 
+__all__ = [
+    'IIC_VAE'
+]
+
 backbones = [
     'VGG11', 'VGG13', 'VGG16', 'VGG19',
     'ResNet18', 'ResNet34', 'ResNet50',
@@ -29,11 +33,11 @@ def ConvTranspose2dModule(in_channels, out_channels, stride=1,
     return nn.Sequential(*layers)
 
 class IIC_VAE(Module):
-    def __init__(self, backbone, in_channels=4, num_classes=10, z_dim=512,
-             num_classes_over=100, num_heads=10, perturb_fn=None):
+    def __init__(self, backbone, in_channels=4, num_classes=10,
+                 num_classes_over=100, z_dim=512, num_heads=10, perturb_fn=None):
         super().__init__()
         assert backbone in backbones
-        net = getattr(backbone)(in_channels=in_channels)
+        net = globals()[backbone](in_channels=in_channels)
         # remove last fc layer
         self.encoder = nn.Sequential(*list(net.children())[:-1])
         self.gaussian = Gaussian(net.fc_in, z_dim)
@@ -75,10 +79,21 @@ class IIC_VAE(Module):
         pj = p.sum(dim=0).view(1, k).expand(k, k)
         return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
 
-    def forward(self, x, perturb=False, head_index=None):
+    def vae_loss(self, x, x_generated, z_mean, z_var):
+        bce = F.binary_cross_entropy(x_generated, x, reduction='none').view(x.shape[0], -1)
+        mean_ = torch.zeros_like(z_mean)
+        var_ = torch.ones_like(z_var)
+        kl = 0.5 * ( torch.log(var_ / z_var) \
+               + (z_var + torch.pow(z_mean - mean_, 2)) / var_ - 1)
+        return (bce.sum(-1) + kl.sum(-1)).mean()
+
+    def forward(self, x, perturb=False):
         if perturb:
             x = self.perturb_fn(x)
         x_densed = self.encoder(x)
+        return x_densed
+
+    def iic(self, x_densed, head_index=None):
         if isinstance(head_index, int):
             y_output = F.softmax(self.clustering_heads[head_index](x_densed), dim=-1)
             y_over_output = F.softmax(self.over_clustering_heads[head_index](x_densed), dim=-1)
@@ -88,8 +103,7 @@ class IIC_VAE(Module):
             y_over_outputs = [F.softmax(head(x_densed), dim=-1) for head in self.over_clustering_heads]
             return y_outputs, y_over_outputs
 
-    def generation(self, reparameterize=True):
-        x_densed = self.encoder(x)
+    def vae(self, x_densed, reparameterize=True):
         z, z_mean, z_var = self.gaussian(x_densed, reparameterize)
         x_generated = self.decoder(z)
-        return z, z_mean, z_var, x_generated
+        return x_generated, z, z_mean, z_var
