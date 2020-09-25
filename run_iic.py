@@ -137,7 +137,7 @@ model = models.IIC(flags.model, in_channels=4, num_classes=flags.num_classes,
 optimizer = get_optimizer(model, flags.optimizer, lr=flags.lr, weight_decay=flags.weight_decay)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
     optimizer, T_0=2, T_mult=2)
-if os.path.exist(path_to_model):
+if os.path.exists(path_to_model or ''):
     model.load_part_of_state_dict(torch.load(path_to_model))
 
 log = defaultdict(lambda: [])
