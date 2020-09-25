@@ -28,7 +28,7 @@ class IIC(Module):
         assert backbone in backbones
         net = globals()[backbone](in_channels=in_channels)
         # remove last fc layer
-        self.net = nn.Sequential(*list(net.children())[:-1])
+        self.encoder = nn.Sequential(*list(net.children())[:-1])
         self.clustering_heads = nn.ModuleList([
             nn.Linear(net.fc_in, num_classes) for _ in range(num_heads)])
         self.over_clustering_heads = nn.ModuleList([
@@ -59,7 +59,7 @@ class IIC(Module):
     def forward(self, x, perturb=False, head_index=None):
         if perturb:
             x = self.perturb_fn(x)
-        x_densed = self.net(x)
+        x_densed = self.encoder(x)
         if isinstance(head_index, int):
             y_output = F.softmax(self.clustering_heads[head_index](x_densed), dim=-1)
             y_over_output = F.softmax(self.over_clustering_heads[head_index](x_densed), dim=-1)
