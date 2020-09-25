@@ -71,7 +71,7 @@ class VGG(Module):
         )
         self.fc_in = 4096
         self.fc = nn.Linear(4096, num_classes)
-        self._initialize_weights()
+        self.initialize_weights()
 
     def forward(self, x):
         x = self.features(x)
