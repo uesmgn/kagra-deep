@@ -83,19 +83,23 @@ np.random.seed(SEED_VALUE)
 torch.manual_seed(SEED_VALUE)
 
 flags = AttrDict(
-    model='ResNet34',
+    # setup params
     batch_size=64,
     num_workers=4,
     num_epochs=100,
-    lr=1e-3,
-    weight_decay=1e-4,
+    # model params
+    model='ResNet34',
     num_classes=22,
     num_classes_over=100,
+    num_heads=8,
+    # optimizer params
+    optimizer='Adam'
+    lr=1e-3,
+    weight_decay=1e-4,
+    # log params
     outdir='/content',
     eval_step=10,
-    num_heads=8,
     avg_for_heads=True,
-    optimizer='Adam'
 )
 
 parser = argparse.ArgumentParser()
