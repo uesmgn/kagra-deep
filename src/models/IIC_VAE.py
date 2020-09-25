@@ -78,18 +78,15 @@ class IIC_VAE(Module):
         pi = p.sum(dim=1).view(k, 1).expand(k, k)
         pj = p.sum(dim=0).view(1, k).expand(k, k)
         loss = p * (torch.log(pi) + torch.log(pj) - torch.log(p))
-        print('iic_loss.shape:', loss.shape)
         return loss.sum()
 
     def vae_loss(self, x, x_generated, z_mean, z_var):
-        bce = F.binary_cross_entropy(x_generated, x, reduction='mean')
+        bce = F.binary_cross_entropy(x_generated, x, reduction='none').view(x.shape[0], -1).mean(-1)
         mean_ = torch.zeros_like(z_mean)
         var_ = torch.ones_like(z_var)
         kl = 0.5 * ( torch.log(var_ / z_var) \
-             + (z_var + torch.pow(z_mean - mean_, 2)) / var_ - 1).mean()
-        print('bce.shape:', bce.shape)
-        print('kl.shape:', kl.shape)
-        return bce + kl
+             + (z_var + torch.pow(z_mean - mean_, 2)) / var_ - 1).mean(-1)
+        return (bce + kl).sum()
 
     def forward(self, x, perturb=False):
         if perturb:
