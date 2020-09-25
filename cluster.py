@@ -86,7 +86,7 @@ flags = AttrDict(
     num_classes_over=100,
     outdir='/content',
     eval_step=10,
-    num_heads=32,
+    num_heads=5,
     avg_for_heads=True
 )
 
