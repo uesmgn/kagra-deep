@@ -106,6 +106,8 @@ flags = AttrDict(
     num_workers=4,
     num_epochs=100,
     use_perturb=False,
+    save_step=10,
+    save_path='/content/model.pt',
     # model params
     model='ResNet34',
     z_dim=512,
@@ -115,7 +117,7 @@ flags = AttrDict(
     weight_decay=1e-4,
     # log params
     outdir='/content',
-    eval_step=2,
+    eval_step=10,
 )
 
 parser = argparse.ArgumentParser()
@@ -151,7 +153,7 @@ scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
 
 log = defaultdict(lambda: [])
 for epoch in range(1, flags.num_epochs):
-    print(f'---------- epoch {epoch} ----------')
+    print(f'---------- training at epoch {epoch} ----------')
     model.train()
     loss = defaultdict(lambda: 0)
     for x, targets in tqdm(train_loader):
@@ -175,21 +177,24 @@ for epoch in range(1, flags.num_epochs):
 
     print(f'train loss: {loss["train"]:.3f}')
 
-    if epoch % flags.eval_step != 0:
-        continue
+    if epoch % flags.eval_step == 0:
+        print(f'---------- evaluating at epoch {epoch} ----------')
+        model.eval()
+        result = defaultdict(lambda: [])
+        with torch.no_grad():
+            for x, targets in tqdm(test_loader):
+                x = x.to(device)
+                x_generated, z, z_mean, z_var = model(x)
+                result['true'].append(targets['target_index'])
+                result['z'].append(z.cpu())
 
-    model.eval()
-    result = defaultdict(lambda: [])
-    with torch.no_grad():
-        for x, targets in tqdm(test_loader):
-            x = x.to(device)
-            x_generated, z, z_mean, z_var = model(x)
-            result['true'].append(targets['target_index'])
-            result['z'].append(z.cpu())
+        trues = torch.cat(result['true']).numpy()
+        z = torch.cat(result['z']).numpy()
+        z = decomposition.TSNE(n_components=2).fit_transform(z)
+        logger(log, epoch, flags.outdir)
+        z_labels = [f'{i}-{target_dict[i]}' for i in trues]
+        plot_features_2d(z[:, 0], z[:, 1], z_labels, f'{flags.outdir}/z_{epoch}.png')
 
-    trues = torch.cat(result['true']).numpy()
-    z = torch.cat(result['z']).numpy()
-    z = decomposition.TSNE(n_components=2).fit_transform(z)
-    logger(log, epoch, flags.outdir)
-    z_labels = [f'{i}-{target_dict[i]}' for i in trues]
-    plot_features_2d(z[:, 0], z[:, 1], z_labels, f'{flags.outdir}/z_{epoch}.png')
+    if epoch % flags.save_step == 0:
+        print(f'---------- saving check point at epoch {epoch} ----------')
+        torch.save(model.state_dict(), flags.save_path)
