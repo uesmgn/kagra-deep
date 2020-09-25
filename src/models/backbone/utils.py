@@ -36,7 +36,6 @@ class Activation(nn.Module):
     def __init__(self, activation, **kwargs):
         super().__init__()
         activation = activation.lower()
-        print(activation)
         if activation == 'relu':
             self.activation = nn.ReLU(**kwargs)
         elif activation == 'sigmoid':
