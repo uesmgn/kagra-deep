@@ -22,7 +22,7 @@ class IIC(Module):
              num_classes_over=100, num_heads=10, perturb_fn=None):
         super().__init__()
         assert backbone in backbones
-        net = getattr(backbone)(in_channels=in_channels)
+        net = getattr(None, backbone)(in_channels=in_channels)
         # remove last fc layer
         self.net = nn.Sequential(*list(net.children())[:-1])
         self.clustering_heads = nn.ModuleList([
