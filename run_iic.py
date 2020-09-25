@@ -93,7 +93,7 @@ flags = AttrDict(
     num_classes_over=100,
     num_heads=10,
     # optimizer params
-    optimizer='Adam'
+    optimizer='Adam',
     lr=1e-3,
     weight_decay=1e-4,
     # log params
