@@ -8,13 +8,14 @@ from skimage import color
 import torchvision.transforms.functional as tf
 
 class HDF5Dataset(data.Dataset):
-    def __init__(self, path_to_hdf, perturb=None):
+    def __init__(self, path_to_hdf, transform_fn=None, perturb_fn=None):
         super().__init__()
         self.data_cache = []
 
         path_to_hdf = os.path.abspath(path_to_hdf)
         self.root = path_to_hdf
-        self.perturb = perturb
+        self.transform_fn = transform_fn
+        self.perturb_fn = perturb_fn
         print('Appending data to cache...')
         with h5py.File(self.root, 'r') as fp:
             self._init_data_cache(fp)
@@ -25,10 +26,12 @@ class HDF5Dataset(data.Dataset):
         with h5py.File(self.root, 'r') as fp:
             item = fp[ref]
             target = dict(item.attrs)
-            img = np.array(item[:])
-        img = tf.to_tensor(img.transpose(1, 2, 0))
-        if self.perturb is not None:
-            perturb_img = self.perturb(img)
+            img = np.array(item[:]).astype(np.uint8)
+        img = tf.to_pil_image(img)
+        if self.transform_fn is not None:
+            img = self.transform_fn(img)
+        if self.perturb_fn is not None:
+            perturb_img = self.perturb_fn(img)
             return img, perturb_img, target
         else:
             return img, target
