@@ -163,6 +163,7 @@ for epoch in range(1, flags.num_epochs):
     head_selecter = torch.zeros(flags.num_heads).to(device)
     for x, xt, targets in tqdm(train_loader):
         x = x.to(device)
+        xt = xt.to(device)
         y_outputs, y_over_outputs = model(x)
         yt_outputs, yt_over_outputs = model(xt)
         loss_step_for_each_head = []
