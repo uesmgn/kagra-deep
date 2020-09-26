@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+import matplotlib.pyplot as plt
+import torchvision
 
 __all__ = [
     'Module', 'Reshape', 'Activation', 'Gaussian',
@@ -17,8 +19,13 @@ class Module(nn.Module):
             if name not in own_state:
                 continue
             own_state[name].copy_(param)
-        for name, param in self.state_dict().items():
-            print(param)
+        # for name, param in self.state_dict().items():
+        #     print(f'-------------{name}-------------')
+        #     if param.ndim == 4:
+        #         grid = torchvision.utils.make_grid(param.cpu(), nrow=10)
+        #         for i in range(grid.shape[0]):
+        #             plt.imshow(grid[i], cmap='gray')
+        #             plt.show()
 
     def initialize_weights(self, mode='fan_in'):
         for m in self.modules():
