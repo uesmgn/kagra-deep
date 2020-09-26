@@ -79,10 +79,11 @@ torch.manual_seed(SEED_VALUE)
 
 flags = AttrDict(
     # setup params
-    batch_size=64,
+    batch_size=96,
     num_workers=4,
-    num_epochs=100,
+    num_epochs=5000,
     reinitialize_headers_weights=True,
+    use_channels=[2],
     # model params
     model='ResNet34',
     num_classes=22,
@@ -90,7 +91,7 @@ flags = AttrDict(
     num_heads=5,
     # optimizer params
     optimizer='Adam',
-    lr=1e-4,
+    lr=1e-3,
     weight_decay=1e-4,
     # log params
     outdir='/content/run_iic',
@@ -98,18 +99,18 @@ flags = AttrDict(
     avg_for_heads=True,
 )
 
-perturb_tf = torchvision.transforms.Compose([
-    torchvision.transforms.ToPILImage(),
-    torchvision.transforms.Resize((224, 224)),
-    torchvision.transforms.RandomChoice([
-        torchvision.transforms.RandomCrop((224, int(224 * .5))),
-        torchvision.transforms.RandomCrop((224, int(224 * .75))),
-        torchvision.transforms.Lambda(lambda x: x)
-    ]),
+transform_fn = torchvision.transforms.Compose([
     torchvision.transforms.Resize((224, 224)),
     torchvision.transforms.ToTensor(),
-    torchvision.transforms.Lambda(lambda x: x + torch.randn_like(x) * 0.05),
-    torchvision.transforms.Lambda(lambda x: (x - x.min()) / (x.max() - x.min())),
+    torchvision.transforms.Lambda(lambda x: torch.stack([x[i] for i in flags.use_channels])),
+])
+
+perturb_tf = torchvision.transforms.Compose([
+    torchvision.transforms.ToPILImage(),
+    torchvision.transforms.RandomCrop((224 , 224 // random.uniform(1, 2))),
+    torchvision.transforms.Resize((224, 224)),
+    torchvision.transforms.ToTensor(),
+    torchvision.transforms.Lambda(lambda x: x + torch.randn_like(x) * 0.1),
 ])
 
 parser = argparse.ArgumentParser()
@@ -125,10 +126,12 @@ path_to_hdf = args.path_to_hdf
 path_to_model = args.path_to_model
 path_to_outdir = args.path_to_outdir
 outdir = path_to_outdir or flags.outdir
+in_channels = len(flags.use_channels)
 
-train_set, test_set = datasets.HDF5Dataset(path_to_hdf, perturb=perturb_tf).split_dataset(0.7)
+dataset = datasets.HDF5Dataset(path_to_hdf, transform=transform, perturb=perturb_tf)
+train_set, test_set = dataset.split_dataset(0.7)
 target_dict = {}
-for _, _, target in train_set:
+for _, _, target in dataset:
     target_dict[target['target_index']] = acronym(target['target_name'])
 print('target_dict:', target_dict)
 
@@ -144,7 +147,8 @@ device = torch.device(
 if torch.cuda.is_available():
     torch.backends.cudnn.benchmark = True
 
-model = models.IIC(flags.model, in_channels=4, num_classes=flags.num_classes,
+model = models.IIC(flags.model, in_channels=in_channels,
+                   num_classes=flags.num_classes,
                    num_classes_over=flags.num_classes_over,
                    num_heads=flags.num_heads).to(device)
 optimizer = get_optimizer(model, flags.optimizer, lr=flags.lr, weight_decay=flags.weight_decay)
@@ -162,8 +166,7 @@ for epoch in range(1, flags.num_epochs):
     loss = defaultdict(lambda: 0)
     head_selecter = torch.zeros(flags.num_heads).to(device)
     for x, xt, targets in tqdm(train_loader):
-        x = x.to(device)
-        xt = xt.to(device)
+        x, xt = x.to(device), xt.to(device)
         y_outputs, y_over_outputs = model(x)
         yt_outputs, yt_over_outputs = model(xt)
         loss_step_for_each_head = []
