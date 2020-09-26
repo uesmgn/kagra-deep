@@ -39,6 +39,7 @@ class IIC(Module):
         self.initialize_weights()
 
     def initialize_headers_weights(self):
+        print('initialize headers weights...')
         for m in self.clustering_heads:
             nn.init.xavier_normal_(m.weight)
             nn.init.zeros_(m.bias)
