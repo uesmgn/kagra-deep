@@ -2,6 +2,7 @@ import os
 import random
 import numpy as np
 import torch
+import torchvision
 import argparse
 import re
 from tqdm import tqdm
@@ -68,9 +69,21 @@ def logger(log, epoch, outdir):
         plt.savefig(out)
         plt.close()
 
-
-def perturb(x, noise_rate=0.1):
+def perturb(x, noise_rate=0.01):
+    transform = torchvision.transforms.Compose([
+        torchvision.transforms.ToPILImage(),
+        torchvision.transforms.Resize((224, 224)),
+        torchvision.transforms.RandomChoice([
+            torchvision.transforms.RandomCrop((224, int(224 * .5))),
+            torchvision.transforms.RandomCrop((224, int(224 * .75))),
+            torchvision.transforms.Lambda(lambda x: x)
+        ]),
+        torchvision.transforms.Resize((224, 224)),
+        torchvision.transforms.ToTensor(),
+        torchvision.transforms.Lambda(lambda x: (x - x.min()) / (x.max() - x.min())),
+    ])
     xt = x.clone()
+    xt = transform(xt)
     noise = torch.randn_like(x) * noise_rate
     xt += noise
     return xt
@@ -91,17 +104,19 @@ flags = AttrDict(
     # model params
     model='ResNet34',
     num_classes=22,
-    num_classes_over=100,
-    num_heads=10,
+    num_classes_over=220,
+    num_heads=5,
     # optimizer params
     optimizer='Adam',
-    lr=1e-3,
+    lr=1e-4,
     weight_decay=1e-4,
     # log params
     outdir='/content/run_iic',
     eval_step=10,
     avg_for_heads=True,
 )
+
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('path_to_hdf', type=validation.is_hdf,
