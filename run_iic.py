@@ -128,7 +128,7 @@ outdir = path_to_outdir or flags.outdir
 
 train_set, test_set = datasets.HDF5Dataset(path_to_hdf, perturb=perturb_tf).split_dataset(0.7)
 target_dict = {}
-for _, target in train_set:
+for _, _, target in train_set:
     target_dict[target['target_index']] = acronym(target['target_name'])
 print('target_dict:', target_dict)
 
