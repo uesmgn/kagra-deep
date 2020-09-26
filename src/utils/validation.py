@@ -6,7 +6,7 @@ __all__ = [
     'is_dir', 'is_hdf', 'new_hdf', 'check_array'
 ]
 
-def yn_input(text):
+def _yn_input(text):
     choice = input(text).lower()
     while True:
         if choice in ['y', 'ye', 'yes']:
@@ -43,7 +43,7 @@ def new_hdf(path):
     path = os.path.abspath(path)
     assert os.path.splitext(path)[-1] in ('.h5', '.hdf5')
     if os.path.exists(path):
-        if yn_input(f"{path} is already exists, overwrite? "):
+        if _yn_input(f"{path} is already exists, overwrite? "):
             return path
         else:
             print("exit...")
