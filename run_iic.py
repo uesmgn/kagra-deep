@@ -87,6 +87,7 @@ flags = AttrDict(
     batch_size=64,
     num_workers=4,
     num_epochs=100,
+    reinitialize_headers_weights=True,
     # model params
     model='ResNet34',
     num_classes=22,
@@ -148,7 +149,8 @@ log = defaultdict(lambda: [])
 for epoch in range(1, flags.num_epochs):
     print(f'---------- epoch {epoch} ----------')
     model.train()
-    model.initialize_headers_weights()
+    if flags.reinitialize_headers_weights:
+        model.initialize_headers_weights()
     loss = defaultdict(lambda: 0)
     head_selecter = torch.zeros(flags.num_heads).to(device)
     for x, targets in tqdm(train_loader):
