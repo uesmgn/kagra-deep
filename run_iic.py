@@ -5,6 +5,7 @@ import torch
 import torchvision
 import argparse
 import re
+import copy
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from attrdict import AttrDict
@@ -69,26 +70,6 @@ def logger(log, epoch, outdir):
         plt.savefig(out)
         plt.close()
 
-def perturb(x, noise_rate=0.01):
-    transform = torchvision.transforms.Compose([
-        torchvision.transforms.ToPILImage(),
-        torchvision.transforms.Resize((224, 224)),
-        torchvision.transforms.RandomChoice([
-            torchvision.transforms.RandomCrop((224, int(224 * .5))),
-            torchvision.transforms.RandomCrop((224, int(224 * .75))),
-            torchvision.transforms.Lambda(lambda x: x)
-        ]),
-        torchvision.transforms.Resize((224, 224)),
-        torchvision.transforms.ToTensor(),
-        torchvision.transforms.Lambda(lambda x: (x - x.min()) / (x.max() - x.min())),
-    ])
-    xt = x.clone()
-    for i in range(xt.shape[0]):
-        xt[i] = transform(xt[i])
-    noise = torch.randn_like(xt) * noise_rate
-    xt += noise
-    return xt
-
 
 SEED_VALUE = 1234
 os.environ['PYTHONHASHSEED'] = str(SEED_VALUE)
@@ -117,7 +98,19 @@ flags = AttrDict(
     avg_for_heads=True,
 )
 
-
+perturb_tf = torchvision.transforms.Compose([
+    torchvision.transforms.ToPILImage(),
+    torchvision.transforms.Resize((224, 224)),
+    torchvision.transforms.RandomChoice([
+        torchvision.transforms.RandomCrop((224, int(224 * .5))),
+        torchvision.transforms.RandomCrop((224, int(224 * .75))),
+        torchvision.transforms.Lambda(lambda x: x)
+    ]),
+    torchvision.transforms.Resize((224, 224)),
+    torchvision.transforms.ToTensor(),
+    torchvision.transforms.Lambda(lambda x: x + torch.randn_like(x) * 0.05),
+    torchvision.transforms.Lambda(lambda x: (x - x.min()) / (x.max() - x.min())),
+])
 
 parser = argparse.ArgumentParser()
 parser.add_argument('path_to_hdf', type=validation.is_hdf,
@@ -133,7 +126,7 @@ path_to_model = args.path_to_model
 path_to_outdir = args.path_to_outdir
 outdir = path_to_outdir or flags.outdir
 
-train_set, test_set = datasets.HDF5Dataset(path_to_hdf).split_dataset(0.7)
+train_set, test_set = datasets.HDF5Dataset(path_to_hdf, perturb=perturb_tf).split_dataset(0.7)
 target_dict = {}
 for _, target in train_set:
     target_dict[target['target_index']] = acronym(target['target_name'])
@@ -153,8 +146,7 @@ if torch.cuda.is_available():
 
 model = models.IIC(flags.model, in_channels=4, num_classes=flags.num_classes,
                    num_classes_over=flags.num_classes_over,
-                   num_heads=flags.num_heads,
-                   perturb_fn=lambda x: perturb(x)).to(device)
+                   num_heads=flags.num_heads).to(device)
 optimizer = get_optimizer(model, flags.optimizer, lr=flags.lr, weight_decay=flags.weight_decay)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
     optimizer, T_0=2, T_mult=2)
@@ -169,10 +161,10 @@ for epoch in range(1, flags.num_epochs):
         model.initialize_headers_weights()
     loss = defaultdict(lambda: 0)
     head_selecter = torch.zeros(flags.num_heads).to(device)
-    for x, targets in tqdm(train_loader):
+    for x, xt, targets in tqdm(train_loader):
         x = x.to(device)
         y_outputs, y_over_outputs = model(x)
-        yt_outputs, yt_over_outputs = model(x, perturb=True)
+        yt_outputs, yt_over_outputs = model(xt)
         loss_step_for_each_head = []
         for i in range(flags.num_heads):
             y, y_over = y_outputs[i], y_over_outputs[i]
@@ -206,7 +198,7 @@ for epoch in range(1, flags.num_epochs):
     model.eval()
     result = defaultdict(lambda: [])
     with torch.no_grad():
-        for x, targets in tqdm(test_loader):
+        for x, _, targets in tqdm(test_loader):
             x = x.to(device)
             y, y_over = model(x, head_index=best_head_idx)
             result['pred'].append(y.argmax(dim=-1).cpu())
