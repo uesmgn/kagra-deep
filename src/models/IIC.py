@@ -17,7 +17,7 @@ backbones = [
 
 class IIC(Module):
     def __init__(self, backbone, in_channels=4, num_classes=10,
-             num_classes_over=100, num_heads=10):
+                 num_classes_over=100, num_heads=10):
         super().__init__()
         assert backbone in backbones
         net = globals()[backbone](in_channels=in_channels)
