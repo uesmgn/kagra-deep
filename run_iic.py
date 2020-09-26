@@ -105,7 +105,7 @@ transform_fn = torchvision.transforms.Compose([
     torchvision.transforms.Lambda(lambda x: torch.stack([x[i] for i in flags.use_channels])),
 ])
 
-perturb_tf = torchvision.transforms.Compose([
+perturb_fn = torchvision.transforms.Compose([
     torchvision.transforms.ToPILImage(),
     torchvision.transforms.RandomCrop((224 , 224 // random.uniform(1, 2))),
     torchvision.transforms.Resize((224, 224)),
@@ -128,7 +128,8 @@ path_to_outdir = args.path_to_outdir
 outdir = path_to_outdir or flags.outdir
 in_channels = len(flags.use_channels)
 
-dataset = datasets.HDF5Dataset(path_to_hdf, transform=transform, perturb=perturb_tf)
+dataset = datasets.HDF5Dataset(path_to_hdf,
+    transform_fn=transform_fn, perturb_fn=perturb_fn)
 train_set, test_set = dataset.split_dataset(0.7)
 target_dict = {}
 for _, _, target in dataset:
