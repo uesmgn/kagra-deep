@@ -15,15 +15,9 @@ backbones = [
     'ResNet18', 'ResNet34', 'ResNet50',
 ]
 
-def perturb_default(x, noise_rate=0.1):
-    xt = x.clone()
-    noise = torch.randn_like(x) * noise_rate
-    xt += noise
-    return xt
-
 class IIC(Module):
     def __init__(self, backbone, in_channels=4, num_classes=10,
-             num_classes_over=100, num_heads=10, perturb_fn=None):
+             num_classes_over=100, num_heads=10):
         super().__init__()
         assert backbone in backbones
         net = globals()[backbone](in_channels=in_channels)
@@ -33,9 +27,6 @@ class IIC(Module):
             nn.Linear(net.fc_in, num_classes) for _ in range(num_heads)])
         self.over_clustering_heads = nn.ModuleList([
             nn.Linear(net.fc_in, num_classes_over) for _ in range(num_heads)])
-        self.perturb_fn = perturb_fn
-        if perturb_fn is None:
-            self.perturb_fn = lambda x: perturb_default(x)
         self.initialize_weights()
 
     def initialize_headers_weights(self):
@@ -57,9 +48,7 @@ class IIC(Module):
         pj = p.sum(dim=0).view(1, k).expand(k, k)
         return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
 
-    def forward(self, x, perturb=False, head_index=None):
-        if perturb:
-            x = self.perturb_fn(x)
+    def forward(self, x, head_index=None):
         x_densed = self.encoder(x)
         if isinstance(head_index, int):
             y_output = F.softmax(self.clustering_heads[head_index](x_densed), dim=-1)
