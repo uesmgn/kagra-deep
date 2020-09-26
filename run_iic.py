@@ -83,8 +83,9 @@ def perturb(x, noise_rate=0.01):
         torchvision.transforms.Lambda(lambda x: (x - x.min()) / (x.max() - x.min())),
     ])
     xt = x.clone()
-    xt = transform(xt)
-    noise = torch.randn_like(x) * noise_rate
+    for i in range(xt.shape[0]):
+        xt[i] = transform(xt[i])
+    noise = torch.randn_like(xt) * noise_rate
     xt += noise
     return xt
 
