@@ -211,7 +211,9 @@ for epoch in range(1, flags.num_epochs):
                 loss_cluster_heads = []
                 for i in range(flags.num_heads):
                     y = y_outputs[i]
-                    tmp = F.cross_entropy(y, target, weight=None, reduction='sum')
+                    yt = yt_outputs[i]
+                    tmp = F.cross_entropy(y, target, weight=None, reduction='sum') \
+                          + F.cross_entropy(yt, target, weight=None, reduction='sum')
                     loss_cluster_heads.append(tmp)
                 loss_cluster_heads = torch.stack(loss_cluster_heads)
                 head_selecter += loss_cluster_heads
