@@ -132,8 +132,8 @@ in_channels = len(flags.use_channels)
 
 dataset = datasets.HDF5Dataset(path_to_hdf,
     transform_fn=transform_fn, perturb_fn=perturb_fn)
-train_set, test_set = dataset.split_dataset(0.7)
-labeled_set, unlabeled_set = train_set.balanced_dataset('target_index', flags.num_per_label)
+labeled_set, unlabeled_set = dataset.balanced_dataset('target_index', flags.num_per_label)
+unlabeled_set, test_set = unlabeled_set.split_dataset(0.7)
 
 print('len(dataset): ', len(dataset))
 print('len(train_set): ', len(train_set))
