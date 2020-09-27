@@ -215,8 +215,6 @@ def cross_entropy_heads(y_outputs, target):
         loss /= flags.num_heads
     return loss
 
-
-
 for epoch in range(1, flags.num_epochs):
     print(f'---------- epoch {epoch} ----------')
     model.train()
