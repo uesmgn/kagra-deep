@@ -136,7 +136,7 @@ labeled_set, unlabeled_set = dataset.balanced_dataset('target_index', flags.num_
 unlabeled_set, test_set = unlabeled_set.split_dataset(0.7)
 
 print('len(dataset): ', len(dataset))
-print('len(train_set): ', len(train_set))
+print('len(train_set): ', len(labeled_set) + len(unlabeled_set))
 print('len(test_set): ', len(test_set))
 print('len(labeled_set): ', len(labeled_set))
 print('len(unlabeled_set): ', len(unlabeled_set))
