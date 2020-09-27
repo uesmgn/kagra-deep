@@ -87,7 +87,7 @@ flags = AttrDict(
     reinitialize_headers_weights=True,
     use_channels=[2],
     num_per_label=32,
-    alpha=10,
+    weights=(1., 10., 1.),
     # model params
     model='ResNet34',
     num_classes=22,
@@ -189,6 +189,34 @@ if os.path.exists(path_to_model or ''):
     model.load_part_of_state_dict(torch.load(path_to_model))
 
 log = defaultdict(lambda: [])
+
+def mutual_info_heads(y_outputs, yt_outputs):
+    loss_heads = []
+    for i in range(flags.num_heads):
+        y = y_outputs[i]
+        yt = yt_outputs[i]
+        tmp = model.criterion(y, yt)
+        loss_heads.append(tmp)
+    loss_heads = torch.stack(loss_heads)
+    loss = torch.sum(loss_heads)
+    if flags.avg_for_heads:
+        loss /= flags.num_heads
+    return loss
+
+def cross_entropy_heads(y_outputs, target):
+    loss_heads = []
+    for i in range(flags.num_heads):
+        y = y_outputs[i]
+        tmp = F.cross_entropy(y, target, weight=None, reduction='sum')
+        loss_heads.append(tmp)
+    loss_heads = torch.stack(loss_heads)
+    loss = torch.sum(loss_heads)
+    if flags.avg_for_heads:
+        loss /= flags.num_heads
+    return loss
+
+
+
 for epoch in range(1, flags.num_epochs):
     print(f'---------- epoch {epoch} ----------')
     model.train()
@@ -196,54 +224,45 @@ for epoch in range(1, flags.num_epochs):
         model.initialize_headers_weights()
     loss = defaultdict(lambda: 0)
     head_selecter = torch.zeros(flags.num_heads).to(device)
-    for data in tqdm(zip(cycle(labeled_loader), unlabeled_loader)):
-        loss_step = 0
-        for j, (x, xt, target) in enumerate(data):
-            x, xt = x.to(device), xt.to(device)
-            y_outputs, y_over_outputs = model(x)
-            yt_outputs, yt_over_outputs = model(xt)
-            loss_iic_heads = []
-            for i in range(flags.num_heads):
-                y, y_over = y_outputs[i], y_over_outputs[i]
-                yt, yt_over = yt_outputs[i], yt_over_outputs[i]
-                tmp = model.criterion(y, yt) + model.criterion(y_over, yt_over)
-                loss_iic_heads.append(tmp)
-            loss_iic_heads = torch.stack(loss_iic_heads)
-            loss_iic = torch.sum(loss_iic_heads)
-            if flags.avg_for_heads:
-                loss_iic /= flags.num_heads
-            loss_step += loss_iic
-            loss["iic"] += loss_iic.item()
+    for labeled_data, unlabeled_data in tqdm(zip(cycle(labeled_loader), unlabeled_loader)):
+        # labeled loss
+        x, xt, target = labeled_data
+        x, xt = x.to(device), xt.to(device)
+        target = target['target_index'].to(device)
+        # labeled iic loss
+        y_outputs, y_over_outputs = model(x)
+        yt_outputs, yt_over_outputs = model(xt)
+        loss_iic_labeled = mutual_info_heads(y_outputs, yt_outputs) \
+            + mutual_info_heads(y_over_outputs, yt_over_outputs)
+        loss["loss_iic_labeled"] += loss_iic_labeled.item()
 
-            if j == 0:
-                # supervised learning
-                target = target['target_index'].to(device)
-                loss_cluster_heads = []
-                for i in range(flags.num_heads):
-                    y = y_outputs[i]
-                    yt = yt_outputs[i]
-                    tmp = F.cross_entropy(y, target, weight=None, reduction='sum') \
-                          + F.cross_entropy(yt, target, weight=None, reduction='sum')
-                    loss_cluster_heads.append(tmp)
-                loss_cluster_heads = torch.stack(loss_cluster_heads)
-                head_selecter += loss_cluster_heads
-                loss_cluster = torch.sum(loss_cluster_heads)
-                if flags.avg_for_heads:
-                    loss_cluster /= flags.num_heads
-                loss_step += alpha * loss_cluster
-                loss["cluster"] += loss_cluster.item()
+        # labeled supervised loss
+        loss_supervised = cross_entropy_heads(y_outputs, target) \
+            + cross_entropy_heads(yt_outputs, target)
+        loss["loss_supervised"] += loss_supervised.item()
+
+        # unlabeled loss
+        x, xt, _ = unlabeled_data
+        x, xt = x.to(device), xt.to(device)
+        # unlabeled iic loss
+        y_outputs, y_over_outputs = model(x)
+        yt_outputs, yt_over_outputs = model(xt)
+        loss_iic_unlabeled = mutual_info_heads(y_outputs, yt_outputs) \
+            + mutual_info_heads(y_over_outputs, yt_over_outputs)
+        loss["loss_iic_unlabeled"] += loss_iic_unlabeled.item()
+
+        loss_step = loss_iic_labeled * flags.weights[0] \
+                    + loss_supervised * flags.weights[1] \
+                    + loss_iic_unlabeled * flags.weights[2]
+        loss["loss_step"] += loss_step.item()
 
         optimizer.zero_grad()
         loss_step.backward()
         optimizer.step()
 
-        loss["train"] += loss_step.item()
-
     scheduler.step()
-    log['iic_loss'].append(loss['iic'])
-    log['cluster_loss'].append(loss['cluster'])
-    log['train_loss'].append(loss['train'])
-    best_head_idx = head_selecter.argmin(dim=-1).item()
+    for k, v in loss.items():
+        log[k].append(v)
 
     print(f'train loss (avg/sum for heads): {loss["train"]:.3f}')
     print(f'best_head_idx: {best_head_idx}')
