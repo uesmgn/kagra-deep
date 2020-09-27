@@ -115,7 +115,6 @@ test_loader = torch.utils.data.DataLoader(
     test_set, batch_size=flags.batch_size, num_workers=flags.num_workers,
     shuffle=False)
 
-for x, xt, targets in tqdm(train_loader):
-    print(x.shape)
-    print(xt.shape)
+for data, targets in tqdm(labeled_loader):
+    x, xt = data
     break
