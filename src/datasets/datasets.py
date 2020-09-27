@@ -4,6 +4,7 @@ import copy
 import torch
 import numpy as np
 from torch.utils import data
+from collections import defaultdict
 from skimage import color
 import torchvision.transforms.functional as tf
 
@@ -91,5 +92,5 @@ class HDF5Dataset(data.Dataset):
         rem_set = copy.copy(self)
         rem_ref = [self.data_cache[i] for i in rem_idx]
         rem_set.data_cache = rem_ref
-        
+
         return uni_set, rem_set
