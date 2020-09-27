@@ -70,3 +70,26 @@ class HDF5Dataset(data.Dataset):
         test_set.data_cache = test_ref
 
         return train_set, test_set
+
+    def balanced_dataset(self, attr, num_per_label=50):
+        balenced_dict = defaultdict(lambda: [])
+        idx = np.arange(self.__len__())
+        with h5py.File(self.root, 'r') as fp:
+            for i in idx:
+                ref = self.data_cache[i]
+                item = fp[ref]
+                target = item.attrs[attr]
+                if len(balenced_dict[target]) < num_per_label:
+                    balenced_dict[target].append(i)
+        uni_idx = np.ravel([v for v in balenced_dict.values()]).astype(np.integer)
+        rem_idx = np.array(list(set(idx) - set(uni_idx))).astype(np.integer)
+
+        uni_set = copy.copy(self)
+        uni_ref = [self.data_cache[i] for i in uni_idx]
+        uni_set.data_cache = uni_ref
+
+        rem_set = copy.copy(self)
+        rem_ref = [self.data_cache[i] for i in rem_idx]
+        rem_set.data_cache = rem_ref
+        
+        return uni_set, rem_set
