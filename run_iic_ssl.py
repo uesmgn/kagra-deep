@@ -122,13 +122,16 @@ parser.add_argument('-m', '--path_to_model', type=validation.is_file,
                     help='path to pre-trained model.state_dict().')
 parser.add_argument('-o', '--path_to_outdir', type=validation.is_dir,
                     help='path to output directory.')
+parser.add_argument('-e', '--eval_step', type=int,
+                    help='evaluating step.')
 args = parser.parse_args()
 
 path_to_hdf = args.path_to_hdf
 path_to_model = args.path_to_model
-path_to_outdir = args.path_to_outdir
-outdir = path_to_outdir or flags.outdir
+outdir = args.path_to_outdir or flags.outdir
+eval_step = args.eval_step or flags.eval_step
 in_channels = len(flags.use_channels)
+
 
 dataset = datasets.HDF5Dataset(path_to_hdf,
     transform_fn=transform_fn, perturb_fn=perturb_fn)
@@ -229,7 +232,7 @@ for epoch in range(1, flags.num_epochs):
     print(f'train loss (avg/sum for heads): {loss["train"]:.3f}')
     print(f'best_head_idx: {best_head_idx}')
 
-    if epoch % flags.eval_step != 0:
+    if epoch % eval_step != 0:
         continue
 
     model.eval()
