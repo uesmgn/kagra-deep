@@ -82,7 +82,7 @@ class HDF5Dataset(data.Dataset):
                 target = item.attrs[attr]
                 if len(balenced_dict[target]) < num_per_label:
                     balenced_dict[target].append(i)
-        uni_idx = np.ravel([v for v in balenced_dict.values()]).astype(np.integer)
+        uni_idx = np.array([i for v in balenced_dict.values() for i in v]).astype(np.integer)
         rem_idx = np.array(list(set(idx) - set(uni_idx))).astype(np.integer)
 
         uni_set = copy.copy(self)
