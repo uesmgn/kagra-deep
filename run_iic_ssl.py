@@ -137,9 +137,9 @@ dataset = datasets.HDF5Dataset(args.path_to_hdf,
                 transform_fn=transform_fn,
                 perturb_fn=perturb_fn)
 sampler = samplers.BalancedDatasetSampler(dataset, dataset.get_label)
-labeled_set, _ = dataset.balanced_dataset('target_index', num_per_label)
+labeled_set, _ = dataset.split_balanced('target_index', num_per_label)
 unlabeled_set = dataset
-test_set, _ = dataset.balanced_dataset('target_index', 32)
+test_set, _ = dataset.split_balanced('target_index', 32)
 
 print('len(dataset): ', len(dataset))
 print('len(labeled_set): ', len(labeled_set))
