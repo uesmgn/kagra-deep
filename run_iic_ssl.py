@@ -110,8 +110,8 @@ transform_fn = torchvision.transforms.Compose([
 ])
 
 argument_fn = torchvision.transforms.Compose([
-    torchvision.transforms.ToPilImage(),
-    torchvision.transforms.RandomCrop((224, 224 // 1.2)),
+    torchvision.transforms.ToPILImage(),
+    torchvision.transforms.RandomCrop((224, 224 // 1.5)),
     torchvision.transforms.Resize((224, 224)),
     torchvision.transforms.ToTensor(),
 ])
