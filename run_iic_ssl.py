@@ -81,7 +81,7 @@ torch.manual_seed(SEED_VALUE)
 
 flags = AttrDict(
     # setup params
-    batch_size=96,
+    batch_size=128,
     num_workers=4,
     num_epochs=5000,
     reinitialize_headers_weights=True,
@@ -95,7 +95,7 @@ flags = AttrDict(
     num_heads=5,
     # optimizer params
     optimizer='Adam',
-    lr=1e-3,
+    lr=1e-4,
     weight_decay=1e-4,
     # log params
     outdir='/content/run_iic_ssl',
