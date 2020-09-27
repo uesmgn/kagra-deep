@@ -43,10 +43,17 @@ class HDF5Dataset(data.Dataset):
         if hasattr(item, 'values'):
             # if item is group
             for it in item.values():
-                self._init_data_cache(it)
+                if item is not None:
+                    self._init_data_cache(it)
+                else:
+                    print('item is NoneType object.')
         else:
             # if item is dataset
-            self.data_cache.append(item.ref)
+            if hasattr(item, 'ref'):
+                self.data_cache.append(item.ref)
+            else:
+                print('item has no attributes "ref".')
+
 
     def split_dataset(self, alpha=0.8):
         N_train = int(self.__len__() * alpha)
