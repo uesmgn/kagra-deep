@@ -87,6 +87,7 @@ flags = AttrDict(
     reinitialize_headers_weights=True,
     use_channels=[2],
     num_per_label=16,
+    alpha=10,
     # model params
     model='ResNet34',
     num_classes=22,
@@ -132,7 +133,6 @@ outdir = args.path_to_outdir or flags.outdir
 eval_step = args.eval_step or flags.eval_step
 in_channels = len(flags.use_channels)
 
-
 dataset = datasets.HDF5Dataset(path_to_hdf,
     transform_fn=transform_fn, perturb_fn=perturb_fn)
 labeled_set, unlabeled_set = dataset.balanced_dataset('target_index', flags.num_per_label)
@@ -145,7 +145,7 @@ print('len(labeled_set): ', len(labeled_set))
 print('len(unlabeled_set): ', len(unlabeled_set))
 
 target_dict = {}
-for _, _, target in dataset:
+for _, _, target in labeled_set:
     target_dict[target['target_index']] = acronym(target['target_name'])
 print('target_dict:', target_dict)
 
@@ -214,7 +214,7 @@ for epoch in range(1, flags.num_epochs):
                 loss_cluster = torch.sum(loss_cluster_heads)
                 if flags.avg_for_heads:
                     loss_cluster /= flags.num_heads
-                loss_step += loss_cluster
+                loss_step += flags.alpha * loss_cluster
                 loss["cluster"] += loss_cluster.item()
 
         optimizer.zero_grad()
