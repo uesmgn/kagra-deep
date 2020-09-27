@@ -179,7 +179,7 @@ for epoch in range(1, flags.num_epochs):
         model.initialize_headers_weights()
     loss = defaultdict(lambda: 0)
     head_selecter = torch.zeros(flags.num_heads).to(device)
-    for data in tqdm(zip(cycle(labeled_loader), unlabeled_loader):
+    for data in tqdm(zip(cycle(labeled_loader), unlabeled_loader)):
         loss_step = 0
         for j, (x, xt, target) in enumerate(data):
             x, xt = x.to(device), xt.to(device)
