@@ -127,13 +127,7 @@ parser.add_argument('-e', '--eval_step', type=int,
                     help='evaluating step.')
 args = parser.parse_args()
 
-path_to_hdf = args.path_to_hdf
-path_to_model = args.path_to_model
-outdir = args.path_to_outdir or flags.outdir
-eval_step = args.eval_step or flags.eval_step
-in_channels = len(flags.use_channels)
-
-dataset = datasets.HDF5Dataset(path_to_hdf,
+dataset = datasets.HDF5Dataset(args.path_to_hdf,
     transform_fn=transform_fn, perturb_fn=perturb_fn)
 labeled_set, unlabeled_set = dataset.balanced_dataset('target_index', flags.num_per_label)
 unlabeled_set, test_set = unlabeled_set.split_dataset(0.7)
@@ -143,6 +137,12 @@ print('len(train_set): ', len(labeled_set) + len(unlabeled_set))
 print('len(test_set): ', len(test_set))
 print('len(labeled_set): ', len(labeled_set))
 print('len(unlabeled_set): ', len(unlabeled_set))
+
+path_to_model = args.path_to_model
+outdir = args.path_to_outdir or flags.outdir
+eval_step = args.eval_step or flags.eval_step
+in_channels = len(flags.use_channels)
+alpha = flags.alpha or len(labeled_set) * 0.1
 
 target_dict = {}
 for _, _, target in labeled_set:
@@ -214,7 +214,7 @@ for epoch in range(1, flags.num_epochs):
                 loss_cluster = torch.sum(loss_cluster_heads)
                 if flags.avg_for_heads:
                     loss_cluster /= flags.num_heads
-                loss_step += flags.alpha * loss_cluster
+                loss_step += alpha * loss_cluster
                 loss["cluster"] += loss_cluster.item()
 
         optimizer.zero_grad()
