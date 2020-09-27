@@ -2,6 +2,7 @@ import os
 import random
 import numpy as np
 import torch
+import torch.nn.functional as F
 import torchvision
 import argparse
 import re
@@ -11,7 +12,7 @@ import matplotlib.pyplot as plt
 from attrdict import AttrDict
 from collections import defaultdict
 from sklearn import preprocessing
-import itertools
+from itertools import cycle, product
 
 from src.utils import validation
 from src.utils import image_processing as imp
@@ -48,7 +49,7 @@ def plot_cm(cm, xlabels, ylabels, out):
     plt.setp(ax.get_yticklabels(), rotation=45,
              ha="right", rotation_mode="anchor")
     thresh = 1. / 1.75
-    for i, j in itertools.product(range(len(xlabels)), range(len(ylabels))):
+    for i, j in product(range(len(xlabels)), range(len(ylabels))):
         num = "{}".format(cm[i, j])
         color = "white" if cm_norm[i, j] > thresh else "black"
         ax.text(i, j, num, fontsize=8, color=color, ha='center', va='center')
@@ -85,6 +86,7 @@ flags = AttrDict(
     num_epochs=5000,
     reinitialize_headers_weights=True,
     use_channels=[2],
+    num_per_label=20,
     # model params
     model='ResNet34',
     num_classes=22,
@@ -95,7 +97,7 @@ flags = AttrDict(
     lr=1e-3,
     weight_decay=1e-4,
     # log params
-    outdir='/content/run_iic',
+    outdir='/content/run_iic_ssl',
     eval_step=10,
     avg_for_heads=True,
 )
@@ -131,7 +133,8 @@ in_channels = len(flags.use_channels)
 dataset = datasets.HDF5Dataset(path_to_hdf,
     transform_fn=transform_fn, perturb_fn=perturb_fn)
 train_set, test_set = dataset.split_dataset(0.7)
-labeled_set, unlabeled_set = train_set.balanced_dataset('target_index', 10)
+labeled_set, unlabeled_set = train_set.balanced_dataset('target_index', flags.num_per_label)
+
 print('len(dataset): ', len(dataset))
 print('len(train_set): ', len(train_set))
 print('len(test_set): ', len(test_set))
@@ -143,8 +146,11 @@ for _, _, target in dataset:
     target_dict[target['target_index']] = acronym(target['target_name'])
 print('target_dict:', target_dict)
 
-train_loader = torch.utils.data.DataLoader(
-    train_set, batch_size=flags.batch_size, num_workers=flags.num_workers,
+labeled_loader = torch.utils.data.DataLoader(
+    labeled_set, batch_size=flags.batch_size, num_workers=flags.num_workers,
+    shuffle=True, drop_last=True)
+unlabeled_loader = torch.utils.data.DataLoader(
+    unlabeled_set, batch_size=flags.batch_size, num_workers=flags.num_workers,
     shuffle=True, drop_last=True)
 test_loader = torch.utils.data.DataLoader(
     test_set, batch_size=flags.batch_size, num_workers=flags.num_workers,
@@ -173,21 +179,40 @@ for epoch in range(1, flags.num_epochs):
         model.initialize_headers_weights()
     loss = defaultdict(lambda: 0)
     head_selecter = torch.zeros(flags.num_heads).to(device)
-    for (x, xt, targets), () in tqdm(train_loader):
-        x, xt = x.to(device), xt.to(device)
-        y_outputs, y_over_outputs = model(x)
-        yt_outputs, yt_over_outputs = model(xt)
-        loss_step_for_each_head = []
-        for i in range(flags.num_heads):
-            y, y_over = y_outputs[i], y_over_outputs[i]
-            yt, yt_over = yt_outputs[i], yt_over_outputs[i]
-            loss_step_head = model.criterion(y, yt) + model.criterion(y_over, yt_over)
-            loss_step_for_each_head.append(loss_step_head)
-        loss_step_for_each_head = torch.stack(loss_step_for_each_head)
-        head_selecter += loss_step_for_each_head
-        loss_step = torch.sum(loss_step_for_each_head)
-        if flags.avg_for_heads:
-            loss_step /= flags.num_heads
+    for data in tqdm(zip(cycle(labeled_loader), unlabeled_loader):
+        loss_step = 0
+        for j, (x, xt, target) in enumerate(data):
+            x, xt = x.to(device), xt.to(device)
+            y_outputs, y_over_outputs = model(x)
+            yt_outputs, yt_over_outputs = model(xt)
+            loss_iic_heads = []
+            for i in range(flags.num_heads):
+                y, y_over = y_outputs[i], y_over_outputs[i]
+                yt, yt_over = yt_outputs[i], yt_over_outputs[i]
+                loss = model.criterion(y, yt) + model.criterion(y_over, yt_over)
+                loss_iic_heads.append(loss)
+            loss_iic_heads = torch.stack(loss_iic_heads)
+            loss_iic = torch.sum(loss_iic_heads)
+            if flags.avg_for_heads:
+                loss_iic /= flags.num_heads
+            loss_step += loss_iic
+            loss["iic"] += loss_iic.item()
+
+            if j == 0:
+                # supervised learning
+                target = target['target_index']
+                loss_cluster_heads = []
+                for i in range(flags.num_heads):
+                    y = y_outputs[i]
+                    loss = F.cross_entropy(y, target, weight=None)
+                    loss_cluster_heads.append(loss)
+                loss_cluster_heads = torch.stack(loss_cluster_heads)
+                head_selecter += loss_cluster_heads
+                loss_cluster = torch.sum(loss_cluster_heads)
+                if flags.avg_for_heads:
+                    loss_cluster /= flags.num_heads
+                loss_step += loss_cluster
+                loss["cluster"] += loss_cluster.item()
 
         optimizer.zero_grad()
         loss_step.backward()
@@ -196,12 +221,12 @@ for epoch in range(1, flags.num_epochs):
         loss["train"] += loss_step.item()
 
     scheduler.step()
+    log['iic_loss'].append(loss['iic'])
+    log['cluster_loss'].append(loss['cluster'])
     log['train_loss'].append(loss['train'])
     best_head_idx = head_selecter.argmin(dim=-1).item()
-    loss["train_loss_head_min"] = head_selecter[best_head_idx].item()
 
     print(f'train loss (avg/sum for heads): {loss["train"]:.3f}')
-    print(f'train loss (min of heads): {loss["train_loss_head_min"]:.3f}')
     print(f'best_head_idx: {best_head_idx}')
 
     if epoch % flags.eval_step != 0:
