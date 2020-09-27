@@ -10,10 +10,11 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from attrdict import AttrDict
 from collections import defaultdict
-import sklearn as sk
+from sklearn import preprocessing
 import itertools
 
-from src.utils import validation, preprocessing
+from src.utils import validation
+from src.utils import image_processing as imp
 import src.models as models
 import src.datasets as datasets
 
@@ -37,7 +38,7 @@ def acronym(name):
 def plot_cm(cm, xlabels, ylabels, out):
     plt.figure(figsize=(8 * len(xlabels) / len(ylabels), 8))
     cmap = plt.get_cmap('Blues')
-    cm_norm = sk.preprocessing.normalize(cm, axis=0, norm='l1')
+    cm_norm = preprocessing.normalize(cm, axis=0, norm='l1')
     plt.imshow(cm_norm.T, interpolation='nearest', cmap=cmap, origin='lower')
     ax = plt.gca()
     ax.set_xticks(np.arange(len(xlabels)))
@@ -108,7 +109,7 @@ transform_fn = torchvision.transforms.Compose([
 perturb_fn = torchvision.transforms.Compose([
     torchvision.transforms.RandomChoice([
         torchvision.transforms.Lambda(lambda x: x + torch.randn_like(x) * 0.1),
-        torchvision.transforms.Lambda(lambda x: preprocessing.gaussian_blur(x, 7, 10.)),
+        torchvision.transforms.Lambda(lambda x: imp.gaussian_blur(x, 7, 10.)),
     ]),
 ])
 
