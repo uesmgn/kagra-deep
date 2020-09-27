@@ -86,7 +86,7 @@ flags = AttrDict(
     num_epochs=5000,
     reinitialize_headers_weights=True,
     use_channels=[2],
-    num_per_label=20,
+    num_per_label=16,
     # model params
     model='ResNet34',
     num_classes=22,
@@ -189,8 +189,8 @@ for epoch in range(1, flags.num_epochs):
             for i in range(flags.num_heads):
                 y, y_over = y_outputs[i], y_over_outputs[i]
                 yt, yt_over = yt_outputs[i], yt_over_outputs[i]
-                loss = model.criterion(y, yt) + model.criterion(y_over, yt_over)
-                loss_iic_heads.append(loss)
+                tmp = model.criterion(y, yt) + model.criterion(y_over, yt_over)
+                loss_iic_heads.append(tmp)
             loss_iic_heads = torch.stack(loss_iic_heads)
             loss_iic = torch.sum(loss_iic_heads)
             if flags.avg_for_heads:
@@ -200,12 +200,12 @@ for epoch in range(1, flags.num_epochs):
 
             if j == 0:
                 # supervised learning
-                target = target['target_index']
+                target = target['target_index'].to(device)
                 loss_cluster_heads = []
                 for i in range(flags.num_heads):
                     y = y_outputs[i]
-                    loss = F.cross_entropy(y, target, weight=None)
-                    loss_cluster_heads.append(loss)
+                    tmp = F.cross_entropy(y, target, weight=None)
+                    loss_cluster_heads.append(tmp)
                 loss_cluster_heads = torch.stack(loss_cluster_heads)
                 head_selecter += loss_cluster_heads
                 loss_cluster = torch.sum(loss_cluster_heads)
