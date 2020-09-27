@@ -17,7 +17,7 @@ from itertools import cycle, product
 from src.utils import validation
 from src.utils import image_processing as imp
 import src.models as models
-import src.datasets as datasets
+from src.data import datasets, samplers
 
 def get_optimizer(model, optimizer, lr=1e-3, weight_decay=1e-4):
     if optimizer is 'SGD':
@@ -105,15 +105,10 @@ flags = AttrDict(
 
 transform_fn = torchvision.transforms.Compose([
     torchvision.transforms.Resize((224, 224)),
-    torchvision.transforms.ToTensor(),
-    torchvision.transforms.Lambda(lambda x: torch.stack([x[i] for i in flags.use_channels])),
-])
-
-argument_fn = torchvision.transforms.Compose([
-    torchvision.transforms.ToPILImage(),
-    torchvision.transforms.RandomCrop((224, 224 // 1.5)),
+    torchvision.transforms.RandomCrop((224, 224 // 1.2)),
     torchvision.transforms.Resize((224, 224)),
     torchvision.transforms.ToTensor(),
+    torchvision.transforms.Lambda(lambda x: torch.stack([x[i] for i in flags.use_channels])),
 ])
 
 perturb_fn = torchvision.transforms.Compose([
@@ -139,24 +134,22 @@ args = parser.parse_args()
 num_per_label = args.num_per_label or flags.num_per_label
 
 dataset = datasets.HDF5Dataset(args.path_to_hdf,
-                               transform_fn=transform_fn,
-                               argument_fn=argument_fn,
-                               n_arguments=10,
-                               perturb_fn=perturb_fn)
-labeled_set, unlabeled_set = dataset.balanced_dataset('target_index', num_per_label)
+                transform_fn=transform_fn,
+                perturb_fn=perturb_fn)
+sampler = samplers.BalancedDatasetSampler(dataset, dataset.get_label)
+labeled_set, _ = dataset.balanced_dataset('target_index', num_per_label)
+unlabeled_set = dataset
 test_set, _ = dataset.balanced_dataset('target_index', 32)
 
 print('len(dataset): ', len(dataset))
-print('len(train_set): ', len(labeled_set) + len(unlabeled_set))
-print('len(test_set): ', len(test_set))
 print('len(labeled_set): ', len(labeled_set))
 print('len(unlabeled_set): ', len(unlabeled_set))
+print('len(test_set): ', len(test_set))
 
 path_to_model = args.path_to_model
 outdir = args.path_to_outdir or flags.outdir
 eval_step = args.eval_step or flags.eval_step
 in_channels = len(flags.use_channels)
-alpha = flags.alpha or len(labeled_set) * 0.1
 
 target_dict = {}
 for _, _, target in labeled_set:
@@ -164,8 +157,11 @@ for _, _, target in labeled_set:
 print('target_dict:', target_dict)
 
 labeled_loader = torch.utils.data.DataLoader(
-    labeled_set, batch_size=flags.batch_size, num_workers=flags.num_workers,
-    shuffle=True, drop_last=True)
+    labeled_set,
+    batch_size=flags.batch_size,
+    num_workers=flags.num_workers,
+    sampler=
+    drop_last=True)
 unlabeled_loader = torch.utils.data.DataLoader(
     unlabeled_set, batch_size=flags.batch_size, num_workers=flags.num_workers,
     shuffle=True, drop_last=True)
