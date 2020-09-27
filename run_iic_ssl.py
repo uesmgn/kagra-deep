@@ -81,7 +81,7 @@ torch.manual_seed(SEED_VALUE)
 
 flags = AttrDict(
     # setup params
-    batch_size=128,
+    batch_size=96,
     num_workers=4,
     num_epochs=5000,
     reinitialize_headers_weights=True,
@@ -109,6 +109,13 @@ transform_fn = torchvision.transforms.Compose([
     torchvision.transforms.Lambda(lambda x: torch.stack([x[i] for i in flags.use_channels])),
 ])
 
+argument_fn = torchvision.transforms.Compose([
+    torchvision.transforms.ToPilImage(),
+    torchvision.transforms.RandomCrop((224, 224 // 1.2)),
+    torchvision.transforms.Resize((224, 224)),
+    torchvision.transforms.ToTensor(),
+])
+
 perturb_fn = torchvision.transforms.Compose([
     torchvision.transforms.RandomChoice([
         torchvision.transforms.Lambda(lambda x: x + torch.randn_like(x) * 0.1),
@@ -132,9 +139,12 @@ args = parser.parse_args()
 num_per_label = args.num_per_label or flags.num_per_label
 
 dataset = datasets.HDF5Dataset(args.path_to_hdf,
-    transform_fn=transform_fn, perturb_fn=perturb_fn)
+                               transform_fn=transform_fn,
+                               argument_fn=argument_fn,
+                               n_arguments=10,
+                               perturb_fn=perturb_fn)
 labeled_set, unlabeled_set = dataset.balanced_dataset('target_index', num_per_label)
-unlabeled_set, test_set = unlabeled_set.split_dataset(0.7)
+test_set, _ = dataset.balanced_dataset('target_index', 32)
 
 print('len(dataset): ', len(dataset))
 print('len(train_set): ', len(labeled_set) + len(unlabeled_set))
