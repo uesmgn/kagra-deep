@@ -1,6 +1,7 @@
 import torch
 import torch.utils.data
 import torchvision
+from collections import defaultdict
 
 
 class BalancedDatasetSampler(torch.utils.data.sampler.Sampler):
