@@ -160,7 +160,7 @@ labeled_loader = torch.utils.data.DataLoader(
     labeled_set,
     batch_size=flags.batch_size,
     num_workers=flags.num_workers,
-    sampler=
+    sampler=sampler,
     drop_last=True)
 unlabeled_loader = torch.utils.data.DataLoader(
     unlabeled_set, batch_size=flags.batch_size, num_workers=flags.num_workers,
