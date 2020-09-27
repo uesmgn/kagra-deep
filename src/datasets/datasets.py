@@ -9,13 +9,15 @@ from skimage import color
 import torchvision.transforms.functional as tf
 
 class HDF5Dataset(data.Dataset):
-    def __init__(self, path_to_hdf, transform_fn=None, perturb_fn=None):
+    def __init__(self, path_to_hdf, transform_fn=None,
+                 argument_fn=None, n_arguments=5, perturb_fn=None):
         super().__init__()
         self.data_cache = []
 
-        path_to_hdf = os.path.abspath(path_to_hdf)
-        self.root = path_to_hdf
+        self.root = os.path.abspath(path_to_hdf)
         self.transform_fn = transform_fn
+        self.argument_fn = argument_fn
+        self.n_arguments = n_arguments
         self.perturb_fn = perturb_fn
         print('Appending data to cache...')
         with h5py.File(self.root, 'r') as fp:
@@ -27,15 +29,34 @@ class HDF5Dataset(data.Dataset):
         with h5py.File(self.root, 'r') as fp:
             item = fp[ref]
             target = dict(item.attrs)
-            img = np.array(item[:]).astype(np.uint8)
-        img = tf.to_pil_image(img)
+            data = self._load_data(item)
         if self.transform_fn is not None:
             img = self.transform_fn(img)
+        if self.argument_fn is not None:
+            tmp = []
+            for _ in range(self.n_arguments):
+                x = self.argument_fn(img)
+                tmp.append(x)
+            img = torch.stack(tmp)
         if self.perturb_fn is not None:
-            perturb_img = self.perturb_fn(img)
-            return img, perturb_img, target
-        else:
-            return img, target
+            if data.ndim == 4:
+                tmp = []
+                for x in data:
+                    x_ = self.perturb_fn(x)
+                    tmp.append(x_)
+                data_ = torch.stack(tmp)
+                return (data, data_), target
+            elif data.ndim == 3:
+                data_ = self.perturb_fn(data)
+                return (data, data_), target
+            else:
+                raise ValueError('ndim of data must be 3 or 4.')
+        return data, target
+
+    def _load_data(self, item):
+        img = np.array(item[:]).astype(np.uint8)
+        img = tf.to_pil_image(img)
+        return img
 
     def __len__(self):
         return len(self.data_cache)
