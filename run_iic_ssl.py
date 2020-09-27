@@ -86,7 +86,7 @@ flags = AttrDict(
     num_epochs=5000,
     reinitialize_headers_weights=True,
     use_channels=[2],
-    num_per_label=16,
+    num_per_label=32,
     alpha=10,
     # model params
     model='ResNet34',
@@ -125,11 +125,15 @@ parser.add_argument('-o', '--path_to_outdir', type=validation.is_dir,
                     help='path to output directory.')
 parser.add_argument('-e', '--eval_step', type=int,
                     help='evaluating step.')
+parser.add_argument('-n', '--num_per_label', type=int,
+                    help='num of labeled samples per label.')
 args = parser.parse_args()
+
+num_per_label = args.num_per_label or flags.num_per_label
 
 dataset = datasets.HDF5Dataset(args.path_to_hdf,
     transform_fn=transform_fn, perturb_fn=perturb_fn)
-labeled_set, unlabeled_set = dataset.balanced_dataset('target_index', flags.num_per_label)
+labeled_set, unlabeled_set = dataset.balanced_dataset('target_index', num_per_label)
 unlabeled_set, test_set = unlabeled_set.split_dataset(0.7)
 
 print('len(dataset): ', len(dataset))
