@@ -31,13 +31,13 @@ class HDF5Dataset(data.Dataset):
             target = dict(item.attrs)
             data = self._load_data(item)
         if self.transform_fn is not None:
-            img = self.transform_fn(img)
+            data = self.transform_fn(data)
         if self.argument_fn is not None:
             tmp = []
             for _ in range(self.n_arguments):
-                x = self.argument_fn(img)
+                x = self.argument_fn(data)
                 tmp.append(x)
-            img = torch.stack(tmp)
+            data = torch.stack(tmp)
         if self.perturb_fn is not None:
             if data.ndim == 4:
                 tmp = []
@@ -45,12 +45,11 @@ class HDF5Dataset(data.Dataset):
                     x_ = self.perturb_fn(x)
                     tmp.append(x_)
                 data_ = torch.stack(tmp)
-                return (data, data_), target
             elif data.ndim == 3:
                 data_ = self.perturb_fn(data)
-                return (data, data_), target
             else:
                 raise ValueError('ndim of data must be 3 or 4.')
+            return data, data_, target
         return data, target
 
     def _load_data(self, item):
