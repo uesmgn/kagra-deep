@@ -88,6 +88,7 @@ flags = AttrDict(
     use_channels=[2],
     num_per_label=32,
     weights=(1., 10., 1.),
+    input_shape=(479, 569),
     # model params
     model='ResNet34',
     num_classes=22,
@@ -104,17 +105,24 @@ flags = AttrDict(
 )
 
 transform_fn = torchvision.transforms.Compose([
-    torchvision.transforms.Resize((224, 224)),
-    torchvision.transforms.RandomCrop((224, 224 // 1.2)),
+    torchvision.transforms.CenterCrop((479, 479)),
     torchvision.transforms.Resize((224, 224)),
     torchvision.transforms.ToTensor(),
     torchvision.transforms.Lambda(lambda x: torch.stack([x[i] for i in flags.use_channels])),
 ])
 
+argmentation_fn = torchvision.transforms.Compose([
+    torchvision.transforms.RandomCrop((479, 479)), # allows lateral misalignment
+    torchvision.transforms.Resize((224, 224)),
+    torchvision.transforms.ToTensor(),
+    torchvision.transforms.Lambda(lambda x: torch.stack([x[i] for i in flags.use_channels])),
+
+])
+
 perturb_fn = torchvision.transforms.Compose([
     torchvision.transforms.RandomChoice([
         torchvision.transforms.Lambda(lambda x: x + torch.randn_like(x) * 0.1),
-        torchvision.transforms.Lambda(lambda x: imp.gaussian_blur(x, 7, 10.)),
+        torchvision.transforms.Lambda(lambda x: imp.gaussian_blur(x, 5, 10.)),
     ]),
 ])
 
@@ -136,10 +144,31 @@ num_per_label = args.num_per_label or flags.num_per_label
 dataset = datasets.HDF5Dataset(args.path_to_hdf,
                 transform_fn=transform_fn,
                 perturb_fn=perturb_fn)
-sampler = samplers.BalancedDatasetSampler(dataset, dataset.get_label)
+# random num_per_label samples of each label are labeled.
 labeled_set, _ = dataset.split_balanced('target_index', num_per_label)
-unlabeled_set = dataset
-test_set, _ = dataset.split_balanced('target_index', 32)
+labeled_loader = torch.utils.data.DataLoader(
+    labeled_set,
+    batch_size=flags.batch_size,
+    num_workers=flags.num_workers,
+    drop_last=True)
+# all samples are unlabeled. A balanced sample is applied to these samples.
+unlabeled_set = dataset.copy()
+unlabeled_set.transform_fn = argmentation_fn
+balanced_sampler = samplers.BalancedDatasetSampler(dataset,
+    dataset.get_label, num_samples=10000)
+unlabeled_loader = torch.utils.data.DataLoader(
+    unlabeled_set,
+    batch_size=flags.batch_size,
+    num_workers=flags.num_workers,
+    sampler=balanced_sampler,
+    drop_last=True)
+# 30% of all samples are test data.
+test_set, _ = dataset.split(0.3)
+test_loader = torch.utils.data.DataLoader(
+    test_set,
+    batch_size=flags.batch_size,
+    num_workers=flags.num_workers,
+    shuffle=False)
 
 print('len(dataset): ', len(dataset))
 print('len(labeled_set): ', len(labeled_set))
@@ -152,22 +181,10 @@ eval_step = args.eval_step or flags.eval_step
 in_channels = len(flags.use_channels)
 
 target_dict = {}
-for _, _, target in labeled_set:
-    target_dict[target['target_index']] = acronym(target['target_name'])
+for i in range(len(labeled_set)):
+    idx, name = labeled_set.get_label(i)
+    target_dict[idx] = acronym(name)
 print('target_dict:', target_dict)
-
-labeled_loader = torch.utils.data.DataLoader(
-    labeled_set,
-    batch_size=flags.batch_size,
-    num_workers=flags.num_workers,
-    sampler=sampler,
-    drop_last=True)
-unlabeled_loader = torch.utils.data.DataLoader(
-    unlabeled_set, batch_size=flags.batch_size, num_workers=flags.num_workers,
-    shuffle=True, drop_last=True)
-test_loader = torch.utils.data.DataLoader(
-    test_set, batch_size=flags.batch_size, num_workers=flags.num_workers,
-    shuffle=False)
 
 device = torch.device(
     'cuda:0') if torch.cuda.is_available() else torch.device('cpu')
