@@ -271,6 +271,7 @@ for epoch in range(1, flags.num_epochs):
         yt_outputs, yt_over_outputs = model(xt)
         loss_iic_unlabeled = mutual_info_heads(y_outputs, yt_outputs) \
             + mutual_info_heads(y_over_outputs, yt_over_outputs)
+        loss_iic_unlabeled = loss_iic_unlabeled.mean()
         loss["loss_iic_unlabeled"] += loss_iic_unlabeled.item()
 
         loss_step = loss_iic_labeled * flags.weights[0] \
