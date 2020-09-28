@@ -82,7 +82,7 @@ random.seed(SEED_VALUE)
 np.random.seed(SEED_VALUE)
 torch.manual_seed(SEED_VALUE)
 
-N_STEP = 200
+N_STEP = 50
 
 flags = AttrDict(
     # setup params
@@ -92,16 +92,16 @@ flags = AttrDict(
     use_channels=[2],
     num_per_label=32,
     weights=(1., 10., 1.),
-    labeled_batch_size=32,
-    num_dataset_labeled=32 * N_STEP,
-    unlabeled_batch_size=64,
-    num_dataset_unlabeled=64 * N_STEP,
-    test_batch_size=64,
+    labeled_batch_size=128,
+    num_dataset_labeled=128 * N_STEP,
+    unlabeled_batch_size=256,
+    num_dataset_unlabeled=256 * N_STEP,
+    test_batch_size=256,
     opt_level='O1',
     # model params
     model='ResNet34',
     num_classes=22,
-    num_classes_over=220,
+    num_classes_over=100,
     num_heads=5,
     # optimizer params
     optimizer='Adam',
