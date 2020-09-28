@@ -57,12 +57,12 @@ df = df.assign(target_index=pd.Categorical(df['target_name']).codes)
 df = df.reindex(columns=['unique_id', 'file_path', 'target_name',
                          'target_index', 'bundle_id', 'span'])
 
-def file2img(file, shape=(224, 224)):
+def file2img(file):
     # imread and remove alpha channel
     img = io.imread(file)[..., :3]
     # grayscale
     img = color.rgb2gray(img)
-    img = transform.resize(img, shape, anti_aliasing=True)
+    # img = transform.resize(img, shape, anti_aliasing=True)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         img = img_as_ubyte(img)
