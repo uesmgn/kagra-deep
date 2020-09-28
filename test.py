@@ -121,5 +121,13 @@ print('len(labeled_set): ', len(labeled_set))
 print('len(unlabeled_set): ', len(unlabeled_set))
 print('len(test_set): ', len(test_set))
 
-for data in tqdm(unlabeled_loader):
-    pass
+targets = defaultdict(lambda:0)
+for x, xt, target in tqdm(unlabeled_loader):
+    print('x.shape:', x.shape)
+    targets[target['target_index']] += 1
+print(targets)
+
+plt.imshow(x[0], cmap='gray')
+plt.show()
+plt.imshow(xt[0], cmap='gray')
+plt.show()
