@@ -81,7 +81,7 @@ torch.manual_seed(SEED_VALUE)
 
 flags = AttrDict(
     # setup params
-    batch_size=96,
+    batch_size=64,
     num_workers=4,
     num_epochs=5000,
     reinitialize_headers_weights=True,
@@ -89,7 +89,8 @@ flags = AttrDict(
     num_per_label=32,
     weights=(1., 10., 1.),
     input_shape=(479, 569),
-    num_dataset_argmented=10000,
+    num_dataset_labeled=64 * 10,
+    num_dataset_unlabeled=64 * 100,
     # model params
     model='ResNet34',
     num_classes=22,
@@ -142,7 +143,7 @@ args = parser.parse_args()
 num_per_label = args.num_per_label or flags.num_per_label
 
 dataset = datasets.HDF5Dataset(args.path_to_hdf,
-                transform_fn=transform_fn,
+                transform_fn=argmentation_fn,
                 perturb_fn=perturb_fn)
 # random num_per_label samples of each label are labeled.
 labeled_set, _ = dataset.split_balanced('target_index', num_per_label)
@@ -150,20 +151,25 @@ labeled_loader = torch.utils.data.DataLoader(
     labeled_set,
     batch_size=flags.batch_size,
     num_workers=flags.num_workers,
+    sampler=samplers.BalancedDatasetSampler(
+                labeled_set,
+                labeled_set.get_label,
+                num_samples=flags.num_dataset_labeled),
     drop_last=True)
 # all samples are unlabeled. A balanced sample is applied to these samples.
 unlabeled_set = dataset.copy()
-unlabeled_set.transform_fn = argmentation_fn
-balanced_sampler = samplers.BalancedDatasetSampler(dataset,
-    dataset.get_label, num_samples=flags.num_dataset_argmented)
 unlabeled_loader = torch.utils.data.DataLoader(
     unlabeled_set,
     batch_size=flags.batch_size,
     num_workers=flags.num_workers,
-    sampler=balanced_sampler,
+    sampler=samplers.BalancedDatasetSampler(
+                unlabeled_set,
+                unlabeled_set.get_label,
+                num_samples=flags.num_dataset_unlabeled),
     drop_last=True)
 # 30% of all samples are test data.
 test_set, _ = dataset.split(0.3)
+test_set.transform_fn = transform_fn
 test_loader = torch.utils.data.DataLoader(
     test_set,
     batch_size=flags.batch_size,
