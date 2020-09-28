@@ -15,7 +15,7 @@ from collections import defaultdict, Counter
 from sklearn import preprocessing
 from itertools import cycle, product
 import apex
-from apex import amp, optimizers
+from apex import amp, optimizers, parallel
 
 from src.utils import validation
 from src.utils import image_processing as imp
@@ -83,6 +83,8 @@ np.random.seed(SEED_VALUE)
 torch.manual_seed(SEED_VALUE)
 
 N_STEP = 50
+NUM_LABELED_DATA=1000
+NUM_UNLABELED_DATA=100000
 
 flags = AttrDict(
     # setup params
@@ -91,11 +93,11 @@ flags = AttrDict(
     reinitialize_headers_weights=True,
     use_channels=[2],
     num_per_label=32,
-    weights=(1.,10.,1.),
-    labeled_batch_size=64,
-    num_dataset_labeled=64 * N_STEP,
+    weights=(1., 10., 1.),
+    labeled_batch_size=32,
+    num_dataset_labeled=NUM_LABELED_DATA,
     unlabeled_batch_size=128,
-    num_dataset_unlabeled=128 * N_STEP,
+    num_dataset_unlabeled=NUM_UNLABELED_DATA,
     test_batch_size=128,
     opt_level='O1',
     # model params
@@ -162,7 +164,8 @@ labeled_loader = torch.utils.data.DataLoader(
     sampler=samplers.BalancedDatasetSampler(
                 labeled_set,
                 labeled_set.get_label,
-                num_samples=flags.num_dataset_labeled)
+                num_samples=flags.num_dataset_labeled),
+    drop_last=True,
     )
 # all samples are unlabeled. A balanced sample is applied to these samples.
 unlabeled_set = dataset.copy()
@@ -175,6 +178,7 @@ unlabeled_loader = torch.utils.data.DataLoader(
                 unlabeled_set,
                 unlabeled_set.get_label,
                 num_samples=flags.num_dataset_unlabeled)
+    drop_last=True,
     )
 # 30% of all samples are test data.
 test_set, _ = dataset.split(0.3)
@@ -213,9 +217,10 @@ model = models.IIC(flags.model, in_channels=in_channels,
                    num_heads=flags.num_heads).to(device)
 optimizer = get_optimizer(model, flags.optimizer, lr=flags.lr, weight_decay=flags.weight_decay)
 model, optimizer = amp.initialize(model, optimizer, opt_level=flags.opt_level)
-scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
-    optimizer, T_0=2, T_mult=2)
-model = nn.DataParallel(model)
+# scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
+#     optimizer, T_0=2, T_mult=2)
+model = parallel.DistributedDataParallel(model, delay_allreduce=True)
+model = parallel.convert_syncbn_model(model)
 if os.path.exists(path_to_model or ''):
     model.load_part_of_state_dict(torch.load(path_to_model))
 
@@ -251,8 +256,8 @@ for epoch in range(1, flags.num_epochs):
     for labeled_data, unlabeled_data in zip(cycle(labeled_loader), unlabeled_loader):
         # labeled loss
         x, xt, target = labeled_data
-        x, xt = x.to(device), xt.to(device)
-        target = target['target_index'].to(device)
+        x, xt = x.to(device, non_blocking=True), xt.to(device, non_blocking=True)
+        target = target['target_index'].to(device, non_blocking=True)
         # labeled iic loss
         y_outputs, y_over_outputs = model(x)
         yt_outputs, yt_over_outputs = model(xt)
@@ -271,7 +276,7 @@ for epoch in range(1, flags.num_epochs):
 
         # unlabeled loss
         x, xt, _ = unlabeled_data
-        x, xt = x.to(device), xt.to(device)
+        x, xt = x.to(device, non_blocking=True), xt.to(device, non_blocking=True)
         # unlabeled iic loss
         y_outputs, y_over_outputs = model(x)
         yt_outputs, yt_over_outputs = model(xt)
@@ -290,7 +295,7 @@ for epoch in range(1, flags.num_epochs):
             loss_scaled.backward()
         optimizer.step()
 
-    scheduler.step()
+    # scheduler.step()
     for k, v in loss.items():
         log[k].append(v)
 
