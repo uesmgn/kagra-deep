@@ -17,7 +17,7 @@ from itertools import cycle, product
 from src.utils import validation
 from src.utils import image_processing as imp
 import src.models as models
-import src.datasets as datasets
+from src.data import datasets, samplers
 
 
 SEED_VALUE = 1234
@@ -34,7 +34,9 @@ flags = AttrDict(
     reinitialize_headers_weights=True,
     use_channels=[2],
     num_per_label=32,
-    alpha=10,
+    weights=(1., 10., 1.),
+    input_shape=(479, 569),
+    num_dataset_argmented=10000,
     # model params
     model='ResNet34',
     num_classes=22,
@@ -56,17 +58,17 @@ transform_fn = torchvision.transforms.Compose([
     torchvision.transforms.Lambda(lambda x: torch.stack([x[i] for i in flags.use_channels])),
 ])
 
-argument_fn = torchvision.transforms.Compose([
-    torchvision.transforms.ToPILImage(),
-    torchvision.transforms.RandomCrop((224, 224 // 1.2)),
+argmentation_fn = torchvision.transforms.Compose([
     torchvision.transforms.Resize((224, 224)),
     torchvision.transforms.ToTensor(),
+    torchvision.transforms.Lambda(lambda x: torch.stack([x[i] for i in flags.use_channels])),
+
 ])
 
 perturb_fn = torchvision.transforms.Compose([
     torchvision.transforms.RandomChoice([
         torchvision.transforms.Lambda(lambda x: x + torch.randn_like(x) * 0.1),
-        torchvision.transforms.Lambda(lambda x: imp.gaussian_blur(x, 7, 10.)),
+        torchvision.transforms.Lambda(lambda x: imp.gaussian_blur(x, 5, 10.)),
     ]),
 ])
 
@@ -86,35 +88,38 @@ args = parser.parse_args()
 num_per_label = args.num_per_label or flags.num_per_label
 
 dataset = datasets.HDF5Dataset(args.path_to_hdf,
-                               transform_fn=transform_fn,
-                               argument_fn=argument_fn,
-                               n_arguments=10,
-                               perturb_fn=perturb_fn)
-labeled_set, unlabeled_set = dataset.balanced_dataset('target_index', num_per_label)
-test_set, _ = dataset.balanced_dataset('target_index', 32)
-
-print('len(dataset): ', len(dataset))
-print('len(train_set): ', len(labeled_set) + len(unlabeled_set))
-print('len(test_set): ', len(test_set))
-print('len(labeled_set): ', len(labeled_set))
-print('len(unlabeled_set): ', len(unlabeled_set))
-
-path_to_model = args.path_to_model
-outdir = args.path_to_outdir or flags.outdir
-eval_step = args.eval_step or flags.eval_step
-in_channels = len(flags.use_channels)
-alpha = flags.alpha or len(labeled_set) * 0.1
-
+                transform_fn=transform_fn,
+                perturb_fn=perturb_fn)
+# random num_per_label samples of each label are labeled.
+labeled_set, _ = dataset.split_balanced('target_index', num_per_label)
 labeled_loader = torch.utils.data.DataLoader(
-    labeled_set, batch_size=flags.batch_size, num_workers=flags.num_workers,
-    shuffle=True, drop_last=True)
+    labeled_set,
+    batch_size=flags.batch_size,
+    num_workers=flags.num_workers,
+    drop_last=True)
+# all samples are unlabeled. A balanced sample is applied to these samples.
+unlabeled_set = dataset.copy()
+unlabeled_set.transform_fn = argmentation_fn
+balanced_sampler = samplers.BalancedDatasetSampler(dataset,
+    dataset.get_label, num_samples=flags.num_dataset_argmented)
 unlabeled_loader = torch.utils.data.DataLoader(
-    unlabeled_set, batch_size=flags.batch_size, num_workers=flags.num_workers,
-    shuffle=True, drop_last=True)
+    unlabeled_set,
+    batch_size=flags.batch_size,
+    num_workers=flags.num_workers,
+    sampler=balanced_sampler,
+    drop_last=True)
+# 30% of all samples are test data.
+test_set, _ = dataset.split(0.3)
 test_loader = torch.utils.data.DataLoader(
-    test_set, batch_size=flags.batch_size, num_workers=flags.num_workers,
+    test_set,
+    batch_size=flags.batch_size,
+    num_workers=flags.num_workers,
     shuffle=False)
 
-for data, targets in tqdm(labeled_loader):
-    x, xt = data
-    break
+print('len(dataset): ', len(dataset))
+print('len(labeled_set): ', len(labeled_set))
+print('len(unlabeled_set): ', len(unlabeled_set))
+print('len(test_set): ', len(test_set))
+
+for data in tqdm(unlabeled_loader):
+    pass
