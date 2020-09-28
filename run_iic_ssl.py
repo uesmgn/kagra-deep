@@ -117,7 +117,6 @@ argmentation_fn = torchvision.transforms.Compose([
     torchvision.transforms.Resize((224, 224)),
     torchvision.transforms.ToTensor(),
     torchvision.transforms.Lambda(lambda x: torch.stack([x[i] for i in flags.use_channels])),
-
 ])
 
 perturb_fn = torchvision.transforms.Compose([
