@@ -226,7 +226,7 @@ def mutual_info_heads(y_outputs, yt_outputs):
     for i in range(flags.num_heads):
         y = y_outputs[i]
         yt = yt_outputs[i]
-        tmp = model.criterion(y, yt)
+        tmp = model.module.criterion(y, yt)
         loss_heads.append(tmp)
     loss_heads = torch.stack(loss_heads)
     return loss_heads
