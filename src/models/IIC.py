@@ -38,6 +38,7 @@ class IIC(Module):
             nn.init.xavier_normal_(m.weight)
             nn.init.zeros_(m.bias)
 
+    @torch.jit.script
     def criterion(self, z, zt):
         _, k = z.size()
         p = (z.unsqueeze(2) * zt.unsqueeze(1)).sum(dim=0)
