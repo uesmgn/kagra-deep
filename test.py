@@ -124,12 +124,12 @@ print('len(test_set): ', len(test_set))
 targets = defaultdict(lambda:0)
 for x, xt, target in tqdm(unlabeled_loader):
     for i in target['target_index']:
-        targets[i] += 1
+        targets[i.item()] += 1
 for k, v in targets.items():
     print(k, v)
 
 for i in range(5):
-    plt.imshow(x[i].permute(1, 2, 0), cmap='gray')
+    plt.imshow(x[i][0], cmap='gray')
     plt.show()
-    plt.imshow(xt[i].permute(1, 2, 0), cmap='gray')
+    plt.imshow(xt[i][0], cmap='gray')
     plt.show()
