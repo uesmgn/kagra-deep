@@ -36,7 +36,7 @@ class HDF5Dataset(data.Dataset):
 
     def _load_data(self, item):
         img = np.array(item[:]).astype(np.uint8)
-        img = tf.to_pil_image(img)
+        img = tf.to_pil_image(img.transpose(1, 2, 0))
         return img
 
     def get_label(self, i):
