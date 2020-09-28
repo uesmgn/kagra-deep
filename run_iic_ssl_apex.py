@@ -248,7 +248,7 @@ for epoch in range(1, flags.num_epochs):
     loss = defaultdict(lambda: 0)
     head_selecter = torch.zeros(flags.num_heads).to(device)
     best_head_indices = []
-    for labeled_data, unlabeled_data in tqdm(zip(cycle(labeled_loader), unlabeled_loader)):
+    for labeled_data, unlabeled_data in zip(cycle(labeled_loader), unlabeled_loader):
         # labeled loss
         x, xt, target = labeled_data
         x, xt = x.to(device), xt.to(device)
@@ -307,7 +307,7 @@ for epoch in range(1, flags.num_epochs):
     model.eval()
     result = defaultdict(lambda: [])
     with torch.no_grad():
-        for x, _, target in tqdm(test_loader):
+        for x, _, target in test_loader:
             x = x.to(device)
             target = target['target_index']
             y, y_over = model(x, head_index=best_head_idx)
