@@ -44,7 +44,7 @@ class HDF5Dataset(data.Dataset):
         with h5py.File(self.root, 'r') as fp:
             item = fp[ref]
             target = dict(item.attrs)
-        return target['target_index']
+        return target['target_index'], target['target_name']
 
     def __len__(self):
         return len(self.data_cache)
@@ -80,6 +80,9 @@ class HDF5Dataset(data.Dataset):
         test_set.data_cache = test_ref
 
         return train_set, test_set
+
+    def copy(self):
+        return copy.copy(self)
 
     def split_balanced(self, attr, num_per_label=50):
         balenced_dict = defaultdict(lambda: [])
