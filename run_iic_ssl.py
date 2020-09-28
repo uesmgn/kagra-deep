@@ -79,18 +79,21 @@ random.seed(SEED_VALUE)
 np.random.seed(SEED_VALUE)
 torch.manual_seed(SEED_VALUE)
 
+N_STEP = 200
+
 flags = AttrDict(
     # setup params
-    batch_size=64,
     num_workers=4,
     num_epochs=5000,
     reinitialize_headers_weights=True,
     use_channels=[2],
     num_per_label=32,
     weights=(1., 10., 1.),
-    input_shape=(479, 569),
-    num_dataset_labeled=64 * 10,
-    num_dataset_unlabeled=64 * 100,
+    labeled_batch_size=32,
+    num_dataset_labeled=32 * N_STEP,
+    unlabeled_batch_size=64,
+    num_dataset_unlabeled=64 * N_STEP,
+    test_batch_size=64,
     # model params
     model='ResNet34',
     num_classes=22,
@@ -149,31 +152,34 @@ dataset = datasets.HDF5Dataset(args.path_to_hdf,
 labeled_set, _ = dataset.split_balanced('target_index', num_per_label)
 labeled_loader = torch.utils.data.DataLoader(
     labeled_set,
-    batch_size=flags.batch_size,
+    batch_size=flags.labeled_batch_size,
     num_workers=flags.num_workers,
+    pin_memory=True,
     sampler=samplers.BalancedDatasetSampler(
                 labeled_set,
                 labeled_set.get_label,
-                num_samples=flags.num_dataset_labeled),
-    drop_last=True)
+                num_samples=flags.num_dataset_labeled)
+    )
 # all samples are unlabeled. A balanced sample is applied to these samples.
 unlabeled_set = dataset.copy()
 unlabeled_loader = torch.utils.data.DataLoader(
     unlabeled_set,
-    batch_size=flags.batch_size,
+    batch_size=flags.unlabeled_batch_size,
     num_workers=flags.num_workers,
+    pin_memory=True,
     sampler=samplers.BalancedDatasetSampler(
                 unlabeled_set,
                 unlabeled_set.get_label,
-                num_samples=flags.num_dataset_unlabeled),
-    drop_last=True)
+                num_samples=flags.num_dataset_unlabeled)
+    )
 # 30% of all samples are test data.
 test_set, _ = dataset.split(0.3)
 test_set.transform_fn = transform_fn
 test_loader = torch.utils.data.DataLoader(
     test_set,
-    batch_size=flags.batch_size,
+    batch_size=flags.test_batch_size,
     num_workers=flags.num_workers,
+    pin_memory=True,
     shuffle=False)
 
 print('len(dataset): ', len(dataset))
