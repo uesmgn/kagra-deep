@@ -177,7 +177,7 @@ unlabeled_loader = torch.utils.data.DataLoader(
     sampler=samplers.BalancedDatasetSampler(
                 unlabeled_set,
                 unlabeled_set.get_label,
-                num_samples=flags.num_dataset_unlabeled)
+                num_samples=flags.num_dataset_unlabeled),
     drop_last=True,
     )
 # 30% of all samples are test data.
