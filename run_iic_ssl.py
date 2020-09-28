@@ -281,8 +281,10 @@ for epoch in range(1, flags.num_epochs):
     for k, v in loss.items():
         log[k].append(v)
 
-    print(f'train loss (avg/sum for heads): {loss["train"]:.3f}')
-    print(f'best_head_idx: {best_head_idx}')
+    print(f'loss_step: {loss["loss_step"]:.3f}')
+    print(f'loss_iic_labeled: {loss["loss_iic_labeled"]:.3f}')
+    print(f'loss_supervised: {loss["loss_supervised"]:.3f}')
+    print(f'loss_iic_unlabeled: {loss["loss_iic_unlabeled"]:.3f}')
 
     if epoch % eval_step != 0:
         continue
