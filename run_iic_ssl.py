@@ -10,7 +10,7 @@ import copy
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from attrdict import AttrDict
-from collections import defaultdict
+from collections import defaultdict, Counter
 from sklearn import preprocessing
 from itertools import cycle, product
 
@@ -223,10 +223,7 @@ def mutual_info_heads(y_outputs, yt_outputs):
         tmp = model.criterion(y, yt)
         loss_heads.append(tmp)
     loss_heads = torch.stack(loss_heads)
-    loss = torch.sum(loss_heads)
-    if flags.avg_for_heads:
-        loss /= flags.num_heads
-    return loss
+    return loss_heads
 
 def cross_entropy_heads(y_outputs, target):
     loss_heads = []
@@ -235,10 +232,7 @@ def cross_entropy_heads(y_outputs, target):
         tmp = F.cross_entropy(y, target, weight=None, reduction='sum')
         loss_heads.append(tmp)
     loss_heads = torch.stack(loss_heads)
-    loss = torch.sum(loss_heads)
-    if flags.avg_for_heads:
-        loss /= flags.num_heads
-    return loss
+    return loss_heads
 
 for epoch in range(1, flags.num_epochs):
     print(f'---------- epoch {epoch} ----------')
@@ -247,6 +241,7 @@ for epoch in range(1, flags.num_epochs):
         model.initialize_headers_weights()
     loss = defaultdict(lambda: 0)
     head_selecter = torch.zeros(flags.num_heads).to(device)
+    best_head_indices = []
     for labeled_data, unlabeled_data in tqdm(zip(cycle(labeled_loader), unlabeled_loader)):
         # labeled loss
         x, xt, target = labeled_data
@@ -257,11 +252,15 @@ for epoch in range(1, flags.num_epochs):
         yt_outputs, yt_over_outputs = model(xt)
         loss_iic_labeled = mutual_info_heads(y_outputs, yt_outputs) \
             + mutual_info_heads(y_over_outputs, yt_over_outputs)
+        loss_iic_labeled = loss_iic_labeled.mean()
         loss["loss_iic_labeled"] += loss_iic_labeled.item()
 
         # labeled supervised loss
         loss_supervised = cross_entropy_heads(y_outputs, target) \
             + cross_entropy_heads(yt_outputs, target)
+        best_head_idx = torch.argmin(loss_supervised, -1).item()
+        best_head_indices.append(best_head_idx)
+        loss_supervised = loss_supervised.mean()
         loss["loss_supervised"] += loss_supervised.item()
 
         # unlabeled loss
@@ -291,19 +290,22 @@ for epoch in range(1, flags.num_epochs):
     print(f'loss_iic_labeled: {loss["loss_iic_labeled"]:.3f}')
     print(f'loss_supervised: {loss["loss_supervised"]:.3f}')
     print(f'loss_iic_unlabeled: {loss["loss_iic_unlabeled"]:.3f}')
+    print(f'best_head_indices: {best_head_indices}')
 
     if epoch % eval_step != 0:
         continue
+    best_head_idx = Counter(best_head_indices).most_common()[0][0]
 
     model.eval()
     result = defaultdict(lambda: [])
     with torch.no_grad():
-        for x, _, targets in tqdm(test_loader):
+        for x, _, target in tqdm(test_loader):
             x = x.to(device)
+            target = target['target_index']
             y, y_over = model(x, head_index=best_head_idx)
             result['pred'].append(y.argmax(dim=-1).cpu())
             result['pred_over'].append(y_over.argmax(dim=-1).cpu())
-            result['true'].append(targets['target_index'])
+            result['true'].append(target)
     preds = torch.cat(result['pred']).numpy()
     preds_over = torch.cat(result['pred_over']).numpy()
     trues = torch.cat(result['true']).numpy()
