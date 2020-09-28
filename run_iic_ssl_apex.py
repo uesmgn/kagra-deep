@@ -244,7 +244,7 @@ for epoch in range(1, flags.num_epochs):
     print(f'---------- epoch {epoch} ----------')
     model.train()
     if flags.reinitialize_headers_weights:
-        model.initialize_headers_weights()
+        model.module.initialize_headers_weights()
     loss = defaultdict(lambda: 0)
     head_selecter = torch.zeros(flags.num_heads).to(device)
     best_head_indices = []
