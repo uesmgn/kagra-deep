@@ -89,6 +89,7 @@ flags = AttrDict(
     num_per_label=32,
     weights=(1., 10., 1.),
     input_shape=(479, 569),
+    num_dataset_argmented=10000,
     # model params
     model='ResNet34',
     num_classes=22,
@@ -155,7 +156,7 @@ labeled_loader = torch.utils.data.DataLoader(
 unlabeled_set = dataset.copy()
 unlabeled_set.transform_fn = argmentation_fn
 balanced_sampler = samplers.BalancedDatasetSampler(dataset,
-    dataset.get_label, num_samples=10000)
+    dataset.get_label, num_samples=flags.num_dataset_argmented)
 unlabeled_loader = torch.utils.data.DataLoader(
     unlabeled_set,
     batch_size=flags.batch_size,
