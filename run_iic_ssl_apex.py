@@ -149,6 +149,7 @@ parser.add_argument('-e', '--eval_step', type=int,
                     help='evaluating step.')
 parser.add_argument('-n', '--num_per_label', type=int,
                     help='num of labeled samples per label.')
+parser.add_argument("--local_rank", default=0, type=int)
 args = parser.parse_args()
 
 num_per_label = args.num_per_label or flags.num_per_label
@@ -201,6 +202,7 @@ path_to_model = args.path_to_model
 outdir = args.path_to_outdir or flags.outdir
 eval_step = args.eval_step or flags.eval_step
 in_channels = len(flags.use_channels)
+local_rank = args.local_rank
 
 target_dict = {}
 for i in range(len(labeled_set)):
@@ -208,8 +210,8 @@ for i in range(len(labeled_set)):
     target_dict[idx] = acronym(name)
 print('target_dict:', target_dict)
 
-device = torch.device(
-    'cuda:0') if torch.cuda.is_available() else torch.device('cpu')
+device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+torch.cuda.set_device(local_rank)
 if torch.cuda.is_available():
     torch.backends.cudnn.benchmark = True
 torch.distributed.init_process_group(backend='nccl',
