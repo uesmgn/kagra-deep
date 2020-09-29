@@ -100,6 +100,9 @@ flags = AttrDict(
     num_dataset_unlabeled=NUM_UNLABELED_DATA,
     test_batch_size=128,
     opt_level='O1',
+    ddp=True,
+    world_size=torch.distributed.get_world_size(),
+    convert_syncbn_model=True,
     # model params
     model='ResNet34',
     num_classes=22,
@@ -210,28 +213,47 @@ device = torch.device(
     'cuda:0') if torch.cuda.is_available() else torch.device('cpu')
 if torch.cuda.is_available():
     torch.backends.cudnn.benchmark = True
-
+torch.distributed.init_process_group(backend='nccl',
+                                     init_method='env://')
 model = models.IIC(flags.model, in_channels=in_channels,
                    num_classes=flags.num_classes,
                    num_classes_over=flags.num_classes_over,
                    num_heads=flags.num_heads).to(device)
 optimizer = get_optimizer(model, flags.optimizer, lr=flags.lr, weight_decay=flags.weight_decay)
-model, optimizer = amp.initialize(model, optimizer, opt_level=flags.opt_level)
+model, optimizer = amp.initialize(model, optimizer,
+    opt_level=flags.opt_level, keep_batchnorm_fp32=True)
+
 # scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
 #     optimizer, T_0=2, T_mult=2)
-model = parallel.DistributedDataParallel(model, delay_allreduce=True)
-model = parallel.convert_syncbn_model(model)
+if flags.ddp:
+    model = parallel.DistributedDataParallel(model, delay_allreduce=True)
+if flags.convert_syncbn_model:
+    model = parallel.convert_syncbn_model(model)
 if os.path.exists(path_to_model or ''):
     model.load_part_of_state_dict(torch.load(path_to_model))
 
+print(f'ddp: {flags.ddp}')
+print(f'world_size: {flags.world_size}')
+print(f'convert_syncbn_model: {flags.convert_syncbn_model}')
+
 log = defaultdict(lambda: [])
 
-def mutual_info_heads(y_outputs, yt_outputs):
+@torch.jit.script
+def iic_criterion(z, zt, eps=1e-8):
+    _, k = z.size()
+    p = (z.unsqueeze(2) * zt.unsqueeze(1)).sum(dim=0)
+    p = ((p + p.t()) / 2) / p.sum()
+    p[(p < eps).data] = eps
+    pi = p.sum(dim=1).view(k, 1).expand(k, k)
+    pj = p.sum(dim=0).view(1, k).expand(k, k)
+    return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
+
+def mutual_info_heads(y_outputs, yt_outputs, eps=1e-8):
     loss_heads = []
     for i in range(flags.num_heads):
         y = y_outputs[i]
         yt = yt_outputs[i]
-        tmp = model.module.criterion(y, yt)
+        tmp = iic_criterion(y, yt, eps)
         loss_heads.append(tmp)
     loss_heads = torch.stack(loss_heads)
     return loss_heads
@@ -245,11 +267,17 @@ def cross_entropy_heads(y_outputs, target):
     loss_heads = torch.stack(loss_heads)
     return loss_heads
 
+def reduce_tensor(x):
+    rt = x.clone()
+    dist.all_reduce(rt, op=torch.distributed.reduce_op.SUM)
+    rt /= flags.world_size
+    return rt
+
 for epoch in range(1, flags.num_epochs):
     print(f'---------- epoch {epoch} ----------')
     model.train()
-    if flags.reinitialize_headers_weights:
-        model.module.initialize_headers_weights()
+    # if flags.reinitialize_headers_weights:
+        # model.module.initialize_headers_weights()
     loss = defaultdict(lambda: 0)
     head_selecter = torch.zeros(flags.num_heads).to(device)
     best_head_indices = []
@@ -258,13 +286,13 @@ for epoch in range(1, flags.num_epochs):
         x, xt, target = labeled_data
         x, xt = x.to(device, non_blocking=True), xt.to(device, non_blocking=True)
         target = target['target_index'].to(device, non_blocking=True)
+        eps = torch.finfo(x.dtype).eps
         # labeled iic loss
         y_outputs, y_over_outputs = model(x)
         yt_outputs, yt_over_outputs = model(xt)
-        loss_iic_labeled = mutual_info_heads(y_outputs, yt_outputs) \
-            + mutual_info_heads(y_over_outputs, yt_over_outputs)
+        loss_iic_labeled = mutual_info_heads(y_outputs, yt_outputs, eps) \
+            + mutual_info_heads(y_over_outputs, yt_over_outputs, eps)
         loss_iic_labeled = loss_iic_labeled.mean()
-        loss["loss_iic_labeled"] += loss_iic_labeled.item()
 
         # labeled supervised loss
         loss_supervised = cross_entropy_heads(y_outputs, target) \
@@ -272,7 +300,7 @@ for epoch in range(1, flags.num_epochs):
         best_head_idx = torch.argmin(loss_supervised, -1).item()
         best_head_indices.append(best_head_idx)
         loss_supervised = loss_supervised.mean()
-        loss["loss_supervised"] += loss_supervised.item()
+
 
         # unlabeled loss
         x, xt, _ = unlabeled_data
@@ -280,14 +308,17 @@ for epoch in range(1, flags.num_epochs):
         # unlabeled iic loss
         y_outputs, y_over_outputs = model(x)
         yt_outputs, yt_over_outputs = model(xt)
-        loss_iic_unlabeled = mutual_info_heads(y_outputs, yt_outputs) \
-            + mutual_info_heads(y_over_outputs, yt_over_outputs)
+        loss_iic_unlabeled = mutual_info_heads(y_outputs, yt_outputs, eps) \
+            + mutual_info_heads(y_over_outputs, yt_over_outputs, eps)
         loss_iic_unlabeled = loss_iic_unlabeled.mean()
-        loss["loss_iic_unlabeled"] += loss_iic_unlabeled.item()
 
         loss_step = loss_iic_labeled * flags.weights[0] \
                     + loss_supervised * flags.weights[1] \
                     + loss_iic_unlabeled * flags.weights[2]
+
+        loss["loss_iic_labeled"] += loss_iic_labeled.item()
+        loss["loss_supervised"] += loss_supervised.item()
+        loss["loss_iic_unlabeled"] += loss_iic_unlabeled.item()
         loss["loss_step"] += loss_step.item()
 
         optimizer.zero_grad()
