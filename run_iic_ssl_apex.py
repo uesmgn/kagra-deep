@@ -221,10 +221,9 @@ if os.path.exists(path_to_model or ''):
 
 log = defaultdict(lambda: [])
 
-def mutual_info_heads(y_outputs, yt_outputs, eps=1e-8):
+def mutual_info_heads(y_outputs, yt_outputs, e=1e-8):
 
-    @torch.jit.script
-    def criterion(z, zt, e):
+    def criterion(z, zt):
         _, k = z.size()
         p = (z.unsqueeze(2) * zt.unsqueeze(1)).sum(dim=0)
         p = ((p + p.t()) / 2) / p.sum()
@@ -237,7 +236,7 @@ def mutual_info_heads(y_outputs, yt_outputs, eps=1e-8):
     for i in range(flags.num_heads):
         y = y_outputs[i]
         yt = yt_outputs[i]
-        tmp = criterion(y, yt, eps)
+        tmp = criterion(y, yt)
         loss_heads.append(tmp)
     loss_heads = torch.stack(loss_heads)
     return loss_heads
@@ -252,7 +251,6 @@ def cross_entropy_heads(y_outputs, target):
     return loss_heads
 
 eps = torch.finfo(torch.half).eps
-
 for epoch in range(1, flags.num_epochs):
     print(f'---------- epoch {epoch} ----------')
     model.train()
