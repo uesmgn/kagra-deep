@@ -28,7 +28,7 @@ def get_optimizer(model, optimizer, lr=1e-3, weight_decay=1e-4):
     elif optimizer is 'Adam':
         return torch.optim.Adam(model.parameters(), lr=lr)
     elif optimizer is 'FusedAdam':
-        return torch.optim.FusedAdam(model.parameters(), lr=lr)
+        return apex.optimizers.FusedAdam(model.parameters(), lr=lr)
     else:
         raise ValueError(f'optimizer {optimizer} is invalid.')
 
