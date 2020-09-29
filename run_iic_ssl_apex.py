@@ -251,6 +251,8 @@ def cross_entropy_heads(y_outputs, target):
     loss_heads = torch.stack(loss_heads)
     return loss_heads
 
+eps = torch.finfo(torch.half).eps
+
 for epoch in range(1, flags.num_epochs):
     print(f'---------- epoch {epoch} ----------')
     model.train()
@@ -264,7 +266,6 @@ for epoch in range(1, flags.num_epochs):
         x, xt, target = labeled_data
         x, xt = x.to(device, non_blocking=True), xt.to(device, non_blocking=True)
         target = target['target_index'].to(device, non_blocking=True)
-        eps = torch.finfo(x.dtype).eps
         # labeled iic loss
         y_outputs, y_over_outputs = model(x)
         yt_outputs, yt_over_outputs = model(xt)
