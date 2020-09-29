@@ -238,22 +238,23 @@ print(f'convert_syncbn_model: {flags.convert_syncbn_model}')
 
 log = defaultdict(lambda: [])
 
-@torch.jit.script
-def iic_criterion(z, zt, eps=1e-8):
-    _, k = z.size()
-    p = (z.unsqueeze(2) * zt.unsqueeze(1)).sum(dim=0)
-    p = ((p + p.t()) / 2) / p.sum()
-    p[(p < eps).data] = eps
-    pi = p.sum(dim=1).view(k, 1).expand(k, k)
-    pj = p.sum(dim=0).view(1, k).expand(k, k)
-    return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
-
 def mutual_info_heads(y_outputs, yt_outputs, eps=1e-8):
+
+    @torch.jit.script
+    def iic_criterion(z, zt):
+        _, k = z.size()
+        p = (z.unsqueeze(2) * zt.unsqueeze(1)).sum(dim=0)
+        p = ((p + p.t()) / 2) / p.sum()
+        p[(p < eps).data] = eps
+        pi = p.sum(dim=1).view(k, 1).expand(k, k)
+        pj = p.sum(dim=0).view(1, k).expand(k, k)
+        return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
+
     loss_heads = []
     for i in range(flags.num_heads):
         y = y_outputs[i]
         yt = yt_outputs[i]
-        tmp = iic_criterion(y, yt, eps)
+        tmp = iic_criterion(y, yt)
         loss_heads.append(tmp)
     loss_heads = torch.stack(loss_heads)
     return loss_heads
