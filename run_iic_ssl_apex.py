@@ -101,7 +101,6 @@ flags = AttrDict(
     test_batch_size=128,
     opt_level='O1',
     ddp=True,
-    world_size=torch.distributed.get_world_size(),
     convert_syncbn_model=True,
     # model params
     model='ResNet34',
@@ -215,6 +214,7 @@ if torch.cuda.is_available():
     torch.backends.cudnn.benchmark = True
 torch.distributed.init_process_group(backend='nccl',
                                      init_method='env://')
+flags.world_size=torch.distributed.get_world_size()
 model = models.IIC(flags.model, in_channels=in_channels,
                    num_classes=flags.num_classes,
                    num_classes_over=flags.num_classes_over,
