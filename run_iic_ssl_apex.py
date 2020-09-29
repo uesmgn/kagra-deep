@@ -27,6 +27,8 @@ def get_optimizer(model, optimizer, lr=1e-3, weight_decay=1e-4):
         return torch.optim.SGD(model.parameters(), lr=lr, weight_decay=weight_decay)
     elif optimizer is 'Adam':
         return torch.optim.Adam(model.parameters(), lr=lr)
+    elif optimizer is 'FusedAdam':
+        return torch.optim.FusedAdam(model.parameters(), lr=lr)
     else:
         raise ValueError(f'optimizer {optimizer} is invalid.')
 
@@ -82,9 +84,11 @@ random.seed(SEED_VALUE)
 np.random.seed(SEED_VALUE)
 torch.manual_seed(SEED_VALUE)
 
-N_STEP = 50
-NUM_LABELED_DATA=1000
-NUM_UNLABELED_DATA=100000
+NUM_BATCH_LABELED_DATA=32
+NUM_LABELED_DATA=100
+NUM_BATCH_UNLABELED_DATA=512
+NUM_UNLABELED_DATA=10000
+N_STEP=NUM_UNLABELED_DATA // NUM_BATCH_UNLABELED_DATA
 
 flags = AttrDict(
     # setup params
@@ -94,11 +98,11 @@ flags = AttrDict(
     use_channels=[2],
     num_per_label=32,
     weights=(1., 10., 1.),
-    labeled_batch_size=32,
+    labeled_batch_size=NUM_BATCH_LABELED_DATA,
     num_dataset_labeled=NUM_LABELED_DATA,
-    unlabeled_batch_size=128,
+    unlabeled_batch_size=NUM_BATCH_UNLABELED_DATA,
     num_dataset_unlabeled=NUM_UNLABELED_DATA,
-    test_batch_size=128,
+    test_batch_size=64,
     opt_level='O1',
     # model params
     model='ResNet34',
@@ -106,7 +110,7 @@ flags = AttrDict(
     num_classes_over=100,
     num_heads=5,
     # optimizer params
-    optimizer='Adam',
+    optimizer='FusedAdam',
     lr=1e-4,
     weight_decay=1e-4,
     # log params
@@ -254,53 +258,56 @@ eps = torch.finfo(torch.half).eps
 for epoch in range(1, flags.num_epochs):
     print(f'---------- epoch {epoch} ----------')
     model.train()
-    # if flags.reinitialize_headers_weights:
-        # model.module.initialize_headers_weights()
+    if flags.reinitialize_headers_weights:
+        model.module.initialize_headers_weights()
     loss = defaultdict(lambda: 0)
     head_selecter = torch.zeros(flags.num_heads).to(device)
     best_head_indices = []
-    for labeled_data, unlabeled_data in zip(cycle(labeled_loader), unlabeled_loader):
-        # labeled loss
-        x, xt, target = labeled_data
-        x, xt = x.to(device, non_blocking=True), xt.to(device, non_blocking=True)
-        target = target['target_index'].to(device, non_blocking=True)
-        # labeled iic loss
-        y_outputs, y_over_outputs = model(x)
-        yt_outputs, yt_over_outputs = model(xt)
-        loss_iic_labeled = mutual_info_heads(y_outputs, yt_outputs, eps) \
-            + mutual_info_heads(y_over_outputs, yt_over_outputs, eps)
-        loss_iic_labeled = loss_iic_labeled.mean()
+    with tqdm(total=N_STEP) as pbar:
+        for labeled_data, unlabeled_data in zip(cycle(labeled_loader), unlabeled_loader):
+            # labeled loss
+            x, xt, target = labeled_data
+            x, xt = x.to(device, non_blocking=True), xt.to(device, non_blocking=True)
+            target = target['target_index'].to(device, non_blocking=True)
+            # labeled iic loss
+            y_outputs, y_over_outputs = model(x)
+            yt_outputs, yt_over_outputs = model(xt)
+            loss_iic_labeled = mutual_info_heads(y_outputs, yt_outputs, eps) \
+                + mutual_info_heads(y_over_outputs, yt_over_outputs, eps)
+            loss_iic_labeled = loss_iic_labeled.mean()
 
-        # labeled supervised loss
-        loss_supervised = cross_entropy_heads(y_outputs, target) \
-            + cross_entropy_heads(yt_outputs, target)
-        best_head_idx = torch.argmin(loss_supervised, -1).item()
-        best_head_indices.append(best_head_idx)
-        loss_supervised = loss_supervised.mean()
+            # labeled supervised loss
+            loss_supervised = cross_entropy_heads(y_outputs, target) \
+                + cross_entropy_heads(yt_outputs, target)
+            best_head_idx = torch.argmin(loss_supervised, -1).item()
+            best_head_indices.append(best_head_idx)
+            loss_supervised = loss_supervised.mean()
 
-        # unlabeled loss
-        x, xt, _ = unlabeled_data
-        x, xt = x.to(device, non_blocking=True), xt.to(device, non_blocking=True)
-        # unlabeled iic loss
-        y_outputs, y_over_outputs = model(x)
-        yt_outputs, yt_over_outputs = model(xt)
-        loss_iic_unlabeled = mutual_info_heads(y_outputs, yt_outputs, eps) \
-            + mutual_info_heads(y_over_outputs, yt_over_outputs, eps)
-        loss_iic_unlabeled = loss_iic_unlabeled.mean()
+            # unlabeled loss
+            x, xt, _ = unlabeled_data
+            x, xt = x.to(device, non_blocking=True), xt.to(device, non_blocking=True)
+            # unlabeled iic loss
+            y_outputs, y_over_outputs = model(x)
+            yt_outputs, yt_over_outputs = model(xt)
+            loss_iic_unlabeled = mutual_info_heads(y_outputs, yt_outputs, eps) \
+                + mutual_info_heads(y_over_outputs, yt_over_outputs, eps)
+            loss_iic_unlabeled = loss_iic_unlabeled.mean()
 
-        loss_step = loss_iic_labeled * flags.weights[0] \
-                    + loss_supervised * flags.weights[1] \
-                    + loss_iic_unlabeled * flags.weights[2]
+            loss_step = loss_iic_labeled * flags.weights[0] \
+                        + loss_supervised * flags.weights[1] \
+                        + loss_iic_unlabeled * flags.weights[2]
 
-        loss["loss_iic_labeled"] += loss_iic_labeled.item()
-        loss["loss_supervised"] += loss_supervised.item()
-        loss["loss_iic_unlabeled"] += loss_iic_unlabeled.item()
-        loss["loss_step"] += loss_step.item()
+            loss["loss_iic_labeled"] += loss_iic_labeled.item()
+            loss["loss_supervised"] += loss_supervised.item()
+            loss["loss_iic_unlabeled"] += loss_iic_unlabeled.item()
+            loss["loss_step"] += loss_step.item()
 
-        optimizer.zero_grad()
-        with amp.scale_loss(loss_step, optimizer) as loss_scaled:
-            loss_scaled.backward()
-        optimizer.step()
+            optimizer.zero_grad()
+            with amp.scale_loss(loss_step, optimizer) as loss_scaled:
+                loss_scaled.backward()
+            optimizer.step()
+
+            pbar.update(1)
 
     # scheduler.step()
     for k, v in loss.items():
