@@ -214,8 +214,7 @@ model = models.IIC(flags.model, in_channels=in_channels,
                    num_classes_over=flags.num_classes_over,
                    num_heads=flags.num_heads).to(device)
 optimizer = get_optimizer(model, flags.optimizer, lr=flags.lr, weight_decay=flags.weight_decay)
-model, optimizer = amp.initialize(model, optimizer,
-    opt_level=flags.opt_level, keep_batchnorm_fp32=True)
+model, optimizer = amp.initialize(model, optimizer, opt_level=flags.opt_level)
 
 if os.path.exists(path_to_model or ''):
     model.load_part_of_state_dict(torch.load(path_to_model))
