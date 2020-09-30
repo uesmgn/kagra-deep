@@ -324,7 +324,7 @@ for epoch in range(1, flags.num_epochs):
     model.eval()
     result = defaultdict(lambda: [])
     with torch.no_grad():
-        for x, _, target in test_loader:
+        for x, target in test_loader:
             x = x.to(device)
             target = target['target_index']
             y, y_over = model(x, head_index=best_head_idx)
