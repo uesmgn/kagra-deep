@@ -121,17 +121,19 @@ flags = AttrDict(
 )
 
 transform_fn = torchvision.transforms.Compose([
+    torchvision.transforms.Lambda(lambda x: torch.stack([x[i] for i in flags.use_channels])),
+    torchvision.transforms.ToPILImage(),
     torchvision.transforms.CenterCrop((479, 479)),
     torchvision.transforms.Resize((224, 224)),
     torchvision.transforms.ToTensor(),
-    torchvision.transforms.Lambda(lambda x: torch.stack([x[i] for i in flags.use_channels]))
 ])
 
 argmentation_fn = torchvision.transforms.Compose([
+    torchvision.transforms.Lambda(lambda x: torch.stack([x[i] for i in flags.use_channels])),
+    torchvision.transforms.ToPILImage(),
     torchvision.transforms.RandomCrop((479, 479)),
     torchvision.transforms.Resize((224, 224)),
     torchvision.transforms.ToTensor(),
-    torchvision.transforms.Lambda(lambda x: torch.stack([x[i] for i in flags.use_channels])),
 ])
 
 perturb_fn = torchvision.transforms.Compose([
@@ -250,7 +252,7 @@ def cross_entropy_heads(y_outputs, target):
     loss_heads = torch.stack(loss_heads)
     return loss_heads
 
-eps = torch.finfo(torch.half).eps
+eps = torch.finfo(torch.float).eps
 for epoch in range(1, flags.num_epochs):
     print(f'---------- epoch {epoch} ----------')
     model.train()
