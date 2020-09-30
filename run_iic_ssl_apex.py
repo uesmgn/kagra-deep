@@ -86,7 +86,7 @@ torch.manual_seed(SEED_VALUE)
 
 NUM_BATCH_LABELED_DATA=32
 NUM_LABELED_DATA=100
-NUM_BATCH_UNLABELED_DATA=512
+NUM_BATCH_UNLABELED_DATA=128
 NUM_UNLABELED_DATA=10000
 N_STEP=NUM_UNLABELED_DATA // NUM_BATCH_UNLABELED_DATA
 
@@ -104,10 +104,11 @@ flags = AttrDict(
     num_dataset_unlabeled=NUM_UNLABELED_DATA,
     test_batch_size=64,
     opt_level='O1',
+    input_shape=(4, 479, 569),
     # model params
     model='ResNet34',
     num_classes=22,
-    num_classes_over=100,
+    num_classes_over=50,
     num_heads=5,
     # optimizer params
     optimizer='FusedAdam',
@@ -123,21 +124,18 @@ transform_fn = torchvision.transforms.Compose([
     torchvision.transforms.CenterCrop((479, 479)),
     torchvision.transforms.Resize((224, 224)),
     torchvision.transforms.ToTensor(),
-    torchvision.transforms.Lambda(lambda x: torch.stack([x[i] for i in flags.use_channels])),
+    torchvision.transforms.Lambda(lambda x: torch.stack([x[i] for i in flags.use_channels]))
 ])
 
 argmentation_fn = torchvision.transforms.Compose([
-    torchvision.transforms.RandomCrop((479, 479)), # allows lateral misalignment
+    torchvision.transforms.RandomCrop((479, 479)),
     torchvision.transforms.Resize((224, 224)),
     torchvision.transforms.ToTensor(),
     torchvision.transforms.Lambda(lambda x: torch.stack([x[i] for i in flags.use_channels])),
 ])
 
 perturb_fn = torchvision.transforms.Compose([
-    torchvision.transforms.RandomChoice([
-        torchvision.transforms.Lambda(lambda x: x + torch.randn_like(x) * 0.1),
-        torchvision.transforms.Lambda(lambda x: imp.gaussian_blur(x, 5, 10.)),
-    ]),
+    torchvision.transforms.Lambda(lambda x: (transform_fn(x), argmentation_fn(x)))
 ])
 
 parser = argparse.ArgumentParser()
@@ -156,8 +154,8 @@ args = parser.parse_args()
 num_per_label = args.num_per_label or flags.num_per_label
 
 dataset = datasets.HDF5Dataset(args.path_to_hdf,
-                transform_fn=argmentation_fn,
-                perturb_fn=perturb_fn)
+                data_shape=flags.input_shape,
+                transform_fn=perturb_fn)
 # random num_per_label samples of each label are labeled.
 labeled_set, _ = dataset.split_balanced('target_index', num_per_label)
 labeled_loader = torch.utils.data.DataLoader(
@@ -169,8 +167,7 @@ labeled_loader = torch.utils.data.DataLoader(
                 labeled_set,
                 labeled_set.get_label,
                 num_samples=flags.num_dataset_labeled),
-    drop_last=True,
-    )
+    drop_last=True)
 # all samples are unlabeled. A balanced sample is applied to these samples.
 unlabeled_set = dataset.copy()
 unlabeled_loader = torch.utils.data.DataLoader(
@@ -182,8 +179,7 @@ unlabeled_loader = torch.utils.data.DataLoader(
                 unlabeled_set,
                 unlabeled_set.get_label,
                 num_samples=flags.num_dataset_unlabeled),
-    drop_last=True,
-    )
+    drop_last=True)
 # 30% of all samples are test data.
 test_set, _ = dataset.split(0.3)
 test_set.transform_fn = transform_fn
