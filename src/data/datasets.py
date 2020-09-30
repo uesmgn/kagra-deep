@@ -9,13 +9,12 @@ from skimage import color
 import torchvision.transforms.functional as tf
 
 class HDF5Dataset(data.Dataset):
-    def __init__(self, path_to_hdf,  transform_fn=None, perturb_fn=None):
+    def __init__(self, path_to_hdf, data_shape=(4, 479, 569), transform_fn=None):
         super().__init__()
         self.data_cache = []
-
+        self.data_shape = data_shape
         self.root = os.path.abspath(path_to_hdf)
         self.transform_fn = transform_fn
-        self.perturb_fn = perturb_fn
         print('Appending data to cache...')
         with h5py.File(self.root, 'r') as fp:
             self._init_data_cache(fp)
@@ -26,18 +25,18 @@ class HDF5Dataset(data.Dataset):
         with h5py.File(self.root, 'r') as fp:
             item = fp[ref]
             target = dict(item.attrs)
-            data = self._load_data(item)
+            data = self._load_data(item, self.data_shape)
         if self.transform_fn is not None:
             data = self.transform_fn(data)
-        if self.perturb_fn is not None:
-            data_ = self.perturb_fn(data)
-            return data, data_, target
-        return data, target
+        if isinstance(data, tuple):
+            return (*data, target)
+        return (data, target)
 
-    def _load_data(self, item):
-        img = np.array(item[:]).astype(np.uint8)
-        img = tf.to_pil_image(img.transpose(1, 2, 0))
-        return img
+    def _load_data(self, item, shape):
+        data = np.zeros(shape, dtype=np.uint8)
+        item.read_direct(data)
+        data = tf.to_tensor(data.transpose(1,2,0))
+        return data
 
     def get_label(self, i):
         ref = self.data_cache[i]
@@ -58,7 +57,6 @@ class HDF5Dataset(data.Dataset):
                 else:
                     print('item is NoneType object.')
         else:
-            # if item is dataset
             if hasattr(item, 'ref'):
                 self.data_cache.append(item.ref)
             else:
