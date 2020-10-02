@@ -120,7 +120,8 @@ def run(cfg: DictConfig):
         head_selector_over = 0
         if cfg.iic.reinitialize_header_weights:
             model.initialize_headers_weights()
-        with tqdm(total=cfg.batch_size * len(unlabeled_loader)) as pbar:
+        num_train = cfg.batch_size * len(unlabeled_loader)
+        with tqdm(total=num_train) as pbar:
             for (lx, lxt, target), (ux, uxt, _) in tqdm(zip(cycle(labeled_loader), unlabeled_loader)):
                 # labeled loss
                 lx, lxt = lx.to(device, non_blocking=True), lxt.to(device, non_blocking=True)
@@ -159,6 +160,7 @@ def run(cfg: DictConfig):
         best_idx = torch.argmin(head_selector, -1).item()
         best_idx_over = torch.argmin(head_selector_over, -1).item()
         for key, value in loss.items():
+            value /= num_train
             logger.update(key, value, verbose=True)
         logger.update('best_idx', best_idx, verbose=True)
         logger.update('best_idx_over', best_idx_over, verbose=True)

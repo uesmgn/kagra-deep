@@ -93,7 +93,8 @@ def run(cfg: DictConfig):
         print(f'---------- epoch {epoch} ----------')
         model.train()
         loss = defaultdict(lambda: 0)
-        with tqdm(total=cfg.batch_size * len(train_loader)) as pbar:
+        num_train = cfg.batch_size * len(train_loader)
+        with tqdm(total=num_train) as pbar:
             for x, target in train_loader:
                 x = x.to(device, non_blocking=True)
                 xt, z, z_mean, z_var = model(x)
@@ -112,6 +113,7 @@ def run(cfg: DictConfig):
                 optim.step()
                 pbar.update(x.shape[0])
         for key, value in loss.items():
+            value /= num_train
             logger.update(key, value, verbose=True)
 
         if epoch % cfg.checkpoint.eval == 0:
