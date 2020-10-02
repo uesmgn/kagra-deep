@@ -5,7 +5,7 @@ pin_memory: True
 use_amp: True
 opt_level: O1
 rate_train: 0.7
-balancing: False
+balancing: True
 num_balancing_samples: 10000
 
 dataset:
