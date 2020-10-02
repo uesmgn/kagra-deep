@@ -28,6 +28,11 @@ random.seed(SEED_VALUE)
 np.random.seed(SEED_VALUE)
 torch.manual_seed(SEED_VALUE)
 
+def to_acronym(name):
+    return re.sub(r'(^[0-9a-zA-Z]{5,}(?=_))|((?<=_)[0-9a-zA-Z]*)',
+                  lambda m: str(m.group(1) or '')[
+                      :3] + str(m.group(2) or '')[:1],
+                  name).replace('_', '.')
 
 @hydra.main(config_path="config", config_name="config")
 def run(cfg: DictConfig):
@@ -51,9 +56,9 @@ def run(cfg: DictConfig):
     perturb = torchvision.transforms.Lambda(lambda x: (transform(x), augment(x)))
     dataset = datasets.HDF5Dataset(cfg.dataset, transform=perturb)
     sample, _, _ = dataset[0]
-    train_set, _ = dataset.split(cfg.rate_train)
-    test_set, _ = dataset.split_balancing(8)
+    train_set, test_set = dataset.split(cfg.rate_train)
     K = len(dataset.targets)
+    labels = [to_acronym(l) for l in dataset.targets]
     K_over = cfg.iic.num_classes_over
     train_sampler = None
     if cfg.balancing:
@@ -101,13 +106,13 @@ def run(cfg: DictConfig):
                 crit_y_over = model.crit(y_over, yt_over, 0)
                 crit = crit_y + crit_y_over
                 loss_batch = crit.sum()
-                # optim.zero_grad()
-                # if cfg.use_amp:
-                #     with amp.scale_loss(loss_batch, optim) as loss_scaled:
-                #         loss_scaled.backward()
-                # else:
-                #     loss_batch.backward()
-                # optim.step()
+                optim.zero_grad()
+                if cfg.use_amp:
+                    with amp.scale_loss(loss_batch, optim) as loss_scaled:
+                        loss_scaled.backward()
+                else:
+                    loss_batch.backward()
+                optim.step()
                 loss_train += loss_batch.item()
                 head_selector += crit_y
                 head_selector_over += crit_y_over
@@ -131,10 +136,10 @@ def run(cfg: DictConfig):
                         evaluator.update('y', y.argmax(dim=-1))
                         evaluator.update('y_over', y_over.argmax(dim=-1))
                         pbar.update(x.shape[0])
-            fig, ax = evaluator.get_confusion_matrix('y', 'target', K, K)
+            fig, ax = evaluator.get_confusion_matrix('y', 'target', K, labels)
             fig.savefig(f'cm_{epoch}.png')
             plt.close(fig)
-            fig, ax = evaluator.get_confusion_matrix('y_over', 'target', K_over, K)
+            fig, ax = evaluator.get_confusion_matrix('y_over', 'target', K_over, labels)
             fig.savefig(f'cm_over_{epoch}.png')
             plt.close(fig)
             for k, fig, ax in logger.get_plots():
