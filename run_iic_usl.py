@@ -59,6 +59,8 @@ def run(cfg: DictConfig):
     dataset = datasets.HDF5Dataset(cfg.dataset, transform=perturb)
     sample, _, _ = dataset[0]
     train_set, test_set = dataset.split(cfg.rate_train)
+    print('train_set:', train_set.counter)
+    print('test_set:', test_set.counter)
     K = len(dataset.targets)
     labels = [to_acronym(l) for l in dataset.targets]
     K_over = cfg.iic.num_classes_over
@@ -83,6 +85,7 @@ def run(cfg: DictConfig):
                        num_classes_over=cfg.iic.num_classes_over,
                        num_heads=cfg.iic.num_heads).to(device)
     optim = config.get_optim(model.parameters(), cfg.optim)
+    weights = cfg.usl.weights
     if cfg.use_amp:
         try:
             from apex import amp
@@ -105,10 +108,10 @@ def run(cfg: DictConfig):
                     device, non_blocking=True)
                 y, y_over = model(x)
                 yt, yt_over = model(xt)
-                mi = model.mutual_info(y, yt, 0)
+                mi = model.mutual_info(y, yt, 0) * weights.mi
                 head_selector += mi
                 loss['loss_mi'] += mi.sum().item()
-                mi_over = model.mutual_info(y_over, yt_over, 0)
+                mi_over = model.mutual_info(y_over, yt_over, 0) * weights.mi_over
                 head_selector_over += mi_over
                 loss['loss_mi_over'] += mi_over.sum().item()
                 loss_batch = mi.sum() + mi_over.sum()

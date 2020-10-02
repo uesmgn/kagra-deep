@@ -57,6 +57,8 @@ def run(cfg: DictConfig):
     dataset = datasets.HDF5Dataset(cfg.dataset, transform=transform)
     sample, _ = dataset[0]
     train_set, test_set = dataset.split(cfg.rate_train)
+    print('train_set:', train_set.counter)
+    print('test_set:', test_set.counter)
     K = len(dataset.targets)
     labels = [to_acronym(l) for l in dataset.targets]
     balancer = None
@@ -78,6 +80,7 @@ def run(cfg: DictConfig):
 
     model = models.VAE(cfg.model.name, in_channels=sample.shape[0]).to(device)
     optim = config.get_optim(model.parameters(), cfg.optim)
+    weights = cfg.vae.weights
     if cfg.use_amp:
         try:
             from apex import amp
@@ -94,9 +97,9 @@ def run(cfg: DictConfig):
             for x, target in train_loader:
                 x = x.to(device, non_blocking=True)
                 xt, z, z_mean, z_var = model(x)
-                bce = model.bce(x, xt).sum()
+                bce = model.bce(x, xt).sum() * weights.bce
                 loss['loss_bce'] += bce.item()
-                kl = model.kl_norm(z_mean, z_var).sum()
+                kl = model.kl_norm(z_mean, z_var).sum() * weights.kl_norm
                 loss['loss_kl'] += kl.item()
                 loss_batch = bce + kl
                 loss['loss_train'] += loss_batch.item()

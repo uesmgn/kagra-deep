@@ -103,6 +103,7 @@ def run(cfg: DictConfig):
                        num_classes_over=cfg.iic.num_classes_over,
                        num_heads=cfg.iic.num_heads).to(device)
     optim = config.get_optim(model.parameters(), cfg.optim)
+    weights = cfg.ssl.weights
     if cfg.use_amp:
         try:
             from apex import amp
@@ -126,27 +127,26 @@ def run(cfg: DictConfig):
                 target = target.to(device, non_blocking=True)
                 ly, ly_over = model(lx)
                 lyt, lyt_over = model(lxt)
-                mi_labeled = model.mutual_info(ly, lyt, 0)
-                mi_labeled_over = model.mutual_info(ly_over, lyt_over, 0)
+                mi_labeled = model.mutual_info(ly, lyt, 0) * weights.mi_labeled
+                mi_labeled_over = model.mutual_info(ly_over, lyt_over, 0) * weights.mi_labeled_over
                 loss_mi_labeled = mi_labeled.sum() + mi_labeled_over.sum()
                 loss['loss_mi_labeled'] += loss_mi_labeled.item()
 
-                ce = model.cross_entropy(ly, target)
-                ce_over = model.cross_entropy(lyt, target)
-                head_selector += ce
-                head_selector_over += ce
-                loss_supervised = 10. * (ce.sum() + ce_over.sum())
-                loss['loss_supervised'] += loss_supervised.item()
+                ce = model.cross_entropy(ly, target) + model.cross_entropy(lyt, target)
+                loss_ce = ce.sum() * weights.ce
+                loss['loss_ce'] += loss_ce.item()
 
                 ux, uxt = ux.to(device, non_blocking=True), uxt.to(device, non_blocking=True)
                 uy, uy_over = model(ux)
                 uyt, uyt_over = model(uxt)
-                mi_unlabeled = model.mutual_info(uy, uyt, 0)
-                mi_unlabeled_over = model.mutual_info(uy_over, uyt_over, 0)
+                mi_unlabeled = model.mutual_info(uy, uyt, 0) * weights.mi_unlabeled
+                head_selector += mi_unlabeled
+                mi_unlabeled_over = model.mutual_info(uy_over, uyt_over, 0) * weights.mi_unlabeled_over
+                head_selector_over += mi_unlabeled_over
                 loss_mi_unlabeled = mi_unlabeled.sum() + mi_unlabeled_over.sum()
                 loss['loss_mi_unlabeled'] += loss_mi_unlabeled.item()
 
-                loss_batch = loss_mi_labeled + loss_supervised + loss_mi_unlabeled
+                loss_batch = loss_mi_labeled + loss_ce + loss_mi_unlabeled
                 loss['loss_train'] += loss_batch.item()
                 optim.zero_grad()
                 if cfg.use_amp:

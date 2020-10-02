@@ -36,3 +36,22 @@ iic:
   rate_labeled: 0.1
   num_heads: 5
   reinitialize_header_weights: False
+
+  ssl:
+    weights:
+      mi_labeled: 1.0
+      mi_labeled_over: 1.0
+      mi_unlabeled: 1.0
+      mi_unlabeled_over: 1.0
+      ce: 1.0
+
+  usl:
+    weights:
+      mi: 1.0
+      mi_over: 1.0
+
+vae:
+  usl:
+    weights:
+      bce: 1.0
+      kl_norm: 1.0
