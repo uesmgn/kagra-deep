@@ -54,15 +54,14 @@ def run(cfg: DictConfig):
         torchvision.transforms.Resize((224, 224)),
         torchvision.transforms.ToTensor(),
     ])
-    dataset = datasets.HDF5Dataset(cfg.dataset)
+    dataset = datasets.HDF5Dataset(cfg.dataset, transform=transform)
     sample, _ = dataset[0]
     train_set, test_set = dataset.split(cfg.rate_train)
-    train_set.transform = augment
-    test_set.transform = transform
     K = len(dataset.targets)
     labels = [to_acronym(l) for l in dataset.targets]
     balancer = None
     if cfg.balancing:
+        train_set.transform = augment
         balancer = samplers.Balancer(train_set, train_set.get_label,
                                      num_samples=cfg.num_balancing_samples)
     train_loader = torch.utils.data.DataLoader(train_set,
@@ -90,15 +89,17 @@ def run(cfg: DictConfig):
     for epoch in range(1, cfg.num_epochs + 1):
         print(f'---------- epoch {epoch} ----------')
         model.train()
-        loss_train = 0
+        loss = defaultdict(lambda: 0)
         with tqdm(total=cfg.batch_size * len(train_loader)) as pbar:
             for x, target in train_loader:
                 x = x.to(device, non_blocking=True)
                 xt, z, z_mean, z_var = model(x)
-                bce = model.bce(x, xt)
-                kl = model.kl_norm(z_mean, z_var)
-                crit = bce + kl
-                loss_batch = crit.sum()
+                bce = model.bce(x, xt).sum()
+                loss['loss_bce'] += bce.item()
+                kl = model.kl_norm(z_mean, z_var).sum()
+                loss['loss_kl'] += kl.item()
+                loss_batch = bce + kl
+                loss['loss_train'] += loss_batch.item()
                 optim.zero_grad()
                 if cfg.use_amp:
                     with amp.scale_loss(loss_batch, optim) as loss_scaled:
@@ -106,9 +107,9 @@ def run(cfg: DictConfig):
                 else:
                     loss_batch.backward()
                 optim.step()
-                loss_train += loss_batch.item()
                 pbar.update(x.shape[0])
-        logger.update('loss_train', loss_train, verbose=True)
+        for key, value in loss.items():
+            logger.update(key, value, verbose=True)
 
         if epoch % cfg.checkpoint.eval == 0:
             evaluator = stats.Evaluator()
