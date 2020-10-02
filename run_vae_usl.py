@@ -121,7 +121,7 @@ def run(cfg: DictConfig):
                         evaluator.update('target', target)
                         evaluator.update('z', z)
                         pbar.update(x.shape[0])
-            fig, ax = evaluator.get_latent_features('z', 'target')
+            fig, ax = evaluator.get_latent_features('z', 'target', labels)
             fig.savefig(f'usl_z_{epoch}.png')
             plt.close(fig)
             for k, fig, ax in logger.get_plots():
