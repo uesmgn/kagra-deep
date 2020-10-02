@@ -55,7 +55,7 @@ def run(cfg: DictConfig):
         torchvision.transforms.ToTensor(),
     ])
     dataset = datasets.HDF5Dataset(cfg.dataset)
-    sample, _, _ = dataset[0]
+    sample, _ = dataset[0]
     train_set, test_set = dataset.split(cfg.rate_train)
     train_set.transform = augment
     test_set.transform = transform
