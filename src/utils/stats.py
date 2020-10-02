@@ -116,7 +116,7 @@ class Evaluator:
             elif target in labels:
                 idx = np.where(labels==target)
             else:
-                continue
+                continue              
             x = xx[idx]
             y = yy[idx]
             ax.scatter(x, y, s=8.0, label=target)
