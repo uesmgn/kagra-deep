@@ -33,5 +33,6 @@ checkpoint:
 
 iic:
   num_classes_over: 50
+  rate_labeled: 0.1
   num_heads: 5
   reinitialize_header_weights: False

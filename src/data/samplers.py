@@ -4,7 +4,7 @@ import torchvision
 from collections import defaultdict
 
 
-class BalancingSampler(data.sampler.Sampler):
+class Balancer(data.sampler.Sampler):
 
     def __init__(self, dataset, callback_get_label, num_samples=None):
 

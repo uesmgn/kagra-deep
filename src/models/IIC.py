@@ -45,12 +45,12 @@ class IIC(Module):
         y_over_outputs = [F.softmax(head(x_densed), dim=-1) for head in self.over_clustering_heads]
         return torch.stack(y_outputs), torch.stack(y_over_outputs)
 
-    def crit(self, y, yt, head_dim=0):
+    def mutual_info(self, y, yt, head_dim=0):
         # get loss function and best head index
         eps = torch.finfo(y.dtype).eps
         y, yt = y.squeeze(head_dim), yt.squeeze(head_dim)
 
-        def mutual_info(z, zt):
+        def criterion(z, zt):
             _, k = z.size()
             p = (z.unsqueeze(2) * zt.unsqueeze(1)).sum(dim=0)
             p = ((p + p.t()) / 2) / p.sum()
@@ -65,11 +65,27 @@ class IIC(Module):
                 index = torch.LongTensor([i]).to(y.device)
                 yi = torch.index_select(y, head_dim, index).squeeze()
                 yti = torch.index_select(yt, head_dim, index).squeeze()
-                loss.append(mutual_info(yi, yti))
+                loss.append(criterion(yi, yti))
             loss = torch.stack(loss)
             return loss
         elif y.ndim == yt.ndim == 2:
-            loss = mutual_info(y, yt)
+            loss = criterion(y, yt)
+            return loss.unsqueeze(0)
+        else:
+            raise ValueError('ndim of y, yt must be 2 or 3.')
+
+    def cross_entropy(self, y, target, head_dim=0):
+        if y.ndim == 3:
+            loss = []
+            for i in range(y.shape[head_dim]):
+                index = torch.LongTensor([i]).to(y.device)
+                yi = torch.index_select(y, head_dim, index).squeeze()
+                ce = F.cross_entropy(yi, target, weight=None, reduction='sum')
+                loss.append(ce)
+            loss = torch.stack(loss)
+            return loss
+        elif y.ndim == 2:
+            loss = F.cross_entropy(yi, target, weight=None, reduction='sum')
             return loss.unsqueeze(0)
         else:
             raise ValueError('ndim of y, yt must be 2 or 3.')
