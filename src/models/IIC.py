@@ -62,8 +62,9 @@ class IIC(Module):
         if y.ndim == yt.ndim == 3:
             loss = []
             for i in range(y.shape[head_dim]):
-                yi = torch.index_select(y, head_dim, torch.LongTensor([i])).squeeze()
-                yti = torch.index_select(yt, head_dim, torch.LongTensor([i])).squeeze()
+                index = torch.LongTensor([i]).to(y.device)
+                yi = torch.index_select(y, head_dim, index).squeeze()
+                yti = torch.index_select(yt, head_dim, index).squeeze()
                 loss.append(mutual_info(yi, yti))
             loss = torch.stack(loss)
             return loss
