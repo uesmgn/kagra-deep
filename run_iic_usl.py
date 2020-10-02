@@ -94,7 +94,7 @@ def run(cfg: DictConfig):
     for epoch in range(1, cfg.num_epochs + 1):
         print(f'---------- epoch {epoch} ----------')
         model.train()
-        loss_train = 0
+        loss = defaultdict(lambda: 0)
         head_selector = 0
         head_selector_over = 0
         if cfg.iic.reinitialize_header_weights:
@@ -105,10 +105,14 @@ def run(cfg: DictConfig):
                     device, non_blocking=True)
                 y, y_over = model(x)
                 yt, yt_over = model(xt)
-                crit_y = model.mutual_info(y, yt, 0)
-                crit_y_over = model.mutual_info(y_over, yt_over, 0)
-                crit = crit_y + crit_y_over
-                loss_batch = crit.sum()
+                mi = model.mutual_info(y, yt, 0)
+                head_selector += mi
+                loss['loss_mi'] += mi.sum().item()
+                mi_over = model.mutual_info(y_over, yt_over, 0)
+                head_selector_over += mi_over
+                loss['loss_mi_over'] += mi_over.sum().item()
+                loss_batch = mi.sum() + mi_over.sum()
+                loss['loss_train'] += loss_batch.item()
                 optim.zero_grad()
                 if cfg.use_amp:
                     with amp.scale_loss(loss_batch, optim) as loss_scaled:
@@ -116,13 +120,11 @@ def run(cfg: DictConfig):
                 else:
                     loss_batch.backward()
                 optim.step()
-                loss_train += loss_batch.item()
-                head_selector += crit_y
-                head_selector_over += crit_y_over
                 pbar.update(x.shape[0])
         best_idx = torch.argmin(head_selector, -1).item()
         best_idx_over = torch.argmin(head_selector_over, -1).item()
-        logger.update('loss_train', loss_train, verbose=True)
+        for key, value in loss.items():
+            logger.update(key, value, verbose=True)
         logger.update('best_idx', best_idx, verbose=True)
         logger.update('best_idx_over', best_idx_over, verbose=True)
 
