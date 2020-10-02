@@ -6,6 +6,8 @@ import matplotlib.ticker as ticker
 import scipy.stats as stats
 import sklearn
 import itertools
+from sklearn.manifold import TSNE
+
 
 class EpochLogger:
     def __init__(self):
@@ -49,7 +51,7 @@ class Evaluator:
 
     def __getitem__(self, name):
         log = self._log[name]
-        tensor = torch.cat(log, -1)
+        tensor = torch.cat(log)
         return tensor.numpy().squeeze()
 
     def confusion_matrix(self, xlabel, ylabel, xaxis=None, yaxis=None, idx=None):
@@ -96,4 +98,29 @@ class Evaluator:
             num = "{}".format(cm[i, j])
             color = "white" if cm_norm[i, j] > 0.5 else "black"
             ax.text(j, i, num, fontsize=10, color=color, ha='center', va='center')
+        fig.tight_layout()
+        return fig, ax
+
+    def get_latent_features(self, z_key: str, label_key: str, targets: list):
+        z = self[z_key]
+        labels = self[label_key]
+        assert len(labels) == len(z)
+        assert z.ndim == 2
+        if z.shape[-1] > 2:
+            z = TSNE(n_components=2).fit_transform(z)
+        xx, yy = z.T
+        fig, ax = plt.subplots(figsize=(8, 8))
+        for i, target in enumerate(targets):
+            if i in labels:
+                idx = np.where(labels==i)
+            elif target in labels:
+                idx = np.where(labels==target)
+            else:
+                continue
+            x = xx[idx]
+            y = yy[idx]
+            ax.scatter(x, y, s=8.0, label=target)
+        ax.legend(bbox_to_anchor=(1.02, 1), loc='upper left',
+                  borderaxespad=0, fontsize=8)
+        fig.tight_layout()
         return fig, ax

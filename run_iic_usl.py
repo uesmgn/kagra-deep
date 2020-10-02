@@ -59,39 +59,19 @@ def run(cfg: DictConfig):
     dataset = datasets.HDF5Dataset(cfg.dataset, transform=perturb)
     sample, _, _ = dataset[0]
     train_set, test_set = dataset.split(cfg.rate_train)
-    labeled_set, unlabeled_set = train_set.split_balancing_by_rate(cfg.iic.rate_labeled)
-    print('train_set:', train_set.counter)
-    print('labeled_set:', labeled_set.counter)
-    print('unlabeled_set:', unlabeled_set.counter)
-    print('test_set:', test_set.counter)
     K = len(dataset.targets)
     labels = [to_acronym(l) for l in dataset.targets]
     K_over = cfg.iic.num_classes_over
-    labeled_balancer, unlabeled_balancer = None, None
-    num_labeled, num_unlabeled = len(labeled_set), len(unlabeled_set)
+    balancer = None
     if cfg.balancing:
-        num_labeled = cfg.num_balancing_samples * num_labeled // num_unlabeled
-        num_unlabeled = cfg.num_balancing_samples - num_labeled
-        labeled_balancer = samplers.Balancer(labeled_set, labeled_set.get_label,
-                                             num_samples=num_labeled)
-        unlabeled_balancer = samplers.Balancer(unlabeled_set, unlabeled_set.get_label,
-                                               num_samples=num_unlabeled)
-    batch_size_labeled = cfg.batch_size * num_labeled // num_unlabeled
-    print('num_labeled:', num_labeled)
-    print('num_unlabeled:', num_unlabeled)
-    print('batch_size_labeled:', batch_size_labeled)
-    labeled_loader = torch.utils.data.DataLoader(labeled_set,
-                                                 batch_size=batch_size_labeled,
-                                                 num_workers=cfg.num_workers,
-                                                 pin_memory=cfg.pin_memory,
-                                                 sampler=labeled_balancer,
-                                                 drop_last=True)
-    unlabeled_loader = torch.utils.data.DataLoader(unlabeled_set,
-                                                   batch_size=cfg.batch_size,
-                                                   num_workers=cfg.num_workers,
-                                                   pin_memory=cfg.pin_memory,
-                                                   sampler=unlabeled_balancer,
-                                                   drop_last=True)
+        balancer = samplers.Balancer(train_set, train_set.get_label,
+                                     num_samples=cfg.num_balancing_samples)
+    train_loader = torch.utils.data.DataLoader(train_set,
+                                               batch_size=cfg.batch_size,
+                                               num_workers=cfg.num_workers,
+                                               pin_memory=cfg.pin_memory,
+                                               sampler=balancer,
+                                               drop_last=True)
     test_loader = torch.utils.data.DataLoader(test_set,
                                               batch_size=cfg.batch_size,
                                               num_workers=cfg.num_workers,
@@ -119,31 +99,16 @@ def run(cfg: DictConfig):
         head_selector_over = 0
         if cfg.iic.reinitialize_header_weights:
             model.initialize_headers_weights()
-        with tqdm(total=cfg.batch_size * len(unlabeled_loader)) as pbar:
-            for (lx, lxt, target), (ux, uxt, _) in tqdm(zip(cycle(labeled_loader), unlabeled_loader)):
-                # labeled loss
-                lx, lxt = lx.to(device, non_blocking=True), lxt.to(device, non_blocking=True)
-                target = target.to(device, non_blocking=True)
-                ly, ly_over = model(lx)
-                lyt, lyt_over = model(lxt)
-                mi_labeled = model.mutual_info(ly, lyt, 0)
-                mi_labeled_over = model.mutual_info(ly_over, lyt_over, 0)
-                loss_mi_labeled = mi_labeled.sum() + mi_labeled_over.sum()
-
-                ce = model.cross_entropy(ly, target)
-                ce_over = model.cross_entropy(lyt, target)
-                head_selector += ce
-                head_selector_over += ce
-                loss_supervised = 10. * (ce.sum() + ce_over.sum())
-
-                ux, uxt = ux.to(device, non_blocking=True), uxt.to(device, non_blocking=True)
-                uy, uy_over = model(ux)
-                uyt, uyt_over = model(uxt)
-                mi_unlabeled = model.mutual_info(uy, uyt, 0)
-                mi_unlabeled_over = model.mutual_info(uy_over, uyt_over, 0)
-                loss_mi_unlabeled = (mi_unlabeled + mi_unlabeled_over).sum()
-
-                loss_batch = loss_mi_labeled + loss_supervised + loss_mi_unlabeled
+        with tqdm(total=cfg.batch_size * len(train_loader)) as pbar:
+            for x, xt, target in train_loader:
+                x, xt = x.to(device, non_blocking=True), xt.to(
+                    device, non_blocking=True)
+                y, y_over = model(x)
+                yt, yt_over = model(xt)
+                crit_y = model.mutual_info(y, yt, 0)
+                crit_y_over = model.mutual_info(y_over, yt_over, 0)
+                crit = crit_y + crit_y_over
+                loss_batch = crit.sum()
                 optim.zero_grad()
                 if cfg.use_amp:
                     with amp.scale_loss(loss_batch, optim) as loss_scaled:
@@ -152,7 +117,9 @@ def run(cfg: DictConfig):
                     loss_batch.backward()
                 optim.step()
                 loss_train += loss_batch.item()
-                pbar.update(ux.shape[0])
+                head_selector += crit_y
+                head_selector_over += crit_y_over
+                pbar.update(x.shape[0])
         best_idx = torch.argmin(head_selector, -1).item()
         best_idx_over = torch.argmin(head_selector_over, -1).item()
         logger.update('loss_train', loss_train, verbose=True)
@@ -173,14 +140,14 @@ def run(cfg: DictConfig):
                         evaluator.update('y_over', y_over.argmax(dim=-1))
                         pbar.update(x.shape[0])
             fig, ax = evaluator.get_confusion_matrix('y', 'target', K, labels)
-            fig.savefig(f'ssl_cm_{epoch}.png')
+            fig.savefig(f'usl_cm_{epoch}.png')
             plt.close(fig)
             fig, ax = evaluator.get_confusion_matrix(
                 'y_over', 'target', K_over, labels)
-            fig.savefig(f'ssl_cm_over_{epoch}.png')
+            fig.savefig(f'usl_cm_over_{epoch}.png')
             plt.close(fig)
             for k, fig, ax in logger.get_plots():
-                fig.savefig(f'ssl_{k}_{epoch}.png')
+                fig.savefig(f'usl_{k}_{epoch}.png')
                 plt.close(fig)
 
         if epoch % cfg.checkpoint.save == 0:
@@ -191,7 +158,7 @@ def run(cfg: DictConfig):
             }
             if cfg.use_amp:
                 state_dicts['amp'] = amp.state_dict()
-            torch.save(state_dicts, 'iic_ssl.pt')
+            torch.save(state_dicts, 'iic_usl.pt')
 
 
 if __name__ == "__main__":

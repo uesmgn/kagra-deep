@@ -54,14 +54,13 @@ def run(cfg: DictConfig):
         torchvision.transforms.Resize((224, 224)),
         torchvision.transforms.ToTensor(),
     ])
-    perturb = torchvision.transforms.Lambda(
-        lambda x: (transform(x), augment(x)))
-    dataset = datasets.HDF5Dataset(cfg.dataset, transform=perturb)
+    dataset = datasets.HDF5Dataset(cfg.dataset)
     sample, _, _ = dataset[0]
     train_set, test_set = dataset.split(cfg.rate_train)
+    train_set.transform = augment
+    test_set.transform = transform
     K = len(dataset.targets)
     labels = [to_acronym(l) for l in dataset.targets]
-    K_over = cfg.iic.num_classes_over
     balancer = None
     if cfg.balancing:
         balancer = samplers.Balancer(train_set, train_set.get_label,
@@ -78,10 +77,7 @@ def run(cfg: DictConfig):
                                               pin_memory=cfg.pin_memory,
                                               drop_last=False)
 
-    model = models.IIC(cfg.model.name, in_channels=sample.shape[0],
-                       num_classes=len(dataset.targets),
-                       num_classes_over=cfg.iic.num_classes_over,
-                       num_heads=cfg.iic.num_heads).to(device)
+    model = models.VAE(cfg.model.name, in_channels=sample.shape[0]).to(device)
     optim = config.get_optim(model.parameters(), cfg.optim)
     if cfg.use_amp:
         try:
@@ -95,19 +91,13 @@ def run(cfg: DictConfig):
         print(f'---------- epoch {epoch} ----------')
         model.train()
         loss_train = 0
-        head_selector = 0
-        head_selector_over = 0
-        if cfg.iic.reinitialize_header_weights:
-            model.initialize_headers_weights()
         with tqdm(total=cfg.batch_size * len(train_loader)) as pbar:
-            for x, xt, target in train_loader:
-                x, xt = x.to(device, non_blocking=True), xt.to(
-                    device, non_blocking=True)
-                y, y_over = model(x)
-                yt, yt_over = model(xt)
-                crit_y = model.mutual_info(y, yt, 0)
-                crit_y_over = model.mutual_info(y_over, yt_over, 0)
-                crit = crit_y + crit_y_over
+            for x, target in train_loader:
+                x = x.to(device, non_blocking=True)
+                xt, z, z_mean, z_var = model(x)
+                bce = model.bce(x, xt)
+                kl = model.kl_norm(z_mean, z_var)
+                crit = bce + kl
                 loss_batch = crit.sum()
                 optim.zero_grad()
                 if cfg.use_amp:
@@ -117,37 +107,25 @@ def run(cfg: DictConfig):
                     loss_batch.backward()
                 optim.step()
                 loss_train += loss_batch.item()
-                head_selector += crit_y
-                head_selector_over += crit_y_over
                 pbar.update(x.shape[0])
-        best_idx = torch.argmin(head_selector, -1).item()
-        best_idx_over = torch.argmin(head_selector_over, -1).item()
         logger.update('loss_train', loss_train, verbose=True)
-        logger.update('best_idx', best_idx, verbose=True)
-        logger.update('best_idx_over', best_idx_over, verbose=True)
 
         if epoch % cfg.checkpoint.eval == 0:
             evaluator = stats.Evaluator()
             model.eval()
             with torch.no_grad():
                 with tqdm(total=cfg.batch_size * len(test_loader)) as pbar:
-                    for x, _, target in test_loader:
+                    for x, target in test_loader:
                         x = x.to(device, non_blocking=True)
-                        y, y_over = model(x)
-                        y, y_over = y[best_idx], y_over[best_idx_over]
+                        xt, z, z_mean, z_var = model(x)
                         evaluator.update('target', target)
-                        evaluator.update('y', y.argmax(dim=-1))
-                        evaluator.update('y_over', y_over.argmax(dim=-1))
+                        evaluator.update('z', z)
                         pbar.update(x.shape[0])
-            fig, ax = evaluator.get_confusion_matrix('y', 'target', K, labels)
-            fig.savefig(f'cm_{epoch}.png')
-            plt.close(fig)
-            fig, ax = evaluator.get_confusion_matrix(
-                'y_over', 'target', K_over, labels)
-            fig.savefig(f'cm_over_{epoch}.png')
+            fig, ax = evaluator.get_latent_features('z', 'target')
+            fig.savefig(f'usl_z_{epoch}.png')
             plt.close(fig)
             for k, fig, ax in logger.get_plots():
-                fig.savefig(f'{k}_{epoch}.png')
+                fig.savefig(f'usl_{k}_{epoch}.png')
                 plt.close(fig)
 
         if epoch % cfg.checkpoint.save == 0:
