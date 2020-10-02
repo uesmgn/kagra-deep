@@ -80,7 +80,7 @@ def run(cfg: DictConfig):
 
     model = models.VAE(cfg.model.name, in_channels=sample.shape[0]).to(device)
     optim = config.get_optim(model.parameters(), cfg.optim)
-    weights = cfg.vae.weights
+    weights = cfg.vae.usl.weights
     if cfg.use_amp:
         try:
             from apex import amp
