@@ -132,7 +132,7 @@ def run(cfg: DictConfig):
             evaluator = stats.Evaluator()
             model.eval()
             with torch.no_grad():
-                with tqdm(total=cfg.batch_size * len(test_loader)) as pbar:
+                with tqdm(total=len(test_set)) as pbar:
                     for x, _, target in test_loader:
                         x = x.to(device, non_blocking=True)
                         y, y_over = model(x)
@@ -142,14 +142,14 @@ def run(cfg: DictConfig):
                         evaluator.update('y_over', y_over.argmax(dim=-1))
                         pbar.update(x.shape[0])
             fig, ax = evaluator.get_confusion_matrix('y', 'target', K, labels)
-            fig.savefig(f'usl_cm_{epoch}.png')
+            fig.savefig(f'iic_usl_cm_{epoch}.png')
             plt.close(fig)
             fig, ax = evaluator.get_confusion_matrix(
                 'y_over', 'target', K_over, labels)
-            fig.savefig(f'usl_cm_over_{epoch}.png')
+            fig.savefig(f'iic_usl_cm_over_{epoch}.png')
             plt.close(fig)
             for k, fig, ax in logger.get_plots():
-                fig.savefig(f'usl_{k}_{epoch}.png')
+                fig.savefig(f'iic_usl_{k}_{epoch}.png')
                 plt.close(fig)
 
         if epoch % cfg.checkpoint.save == 0:

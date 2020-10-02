@@ -115,7 +115,7 @@ def run(cfg: DictConfig):
             evaluator = stats.Evaluator()
             model.eval()
             with torch.no_grad():
-                with tqdm(total=cfg.batch_size * len(test_loader)) as pbar:
+                with tqdm(total=len(test_set)) as pbar:
                     for x, target in test_loader:
                         x = x.to(device, non_blocking=True)
                         xt, z, z_mean, z_var = model(x)
@@ -123,10 +123,10 @@ def run(cfg: DictConfig):
                         evaluator.update('z', z)
                         pbar.update(x.shape[0])
             fig, ax = evaluator.get_latent_features('z', 'target', labels)
-            fig.savefig(f'usl_z_{epoch}.png')
+            fig.savefig(f'vae_usl_z_{epoch}.png')
             plt.close(fig)
             for k, fig, ax in logger.get_plots():
-                fig.savefig(f'usl_{k}_{epoch}.png')
+                fig.savefig(f'vae_usl_{k}_{epoch}.png')
                 plt.close(fig)
 
         if epoch % cfg.checkpoint.save == 0:
@@ -137,7 +137,7 @@ def run(cfg: DictConfig):
             }
             if cfg.use_amp:
                 state_dicts['amp'] = amp.state_dict()
-            torch.save(state_dicts, 'iic_usl.pt')
+            torch.save(state_dicts, 'vae_usl.pt')
 
 
 if __name__ == "__main__":
