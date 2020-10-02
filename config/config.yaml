@@ -28,7 +28,7 @@ optim:
   weight_decay: 0
 
 checkpoint:
-  eval: 5
+  eval: 10
   save: 50
 
 iic:
