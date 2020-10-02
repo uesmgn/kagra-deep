@@ -85,7 +85,7 @@ def run(cfg: DictConfig):
                        num_classes_over=cfg.iic.num_classes_over,
                        num_heads=cfg.iic.num_heads).to(device)
     optim = config.get_optim(model.parameters(), cfg.optim)
-    weights = cfg.usl.weights
+    weights = cfg.iic.usl.weights
     if cfg.use_amp:
         try:
             from apex import amp
