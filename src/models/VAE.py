@@ -23,7 +23,8 @@ def ConvTranspose2dModule(in_channels, out_channels, stride=1,
                                      padding=1, bias=False))
     if batchnorm:
         layers.append(nn.BatchNorm2d(out_channels))
-    layers.append(activation)
+    if activation is not None:
+        layers.append(activation)
     return nn.Sequential(*layers)
 
 class VAE(Module):
@@ -43,12 +44,12 @@ class VAE(Module):
             ConvTranspose2dModule(512, 256, 2),
             ConvTranspose2dModule(256, 128, 2),
             ConvTranspose2dModule(128, 64, 2),
-            ConvTranspose2dModule(64, in_channels, 2, activation=Activation('sigmoid'))
+            ConvTranspose2dModule(64, in_channels, 2, activation=None)
         )
         self.initialize_weights()
 
     def bce(self, x, xt):
-        bce = F.binary_cross_entropy(xt, x, reduction='none').view(x.shape[0], -1).sum(-1)
+        bce = F.binary_cross_entropy_with_logits(xt, x, reduction='none').view(x.shape[0], -1).sum(-1)
         return bce
 
     def kl_norm(self, mean, var):
