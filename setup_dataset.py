@@ -10,6 +10,7 @@ from skimage import io, transform, img_as_ubyte, color
 import numpy as np
 import warnings
 import src.utils.validation as validation
+import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser()
 
@@ -45,21 +46,22 @@ for target in tqdm(targets):
             assert uid not in meta
             meta.append({'unique_id': uid,
                          'file_path': file,
-                         'target_name': target,
+                         'target': target,
                          'bundle_id': bundle_id,
                          'span': span})
 
 df = pd.DataFrame(meta)
-df = df.groupby(['target_name', 'bundle_id'], group_keys=False).apply(
-                    lambda d: d.sort_values('span'))
+df = df.groupby(['target', 'bundle_id'], group_keys=False).apply(
+                lambda d: d.sort_values('span'))
 df = df.reset_index(drop=True)
-df = df.assign(target_index=pd.Categorical(df['target_name']).codes)
-df = df.reindex(columns=['unique_id', 'file_path', 'target_name',
-                         'target_index', 'bundle_id', 'span'])
+# df = df.assign(target_index=pd.Categorical(df['target_name']).codes)
+df = df.reindex(columns=['unique_id', 'file_path', 'target',
+                         'bundle_id', 'span'])
 
 def file2img(file):
     # imread and remove alpha channel
     img = io.imread(file)[..., :3]
+    img = img[66:532, 105:671]
     # grayscale
     img = color.rgb2gray(img)
     # img = transform.resize(img, shape, anti_aliasing=True)
@@ -83,12 +85,12 @@ def process(fp, df, dataset_id, **kwargs):
         ds.attrs[k] = v
 
 with h5py.File(hdf_file, mode='w') as fp:
-    for (target_name, target_index), tf in df.groupby(['target_name', 'target_index']):
-        tp = fp.create_group(target_name)
-        print(f'Stroing {target_name}...')
+    for target, tf in df.groupby('target'):
+        tp = fp.create_group(target)
+        print(f'Stroing {target}...')
         delayed_fns = []
         for bundle, bf in tqdm(tf.groupby('bundle_id')):
             bf = bf.sort_values('span')
             process(tp, bf, bundle,
-                    target_name=target_name, target_index=target_index)
+                    target=target)
         fp.flush()

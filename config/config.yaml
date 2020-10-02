@@ -1,0 +1,37 @@
+num_workers: 4
+num_epochs: 3
+batch_size: 8
+pin_memory: True
+use_amp: False
+opt_level: O1
+rate_train: 0.7
+balancing: True
+num_balancing_samples: 128
+
+dataset:
+  path: ../GravitySpy/processed/dataset.h5
+  shape: [4, 466, 566]
+  channels: [2]
+  targets: [1080Lines, 1400Ripples, Air_Compressor, Blip,
+            Chirp, Extremely_Loud, Helix, Koi_Fish, Light_Modulation,
+            Low_Frequency_Burst, Low_Frequency_Lines, No_Glitch,
+            Power_Line, Repeating_Blips, Scattered_Light, Scratchy,
+            Tomte, Violin_Mode, Whistle]
+  use_other: True
+
+model:
+  name: ResNet34
+
+optim:
+  name: Adam
+  lr: 1e-4
+  weight_decay: 0
+
+checkpoint:
+  eval: 2
+  save: 50
+
+iic:
+  num_classes_over: 50
+  num_heads: 10
+  reinitialize_header_weights: True

@@ -23,6 +23,7 @@ class IIC(Module):
         net = globals()[backbone](in_channels=in_channels)
         # remove last fc layer
         self.encoder = nn.Sequential(*list(net.children())[:-1])
+        self.num_heads = num_heads
         self.clustering_heads = nn.ModuleList([
             nn.Linear(net.fc_in, num_classes) for _ in range(num_heads)])
         self.over_clustering_heads = nn.ModuleList([
@@ -38,22 +39,36 @@ class IIC(Module):
             nn.init.xavier_normal_(m.weight)
             nn.init.zeros_(m.bias)
 
-    def criterion(self, z, zt, eps=1e-8):
-        _, k = z.size()
-        p = (z.unsqueeze(2) * zt.unsqueeze(1)).sum(dim=0)
-        p = ((p + p.t()) / 2) / p.sum()
-        p[(p < eps).data] = eps
-        pi = p.sum(dim=1).view(k, 1).expand(k, k)
-        pj = p.sum(dim=0).view(1, k).expand(k, k)
-        return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
-
     def forward(self, x, head_index=None):
         x_densed = self.encoder(x)
-        if isinstance(head_index, int):
-            y_output = F.softmax(self.clustering_heads[head_index](x_densed), dim=-1)
-            y_over_output = F.softmax(self.over_clustering_heads[head_index](x_densed), dim=-1)
-            return y_output, y_over_output
+        y_outputs = [F.softmax(head(x_densed), dim=-1) for head in self.clustering_heads]
+        y_over_outputs = [F.softmax(head(x_densed), dim=-1) for head in self.over_clustering_heads]
+        return torch.stack(y_outputs), torch.stack(y_over_outputs)
+
+    def crit(self, y, yt, head_dim=0):
+        # get loss function and best head index
+        eps = torch.finfo(y.dtype).eps
+        y, yt = y.squeeze(head_dim), yt.squeeze(head_dim)
+
+        def mutual_info(z, zt):
+            _, k = z.size()
+            p = (z.unsqueeze(2) * zt.unsqueeze(1)).sum(dim=0)
+            p = ((p + p.t()) / 2) / p.sum()
+            p[(p < eps).data] = eps
+            pi = p.sum(dim=1).view(k, 1).expand(k, k)
+            pj = p.sum(dim=0).view(1, k).expand(k, k)
+            return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
+
+        if y.ndim == yt.ndim == 3:
+            loss = []
+            for i in range(y.shape[head_dim]):
+                yi = torch.index_select(y, head_dim, torch.LongTensor([i])).squeeze()
+                yti = torch.index_select(yt, head_dim, torch.LongTensor([i])).squeeze()
+                loss.append(mutual_info(yi, yti))
+            loss = torch.stack(loss)
+            return loss
+        elif y.ndim == yt.ndim == 2:
+            loss = mutual_info(y, yt)
+            return loss.unsqueeze(0)
         else:
-            y_outputs = [F.softmax(head(x_densed), dim=-1) for head in self.clustering_heads]
-            y_over_outputs = [F.softmax(head(x_densed), dim=-1) for head in self.over_clustering_heads]
-            return y_outputs, y_over_outputs
+            raise ValueError('ndim of y, yt must be 2 or 3.')

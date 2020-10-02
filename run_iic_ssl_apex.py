@@ -22,13 +22,17 @@ from src.utils import image_processing as imp
 import src.models as models
 from src.data import datasets, samplers
 
-def get_optimizer(model, optimizer, lr=1e-3, weight_decay=1e-4):
+def get_optimizer(model, optimizer, lr=1e-3, weight_decay=0):
     if optimizer is 'SGD':
         return torch.optim.SGD(model.parameters(), lr=lr, weight_decay=weight_decay)
     elif optimizer is 'Adam':
-        return torch.optim.Adam(model.parameters(), lr=lr)
+        return torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     elif optimizer is 'FusedAdam':
-        return apex.optimizers.FusedAdam(model.parameters(), lr=lr)
+        return apex.optimizers.FusedAdam(model.parameters(), lr=lr, weight_decay=weight_decay)
+    elif optimizer is 'FusedSGD':
+        return apex.optimizers.FusedSGD(model.parameters(), lr=lr, weight_decay=weight_decay)
+    elif optimizer is 'FusedLAMB':
+        return apex.optimizers.FusedLAMB(model.parameters(), lr=lr, weight_decay=weight_decay)
     else:
         raise ValueError(f'optimizer {optimizer} is invalid.')
 
@@ -116,7 +120,9 @@ flags = AttrDict(
     weight_decay=1e-4,
     # log params
     outdir='/content/run_iic_ssl',
+    path_to_model='iic_ssl.pt',
     eval_step=10,
+    save_step=50,
     avg_for_heads=True,
 )
 
@@ -201,6 +207,7 @@ path_to_model = args.path_to_model
 outdir = args.path_to_outdir or flags.outdir
 eval_step = args.eval_step or flags.eval_step
 in_channels = len(flags.use_channels)
+model_file = args.path_to_model or flags.path_to_model
 
 target_dict = {}
 for i in range(len(labeled_set)):
@@ -211,6 +218,7 @@ print('target_dict:', target_dict)
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 if torch.cuda.is_available():
     torch.backends.cudnn.benchmark = True
+    
 model = models.IIC(flags.model, in_channels=in_channels,
                    num_classes=flags.num_classes,
                    num_classes_over=flags.num_classes_over,
@@ -349,3 +357,7 @@ for epoch in range(1, flags.num_epochs):
     plot_cm(cm_over, list(range(flags.num_classes_over)), cm_ylabels,
             f'{outdir}/cm_over_{epoch}.png')
     logger(log, epoch, outdir)
+
+    if epoch % flags.save_step == 0:
+        print(f'---------- saving check point at epoch {epoch} ----------')
+        torch.save(model.state_dict(), os.path.join(outdir, model_file))

@@ -39,6 +39,14 @@ def is_hdf(path):
     else:
         raise None
 
+def is_yaml(path):
+    path = os.path.abspath(path)
+    assert os.path.splitext(path)[-1] in ('.yaml')
+    if os.path.exists(path):
+        return path
+    else:
+        raise None
+
 def new_hdf(path):
     path = os.path.abspath(path)
     assert os.path.splitext(path)[-1] in ('.h5', '.hdf5')
