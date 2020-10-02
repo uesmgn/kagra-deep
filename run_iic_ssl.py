@@ -114,7 +114,7 @@ def run(cfg: DictConfig):
     for epoch in range(1, cfg.num_epochs + 1):
         print(f'---------- epoch {epoch} ----------')
         model.train()
-        loss_train = 0
+        loss = defaultdict(lambda: 0)
         head_selector = 0
         head_selector_over = 0
         if cfg.iic.reinitialize_header_weights:
@@ -129,21 +129,25 @@ def run(cfg: DictConfig):
                 mi_labeled = model.mutual_info(ly, lyt, 0)
                 mi_labeled_over = model.mutual_info(ly_over, lyt_over, 0)
                 loss_mi_labeled = mi_labeled.sum() + mi_labeled_over.sum()
+                loss['loss_mi_labeled'] += loss_mi_labeled.item()
 
                 ce = model.cross_entropy(ly, target)
                 ce_over = model.cross_entropy(lyt, target)
                 head_selector += ce
                 head_selector_over += ce
                 loss_supervised = 10. * (ce.sum() + ce_over.sum())
+                loss['loss_supervised'] += loss_supervised.item()
 
                 ux, uxt = ux.to(device, non_blocking=True), uxt.to(device, non_blocking=True)
                 uy, uy_over = model(ux)
                 uyt, uyt_over = model(uxt)
                 mi_unlabeled = model.mutual_info(uy, uyt, 0)
                 mi_unlabeled_over = model.mutual_info(uy_over, uyt_over, 0)
-                loss_mi_unlabeled = (mi_unlabeled + mi_unlabeled_over).sum()
+                loss_mi_unlabeled = mi_unlabeled.sum() + mi_unlabeled_over.sum()
+                loss['loss_mi_unlabeled'] += loss_mi_unlabeled.item()
 
                 loss_batch = loss_mi_labeled + loss_supervised + loss_mi_unlabeled
+                loss['loss_train'] += loss_batch.item()
                 optim.zero_grad()
                 if cfg.use_amp:
                     with amp.scale_loss(loss_batch, optim) as loss_scaled:
@@ -151,11 +155,11 @@ def run(cfg: DictConfig):
                 else:
                     loss_batch.backward()
                 optim.step()
-                loss_train += loss_batch.item()
                 pbar.update(ux.shape[0])
         best_idx = torch.argmin(head_selector, -1).item()
         best_idx_over = torch.argmin(head_selector_over, -1).item()
-        logger.update('loss_train', loss_train, verbose=True)
+        for key, value in loss.items():
+            logger.update(key, value, verbose=True)
         logger.update('best_idx', best_idx, verbose=True)
         logger.update('best_idx_over', best_idx_over, verbose=True)
 
