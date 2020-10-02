@@ -6,7 +6,7 @@ use_amp: True
 opt_level: O1
 rate_train: 0.7
 balancing: True
-num_balancing_samples: 10000
+num_balancing_samples: 20000
 
 dataset:
   path: /content/dataset.h5
@@ -20,7 +20,7 @@ dataset:
   use_other: True
 
 model:
-  name: ResNet18
+  name: ResNet34
 
 optim:
   name: Adam
