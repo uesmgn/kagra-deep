@@ -49,4 +49,4 @@ run:
       batch_size: 128
 
   train:
-    use_amp: False
+    use_amp: True
