@@ -101,7 +101,11 @@ class HDF5(data.Dataset):
 
     def init_cache(self, indices=None):
         self.cache = []
-        self.cache = self.__children(self.fp)
+        try:
+            self.cache = self.__children(self.fp)
+        except:
+            self.open_once()
+            self.cache = self.__children(self.fp)
         if isinstance(indices, list):
             self.cache = [self.cache[i] for i in indices]
         return self
@@ -122,7 +126,11 @@ class HDF5(data.Dataset):
 
     def __getitem__(self, i):
         ref, target = self.cache[i]
-        item = self.fp[ref]
+        try:
+            item = self.fp[ref]
+        except:
+            self.open_once()
+            item = self.fp[ref]
         x = self.__load_data(item)
         if self.transform is not None:
             x = self.transform(x)
