@@ -16,6 +16,7 @@ run:
   train_size: 0.7
   use_amp: True
   opt_level: O1
+  eval_step: 5
 
   net:
     name: resnet18
@@ -40,7 +41,7 @@ run:
   sampler:
     name: balancer
     params:
-      num_samples: 20000
+      num_samples: 10000
 
   loader:
     params:
