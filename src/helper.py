@@ -72,7 +72,10 @@ def get_sampler(name, **params):
     from .data import samplers
 
     keys = __class_keys(samplers)
-    sampler = __instance(samplers, name, keys)(**params)
+    try:
+        sampler = __instance(samplers, name, keys)(**params)
+    except:
+        sampler = None
     return sampler
 
 def get_loader(dataset, **params):
