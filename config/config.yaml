@@ -17,6 +17,7 @@ run:
   use_amp: True
   opt_level: O1
   eval_step: 5
+  log_params: [z]
 
   net:
     name: resnet18
@@ -26,7 +27,7 @@ run:
   model:
     name: m1
     params:
-      z_dim: 256
+      z_dim: 64
 
   optim:
     name: Adam
