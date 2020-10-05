@@ -2,6 +2,9 @@ import wandb
 import hydra
 import random
 import torch
+import torch.multiprocessing as mp
+mp.set_start_method('spawn')
+
 from tqdm import tqdm
 from collections import defaultdict
 import torchvision.transforms as tf
