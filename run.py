@@ -4,7 +4,11 @@ import random
 import torch
 from tqdm import tqdm
 import torchvision.transforms as tf
-
+try:
+    from apex import amp
+except ImportError:
+    raise ImportError('Please install apex using...')
+    
 from src import flatten, get_net, get_model, get_optim, get_dataset, get_sampler, get_loader
 from src import utils
 
@@ -48,10 +52,6 @@ def run(args):
     model = get_model(args.model.name, net=net, **args.model.params).to(device)
     optim = get_optim(model.parameters(), args.optim.name, **args.optim.params)
     if args.use_amp:
-        try:
-            from apex import amp
-        except ImportError:
-            raise ImportError('Please install apex using...')
         model, optim = amp.initialize(model, optim, opt_level=args.opt_level)
 
     alt = -1 if args.use_other else None
