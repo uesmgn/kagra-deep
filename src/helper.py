@@ -1,10 +1,11 @@
 import inspect
 import types
 import torch
+from collections import abc
 
 __all__ = [
-    "get_net", "get_model", "get_optim", "get_dataset",
-    "get_sampler", "get_loader"
+    "flatten", "get_net", "get_model", "get_optim",
+    "get_dataset", "get_sampler", "get_loader"
 ]
 
 def __class_keys(d):
@@ -22,6 +23,16 @@ def __instance(d, name, keys):
         if key.lower() == name.lower():
             return d[key]
     raise ValueError("Available class names are {}, input {}.".format(keys, name))
+
+def flatten(d, parent_key='', sep='.'):
+    items = []
+    for k, v in d.items():
+        new_key = parent_key + sep + k if parent_key else k
+        if isinstance(v, abc.MutableMapping):
+            items.extend(flatten(v, new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
 
 def get_net(name, **params):
     from .nn import nets
