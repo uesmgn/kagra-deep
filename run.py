@@ -12,7 +12,8 @@ from src import utils
 def wandb_init(args):
     wandb.init(project=args.project,
                tags=args.tags,
-               group=args.group)
+               group=args.group,
+               settings=wandb.Settings(symlink=False))
     wandb.run.name = args.name + '_' + wandb.run.id
 
 def train(model, device, trainer, optim, epoch, use_amp=False):
