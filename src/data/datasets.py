@@ -45,8 +45,6 @@ class HDF5(data.Dataset):
             raise RuntimeError(f"Failed to load items from {self.root}.")
         print(f"Successfully loaded {len(self)} items in cache from {self.root}.")
 
-        self.close()
-
     def open_once(self):
         self.fp = h5py.File(self.root, 'r', libver='latest', swmr=True)
 
