@@ -40,7 +40,7 @@ run:
       root: /content/dataset.h5
 
   sampler:
-    name: balancer
+    name: None
     params:
       num_samples: 12800
 
