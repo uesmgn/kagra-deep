@@ -38,6 +38,7 @@ run:
     name: hdf5
     params:
       root: /content/dataset.h5
+      shape: [4, 466, 566]
 
   sampler:
     name: None
