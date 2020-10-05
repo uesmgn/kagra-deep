@@ -26,7 +26,7 @@ run:
   model:
     name: m1
     params:
-      z_dim: 512
+      z_dim: 256
 
   optim:
     name: Adam
@@ -41,7 +41,7 @@ run:
   sampler:
     name: balancer
     params:
-      num_samples: 10000
+      num_samples: 12800
 
   loader:
     params:
