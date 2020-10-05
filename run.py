@@ -64,7 +64,7 @@ def test(model, device, tester, epoch, log_params=[]):
 
     for key, value in logger.items():
         value = torch.stack(value).squeeze().cpu()
-        print(value.shape)
+        print(key, value.shape)
 
 
 
