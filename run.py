@@ -5,16 +5,16 @@ import torch
 from tqdm import tqdm
 import torchvision.transforms as tf
 
-from src import get_net, get_model, get_optim, get_dataset, get_sampler, get_loader
+from src import flatten, get_net, get_model, get_optim, get_dataset, get_sampler, get_loader
 from src import utils
 
 
 def wandb_init(args):
     wandb.init(project=args.project,
                tags=args.tags,
-               group=args.group,
-               settings=wandb.Settings(symlink=False))
+               group=args.group)
     wandb.run.name = args.name + '_' + wandb.run.id
+
 
 def train(model, device, trainer, optim, epoch, use_amp=False):
     model.train()
@@ -37,6 +37,7 @@ def train(model, device, trainer, optim, epoch, use_amp=False):
     wandb.log({"epoch": epoch, "loss_train": loss})
 
 def run(args):
+    wandb.config.update(flatten(args))
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     if torch.cuda.is_available():
