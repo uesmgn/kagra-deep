@@ -126,7 +126,7 @@ class HDF5(data.Dataset):
 
     def __load_data(self, item):
         if self.shape is not None:
-            x = np.zeros(self.shape, dtype=np.uint8)
+            x = np.empty(self.shape, dtype=np.uint8)
             item.read_direct(x)
         else:
             x = np.array(item[:])
