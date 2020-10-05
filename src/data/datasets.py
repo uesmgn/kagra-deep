@@ -34,7 +34,8 @@ class HDF5(data.Dataset):
         self.target_tag = target_tag
         self.shape = shape
 
-        self.fp = h5py.File(self.root, 'r')
+        self.fp = None
+        self.open_once()
 
         self.cache = None
         print("Initializing dataset cache...")
@@ -43,6 +44,8 @@ class HDF5(data.Dataset):
         except:
             raise RuntimeError(f"Failed to load items from {self.root}.")
         print(f"Successfully loaded {len(self)} items in cache from {self.root}.")
+
+        self.close()
 
     def open_once(self):
         self.fp = h5py.File(self.root, 'r')
