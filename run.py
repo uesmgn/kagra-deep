@@ -8,7 +8,7 @@ try:
     from apex import amp
 except ImportError:
     raise ImportError('Please install apex using...')
-    
+
 from src import flatten, get_net, get_model, get_optim, get_dataset, get_sampler, get_loader
 from src import utils
 
@@ -39,6 +39,20 @@ def train(model, device, trainer, optim, epoch, use_amp=False):
             pbar.update(1)
     loss /= num_samples
     wandb.log({"epoch": epoch, "loss_train": loss})
+
+def test(model, device, tester, epoch):
+    model.eval()
+    loss, num_samples = 0, 0
+    with torch.no_grad():
+        with tqdm(total=len(tester)) as pbar:
+            for step, (x, target) in enumerate(tester):
+                x, target = x.to(device, non_blocking=True), target.to(device, non_blocking=True)
+                params, loss_step = model(x, target)
+                loss += loss_step.item()
+                num_samples += x.shape[0]
+                pbar.update(1)
+    loss /= num_samples
+    wandb.log({"epoch": epoch, "loss_test": loss})
 
 def run(args):
     wandb.config.update(flatten(args))
@@ -83,6 +97,8 @@ def run(args):
     for epoch in range(args.num_epochs):
         print(f"----- epoch: {epoch} -----")
         train(model, device, trainer, optim, epoch, use_amp=args.use_amp)
+        if epoch % args.eval_step == args.eval_step - 1:
+            test(model, device, tester, epoch)
 
 
 @hydra.main(config_path="config", config_name="config")
