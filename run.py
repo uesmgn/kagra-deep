@@ -3,6 +3,7 @@ import hydra
 import random
 import torch
 from tqdm import tqdm
+from collections import defaultdict
 import torchvision.transforms as tf
 try:
     from apex import amp
