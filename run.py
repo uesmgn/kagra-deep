@@ -41,7 +41,6 @@ def train(model, device, trainer, optim, epoch, use_amp=False):
             pbar.update(1)
     loss /= num_samples
     wandb.log({"epoch": epoch, "loss_train": loss})
-    trainer.dataset.close()
 
 def test(model, device, tester, epoch, log_params=[]):
     print(f"----- test at epoch: {epoch} -----")
@@ -67,8 +66,6 @@ def test(model, device, tester, epoch, log_params=[]):
     for key, value in logger.items():
         value = torch.cat(value).squeeze().cpu()
         print(key, value.shape)
-
-    tester.dataset.close()
 
 
 
