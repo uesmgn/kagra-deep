@@ -25,6 +25,7 @@ def train(model, device, trainer, optim, epoch, use_amp=False):
     print(f"----- train at epoch: {epoch} -----")
     model.train()
     loss, num_samples = 0, 0
+    trainer.dataset.open_once()
     with tqdm(total=len(trainer)) as pbar:
         for step, (x, target) in enumerate(trainer):
             x, target = x.to(device, non_blocking=True), target.to(device, non_blocking=True)
@@ -41,12 +42,14 @@ def train(model, device, trainer, optim, epoch, use_amp=False):
             pbar.update(1)
     loss /= num_samples
     wandb.log({"epoch": epoch, "loss_train": loss})
+    trainer.dataset.close()
 
 def test(model, device, tester, epoch, log_params=[]):
     print(f"----- test at epoch: {epoch} -----")
     model.eval()
     loss, num_samples = 0, 0
     logger = defaultdict(lambda: [])
+    tester.dataset.open_once()
     with torch.no_grad():
         with tqdm(total=len(tester)) as pbar:
             for step, (x, target) in enumerate(tester):
@@ -67,7 +70,7 @@ def test(model, device, tester, epoch, log_params=[]):
         value = torch.stack(value).squeeze().cpu()
         print(key, value.shape)
 
-
+    tester.dataset.close()
 
 
 
