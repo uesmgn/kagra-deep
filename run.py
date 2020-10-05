@@ -25,7 +25,6 @@ def train(model, device, trainer, optim, epoch, use_amp=False):
     print(f"----- train at epoch: {epoch} -----")
     model.train()
     loss, num_samples = 0, 0
-    trainer.dataset.open_once()
     with tqdm(total=len(trainer)) as pbar:
         for step, (x, target) in enumerate(trainer):
             x, target = x.to(device, non_blocking=True), target.to(device, non_blocking=True)
@@ -49,7 +48,6 @@ def test(model, device, tester, epoch, log_params=[]):
     model.eval()
     loss, num_samples = 0, 0
     logger = defaultdict(lambda: [])
-    tester.dataset.open_once()
     with torch.no_grad():
         with tqdm(total=len(tester)) as pbar:
             for step, (x, target) in enumerate(tester):
