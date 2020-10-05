@@ -83,7 +83,7 @@ def run(args):
 def main(cfg):
     wandb_init(cfg.wandb)
     run(cfg.run)
-
+    
 
 if __name__ == "__main__":
     main()
