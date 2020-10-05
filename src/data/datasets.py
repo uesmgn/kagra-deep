@@ -34,6 +34,8 @@ class HDF5(data.Dataset):
         self.target_tag = target_tag
         self.shape = shape
 
+        self.fp = h5py.File(self.root, 'r')
+
         self.cache = None
         print("Initializing dataset cache...")
         try:
@@ -41,6 +43,12 @@ class HDF5(data.Dataset):
         except:
             raise RuntimeError(f"Failed to load items from {self.root}.")
         print(f"Successfully loaded {len(self)} items in cache from {self.root}.")
+
+    def open_once(self):
+        self.fp = h5py.File(self.root, 'r')
+
+    def close(self):
+        self.fp.close()
 
     @property
     def targets(self):
@@ -90,8 +98,7 @@ class HDF5(data.Dataset):
 
     def init_cache(self, indices=None):
         self.cache = []
-        with h5py.File(self.root, 'r') as fp:
-            self.cache = self.__children(fp)
+        self.cache = self.__children(self.fp)
         if isinstance(indices, list):
             self.cache = [self.cache[i] for i in indices]
         return self
@@ -112,9 +119,8 @@ class HDF5(data.Dataset):
 
     def __getitem__(self, i):
         ref, target = self.cache[i]
-        with h5py.File(self.root, 'r') as fp:
-            item = fp[ref]
-            x = self.__load_data(item)
+        item = self.fp[ref]
+        x = self.__load_data(item)
         if self.transform is not None:
             x = self.transform(x)
         if self.__target_transform is not None:
