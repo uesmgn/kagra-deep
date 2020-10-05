@@ -67,7 +67,7 @@ def test(model, device, tester, epoch, log_params=[]):
     wandb.log({"epoch": epoch, "loss_test": loss})
 
     for key, value in logger.items():
-        value = torch.stack(value).squeeze().cpu()
+        value = torch.cat(value).squeeze().cpu()
         print(key, value.shape)
 
     tester.dataset.close()
