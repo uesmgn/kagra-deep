@@ -48,10 +48,7 @@ class HDF5(data.Dataset):
         self.close()
 
     def open_once(self):
-        self.fp = h5py.File(self.root, 'r')
-
-    def close(self):
-        self.fp.close()
+        self.fp = h5py.File(self.root, 'r', libver='latest', swmr=True)
 
     @property
     def targets(self):
