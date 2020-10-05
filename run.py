@@ -21,6 +21,7 @@ def wandb_init(args):
 
 
 def train(model, device, trainer, optim, epoch, use_amp=False):
+    print(f"----- train at epoch: {epoch} -----")
     model.train()
     loss, num_samples = 0, 0
     with tqdm(total=len(trainer)) as pbar:
@@ -41,6 +42,7 @@ def train(model, device, trainer, optim, epoch, use_amp=False):
     wandb.log({"epoch": epoch, "loss_train": loss})
 
 def test(model, device, tester, epoch, log_params=[]):
+    print(f"----- test at epoch: {epoch} -----")
     model.eval()
     loss, num_samples = 0, 0
     logger = defaultdict(lambda: [])
@@ -109,7 +111,6 @@ def run(args):
     tester = get_loader(test_set, **args.loader.params)
 
     for epoch in range(args.num_epochs):
-        print(f"----- epoch: {epoch} -----")
         train(model, device, trainer, optim, epoch, use_amp=args.use_amp)
         if epoch % args.eval_step == args.eval_step - 1:
             test(model, device, tester, epoch, log_params=args.log_params)
