@@ -35,7 +35,7 @@ run:
   dataset:
     name: hdf5
     params:
-      root: /Users/gen/workspace/github/GravitySpy/processed/dataset.h5
+      root: /content/dataset.h5
 
   sampler:
     name: balancer
