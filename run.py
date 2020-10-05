@@ -45,8 +45,13 @@ def run(args):
     net = get_net(args.net.name, **args.net.params)
 
     model = get_model(args.model.name, net=net, **args.model.params).to(device)
-
     optim = get_optim(model.parameters(), args.optim.name, **args.optim.params)
+    if args.use_amp:
+        try:
+            from apex import amp
+        except ImportError:
+            raise ImportError('Please install apex using...')
+        model, optim = amp.initialize(model, optim, opt_level=args.opt_level)
 
     alt = -1 if args.use_other else None
     target_transform = utils.transforms.ToIndex(args.targets, alt)
