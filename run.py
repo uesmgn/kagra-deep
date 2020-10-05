@@ -76,14 +76,14 @@ def run(args):
 
     for epoch in range(args.num_epochs):
         print(f"----- epoch: {epoch} -----")
-        train(model, device, trainer, optim, epoch, **args.train)
+        train(model, device, trainer, optim, epoch, use_amp=args.use_amp)
 
 
 @hydra.main(config_path="config", config_name="config")
 def main(cfg):
     wandb_init(cfg.wandb)
     run(cfg.run)
-    
+
 
 if __name__ == "__main__":
     main()
