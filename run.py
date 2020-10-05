@@ -40,19 +40,33 @@ def train(model, device, trainer, optim, epoch, use_amp=False):
     loss /= num_samples
     wandb.log({"epoch": epoch, "loss_train": loss})
 
-def test(model, device, tester, epoch):
+def test(model, device, tester, epoch, log_params=[]):
     model.eval()
     loss, num_samples = 0, 0
+    logger = defaultdict(lambda: [])
     with torch.no_grad():
         with tqdm(total=len(tester)) as pbar:
             for step, (x, target) in enumerate(tester):
                 x, target = x.to(device, non_blocking=True), target.to(device, non_blocking=True)
                 params, loss_step = model(x, target)
+
+                for key, value in params.items():
+                    if key in log_params and torch.is_tensor(value):
+                        logger[key].append(value)
+
                 loss += loss_step.item()
                 num_samples += x.shape[0]
                 pbar.update(1)
     loss /= num_samples
     wandb.log({"epoch": epoch, "loss_test": loss})
+
+    for key, value in logger.items():
+        value = torch.stack(value).squeeze().cpu()
+        print(value.shape)
+
+
+
+
 
 def run(args):
     wandb.config.update(flatten(args))
@@ -98,7 +112,7 @@ def run(args):
         print(f"----- epoch: {epoch} -----")
         train(model, device, trainer, optim, epoch, use_amp=args.use_amp)
         if epoch % args.eval_step == args.eval_step - 1:
-            test(model, device, tester, epoch)
+            test(model, device, tester, epoch, log_params=args.log_params)
 
 
 @hydra.main(config_path="config", config_name="config")
