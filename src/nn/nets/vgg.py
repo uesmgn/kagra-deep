@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from .utils import Module
+from ..layers import Module
 
 __all__ = [
     'VGG', 'VGG11', 'VGG13', 'VGG16', 'VGG19',
@@ -79,16 +79,6 @@ class VGG(Module):
         x = self.dense(x)
         x = self.fc(x)
         return x
-
-
-def Conv2dModule(in_channels, out_channels, batchnorm=True):
-    layers = []
-    layers.append(nn.Conv2d(in_channels, out_channels,
-                            kernel_size=3, padding=1))
-    if batchnorm:
-        layers.append(nn.BatchNorm2d(out_channels))
-    layers.append(nn.ReLU(inplace=True))
-    return nn.Sequential(*layers)
 
 
 class VGG11(VGG):

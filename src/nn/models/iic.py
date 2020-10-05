@@ -4,23 +4,15 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .backbone import *
+from ..layers import Module
 
 __all__ = [
     'IIC'
 ]
 
-backbones = [
-    'VGG11', 'VGG13', 'VGG16', 'VGG19',
-    'ResNet18', 'ResNet34', 'ResNet50',
-]
-
 class IIC(Module):
-    def __init__(self, backbone, in_channels=4, num_classes=10,
-                 num_classes_over=100, num_heads=10):
+    def __init__(self, net, num_classes=10, num_classes_over=100, num_heads=10):
         super().__init__()
-        assert backbone in backbones
-        net = globals()[backbone](in_channels=in_channels)
         # remove last fc layer
         self.encoder = nn.Sequential(*list(net.children())[:-1])
         self.num_heads = num_heads

@@ -20,13 +20,6 @@ class Module(nn.Module):
             if name not in own_state:
                 continue
             own_state[name].copy_(param)
-        # for name, param in self.state_dict().items():
-        #     print(f'-------------{name}-------------')
-        #     if param.ndim == 4:
-        #         grid = torchvision.utils.make_grid(param.cpu(), nrow=10)
-        #         for i in range(grid.shape[0]):
-        #             plt.imshow(grid[i], cmap='gray')
-        #             plt.show()
 
     def initialize_weights(self, mode='fan_in'):
         for m in self.modules():
@@ -40,6 +33,40 @@ class Module(nn.Module):
             elif isinstance(m, nn.Linear):
                 nn.init.xavier_normal_(m.weight)
                 nn.init.zeros_(m.bias)
+
+class Conv2dModule(nn.Module):
+    def __init__(self, in_channels, out_channels, stride=1,
+                 batchnorm=True, activation=nn.ReLU(inplace=True)):
+        super().__init__()
+        layers = []
+        layers.append(nn.Conv2d(in_channels, out_channels,
+                                kernel_size=stride+2, stride=stride,
+                                padding=1, bias=False))
+        if batchnorm:
+            layers.append(nn.BatchNorm2d(out_channels))
+        if activation is not None:
+            layers.append(activation)
+        self.layers = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.layers(x)
+
+class ConvTranspose2dModule(nn.Module):
+    def __init__(self, in_channels, out_channels, stride=1,
+                 batchnorm=True, activation=nn.ReLU(inplace=True)):
+        super().__init__()
+        layers = []
+        layers.append(nn.ConvTranspose2d(in_channels, out_channels,
+                                         kernel_size=stride+2, stride=stride,
+                                         padding=1, bias=False))
+        if batchnorm:
+            layers.append(nn.BatchNorm2d(out_channels))
+        if activation is not None:
+            layers.append(activation)
+        self.layers = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.layers(x)
 
 class Reshape(nn.Module):
     def __init__(self, outer_shape):

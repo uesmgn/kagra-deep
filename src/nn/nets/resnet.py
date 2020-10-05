@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from .utils import Module
+from ..layers import Module
 
 __all__ = [
     'ResNet', 'ResNet18', 'ResNet34', 'ResNet50',

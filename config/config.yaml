@@ -1,57 +1,52 @@
-num_workers: 4
-num_epochs: 5000
-batch_size: 128
-pin_memory: True
-use_amp: True
-opt_level: O1
-rate_train: 0.7
-balancing: True
-num_balancing_samples: 20000
+wandb:
+  project: kagra-deep
+  name: test01
+  tags: [vae, usl]
+  group: vae
 
-dataset:
-  path: /content/dataset.h5
-  shape: [4, 466, 566]
-  channels: [2]
+run:
+  num_epochs: 1000
   targets: [1080Lines, 1400Ripples, Air_Compressor, Blip,
             Chirp, Extremely_Loud, Helix, Koi_Fish, Light_Modulation,
             Low_Frequency_Burst, Low_Frequency_Lines, No_Glitch,
             Power_Line, Repeating_Blips, Scattered_Light, Scratchy,
-            Tomte, Violin_Mode, Whistle]
+            Tomte, Violin_Mode, Whistle, Other]
   use_other: True
+  use_channels: [1, 2, 3]
+  train_size: 0.7
+  use_amp: True
+  opt_level: O1
 
-model:
-  name: ResNet34
+  net:
+    name: resnet18
+    params:
+      in_channels: 3
 
-optim:
-  name: Adam
-  lr: 1e-4
-  weight_decay: 0
+  model:
+    name: m1
+    params:
+      z_dim: 512
 
-checkpoint:
-  eval: 10
-  save: 50
+  optim:
+    name: Adam
+    params:
+      lr: 1e-4
 
-iic:
-  num_classes_over: 50
-  rate_labeled: 0.1
-  num_heads: 5
-  reinitialize_header_weights: False
+  dataset:
+    name: hdf5
+    params:
+      root: /Users/gen/workspace/github/GravitySpy/processed/dataset.h5
 
-  ssl:
-    weights:
-      mi_labeled: 1.0
-      mi_labeled_over: 1.0
-      mi_unlabeled: 1.0
-      mi_unlabeled_over: 1.0
-      ce: 1.0
+  sampler:
+    name: balancer
+    params:
+      num_samples: 20000
 
-  usl:
-    weights:
-      mi: 1.0
-      mi_over: 1.0
+  loader:
+    params:
+      num_workers: 4
+      pin_memory: True
+      batch_size: 128
 
-vae:
-  usl:
-    weights:
-      bce: 1.0
-      kl_norm: 1.0
+  train:
+    use_amp: False

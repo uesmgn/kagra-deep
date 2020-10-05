@@ -2,6 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+__all__ = [
+    'GaussianBlur', 'gaussian_blur'
+]
 
 def gaussian(window_size, sigma):
     def gauss_fcn(x):

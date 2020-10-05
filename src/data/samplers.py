@@ -3,21 +3,33 @@ import torch.utils.data as data
 import torchvision
 from collections import defaultdict
 
+__class__ = [
+    'Balancer'
+]
+
+def _global(name):
+    keys = [key for key in globals().keys() if key in __class__]
+    for key in keys:
+        if key.lower() == name.lower():
+            return globals()[key]
+    raise ValueError("Available class names are {}.".format(keys))
+
+def get_sampler(name, dataset, **kwargs):
+    sampler = _global(name)(dataset, **kwargs)
+    return sampler
 
 class Balancer(data.sampler.Sampler):
 
-    def __init__(self, dataset, callback_get_label, num_samples=None):
-
+    def __init__(self, dataset, num_samples=None):
+        assert hasattr(dataset, "targets")
         self.indices = list(range(len(dataset)))
-        self.callback_get_label = callback_get_label
         self.num_samples = num_samples or len(self.indices)
-        label_to_count = defaultdict(lambda: 0)
-        labels = []
+        targets = dataset.targets
+        counter = defaultdict(lambda: 0)
         for idx in self.indices:
-            label, _ = callback_get_label(idx)
-            label_to_count[label] += 1
-            labels.append(label)
-        weights = [1. / label_to_count[labels[idx]] for idx in self.indices]
+            label = targets[idx]
+            counter[label] += 1
+        weights = [1. / counter[targets[idx]] for idx in self.indices]
         self.weights = torch.DoubleTensor(weights)
 
     def __iter__(self):

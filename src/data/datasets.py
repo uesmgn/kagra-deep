@@ -1,147 +1,181 @@
 import os
 import h5py
-import copy
 import torch
-import numpy as np
+from collections import abc, defaultdict
 from torch.utils import data
-from collections import defaultdict
-from skimage import color
-import torchvision.transforms.functional as tf
-import hydra
+import torchvision.transforms.functional as ttf
+import numpy as np
+from sklearn.model_selection import train_test_split
+import warnings
+import copy
 
-class HDF5Dataset(data.Dataset):
-    def __init__(self, cfg, transform=None):
+__class__ = [
+    'HDF5'
+]
+
+def _global(name):
+    keys = [key for key in globals().keys() if key in __class__]
+    for key in keys:
+        if key.lower() == name.lower():
+            return globals()[key]
+    raise ValueError("Available class names are {}.".format(keys))
+
+def get_dataset(name, **kwargs):
+    dataset = _global(name)(**kwargs)
+    return dataset
+
+class HDF5(data.Dataset):
+    def __init__(self, root, transform=None, target_transform=None, target_tag="target", shape=None):
         super().__init__()
-        self.cache = []
-        self.root = hydra.utils.to_absolute_path(cfg.path)
+        self.root = os.path.abspath(root)
         self.transform = transform
+        self.__target_transform = target_transform
+        self.__target_validate = lambda x: True
+        self.target_tag = target_tag
+        self.shape = shape
 
-        self.targets = [target.lower() for target in cfg.targets]
-        assert 'other' not in self.targets
-        self.use_other = cfg.use_other
-        if self.use_other:
-            self.targets.append('other')
-        self.shape = tuple(cfg.shape)
-        self.channels = tuple(cfg.channels)
-        with h5py.File(self.root, 'r') as fp:
-            self._init_data_cache(fp)
-        print(f'Successfully loaded {len(self.counter)} classes, {self.__len__()} items.')
-        print(self.counter)
+        self.cache = None
+        print("Initializing dataset cache...")
+        try:
+            _ = self.init_cache()
+        except:
+            raise RuntimeError(f"Failed to load items from {self.root}.")
+        print(f"Successfully loaded {len(self)} items in cache from {self.root}.")
+
+    @property
+    def targets(self):
+        tmp = []
+        for _, target in self.cache:
+            if self.__target_transform is not None:
+                target = self.__target_transform(target)
+            tmp.append(target)
+        return tmp
 
     @property
     def counter(self):
         cnt = defaultdict(lambda: 0)
-        for _, it in self.cache:
-            cnt[it] += 1
-        cnt = sorted(cnt.items(), key=lambda x: x[0])
+        for i in range(len(self)):
+            _, target = self.cache[i]
+            if self.__target_transform is not None:
+                target = self.__target_transform(target)
+            cnt[target] += 1
+        cnt = sorted(cnt.items(), key=lambda x: x[1])
         return dict(cnt)
 
+    @property
+    def target_transform(self):
+        pass
+
+    @target_transform.setter
+    def target_transform(self, callback):
+        self.__target_transform = callback
+        self.__target_validate = callback
+        self.init_cache()
+
+    def get_target(self, i):
+        _, target = self.cache[i]
+        if self.__target_transform is not None:
+            target = self.__target_transform(target)
+        return target
+
+    def split(self, train_size=0.7, stratify=None):
+        idx = list(range(len(self)))
+        train_idx, test_idx = train_test_split(idx,
+                                               train_size=train_size,
+                                               random_state=123,
+                                               stratify=stratify)
+        train_set = copy.copy(self).init_cache(train_idx)
+        test_idx = copy.copy(self).init_cache(test_idx)
+        return train_set, test_idx
+
+    def init_cache(self, indices=None):
+        self.cache = []
+        with h5py.File(self.root, 'r') as fp:
+            self.cache = self.__children(fp)
+        if isinstance(indices, list):
+            self.cache = [self.cache[i] for i in indices]
+        return self
+
+    def __children(self, d):
+        items = []
+        for k, v in d.items():
+            if isinstance(v, abc.MutableMapping):
+                items.extend(self.__children(v))
+            else:
+                target = v.attrs['target']
+                val = self.__target_validate(target)
+                if val is not None:
+                    if not isinstance(val, (str, int)):
+                        warnings.warn('target should be int or str.')
+                    items.append((v.ref, target))
+        return items
+
     def __getitem__(self, i):
-        ref, it = self.cache[i]
+        ref, target = self.cache[i]
         with h5py.File(self.root, 'r') as fp:
             item = fp[ref]
-            x = self._load_data(item)
-            x = x.index_select(0, torch.LongTensor(self.channels))
+            x = self.__load_data(item)
         if self.transform is not None:
             x = self.transform(x)
-        if isinstance(x, tuple):
-            return (*x, it)
-        return (x, it)
-
-    def _load_data(self, item):
-        x = np.zeros(self.shape, dtype=np.uint8)
-        item.read_direct(x)
-        x = tf.to_tensor(x.transpose(1, 2, 0))
-        return x
+        if self.__target_transform is not None:
+            target = self.__target_transform(target)
+        return x, target
 
     def __len__(self):
         return len(self.cache)
 
-    def _target_index(self, target):
-        target = target.lower()
-        if target not in self.targets:
-            if self.use_other:
-                target = 'other'
-            else:
-                return None
-        return self.targets.index(target)
-
-    def _init_data_cache(self, item):
-        if hasattr(item, 'values'):
-            # if item is group
-            for v in item.values():
-                self._init_data_cache(v)
+    def __load_data(self, item):
+        if self.shape is not None:
+            x = np.zeros(self.shape, dtype=np.uint8)
+            item.read_direct(x)
         else:
-            target = item.attrs['target']
-            it = self._target_index(target)
-            if it is not None:
-                self.cache.append((item.ref, it))
+            x = np.array(item[:])
+        x = ttf.to_tensor(x.transpose(1, 2, 0))
+        return x
 
-    def get_label(self, i):
-        _, it = self.cache[i]
-        return it, self.targets[it]
-
-    def split(self, alpha=0.8):
-        N_train = int(self.__len__() * alpha)
-        idx = np.arange(self.__len__())
-        np.random.shuffle(idx)
-        train_idx, test_idx = idx[:N_train], idx[N_train:]
-
-        train_set = copy.copy(self)
-        train_cache = [self.cache[i] for i in train_idx]
-        train_set.cache = train_cache
-
-        test_set = copy.copy(self)
-        test_cache = [self.cache[i] for i in test_idx]
-        test_set.cache = test_cache
-
-        return train_set, test_set
-
-    def copy(self):
-        return copy.copy(self)
-
-    def split_balancing(self, num_per_label=10):
-        balenced_dict = defaultdict(lambda: [])
-        idx = np.arange(self.__len__())
-        for i in idx:
-            _, it = self.cache[i]
-            if len(balenced_dict[it]) < num_per_label:
-                balenced_dict[it].append(i)
-        uni_idx = np.array([i for v in balenced_dict.values() for i in v]).astype(np.integer)
-        rem_idx = np.array(list(set(idx) - set(uni_idx))).astype(np.integer)
-
-        uni_set = copy.copy(self)
-        uni_cache = [self.cache[i] for i in uni_idx]
-        uni_set.cache = uni_cache
-
-        rem_set = copy.copy(self)
-        rem_cache = [self.cache[i] for i in rem_idx]
-        rem_set.cache = rem_cache
-
-        return uni_set, rem_set
-
-    def split_balancing_by_rate(self, rate_per_label=0.1):
-        balenced_dict = defaultdict(lambda: [])
-        idx = np.arange(self.__len__())
-        num_per_labels = []
-        for k, v in self.counter.items():
-            num_per_labels.append((k, int(v * rate_per_label)))
-        num_per_labels = dict(num_per_labels)
-        for i in idx:
-            _, it = self.cache[i]
-            num_per_label = num_per_labels[it]
-            if len(balenced_dict[it]) < num_per_label:
-                balenced_dict[it].append(i)
-
-        uni_idx = np.array([i for v in balenced_dict.values() for i in v]).astype(np.integer)
-        rem_idx = np.array(list(set(idx) - set(uni_idx))).astype(np.integer)
-
-        uni_set = copy.copy(self)
-        uni_cache = [self.cache[i] for i in uni_idx]
-        uni_set.cache = uni_cache
-
-        rem_set = copy.copy(self)
-        rem_cache = [self.cache[i] for i in rem_idx]
-        rem_set.cache = rem_cache
-
-        return uni_set, rem_set
+#
+#     def split_balancing(self, num_per_label=10):
+#         balenced_dict = defaultdict(lambda: [])
+#         idx = np.arange(self.__len__())
+#         for i in idx:
+#             _, it = self.cache[i]
+#             if len(balenced_dict[it]) < num_per_label:
+#                 balenced_dict[it].append(i)
+#         uni_idx = np.array([i for v in balenced_dict.values() for i in v]).astype(np.integer)
+#         rem_idx = np.array(list(set(idx) - set(uni_idx))).astype(np.integer)
+#
+#         uni_set = copy.copy(self)
+#         uni_cache = [self.cache[i] for i in uni_idx]
+#         uni_set.cache = uni_cache
+#
+#         rem_set = copy.copy(self)
+#         rem_cache = [self.cache[i] for i in rem_idx]
+#         rem_set.cache = rem_cache
+#
+#         return uni_set, rem_set
+#
+#     def split_balancing_by_rate(self, rate_per_label=0.1):
+#         balenced_dict = defaultdict(lambda: [])
+#         idx = np.arange(self.__len__())
+#         num_per_labels = []
+#         for k, v in self.counter.items():
+#             num_per_labels.append((k, int(v * rate_per_label)))
+#         num_per_labels = dict(num_per_labels)
+#         for i in idx:
+#             _, it = self.cache[i]
+#             num_per_label = num_per_labels[it]
+#             if len(balenced_dict[it]) < num_per_label:
+#                 balenced_dict[it].append(i)
+#
+#         uni_idx = np.array([i for v in balenced_dict.values() for i in v]).astype(np.integer)
+#         rem_idx = np.array(list(set(idx) - set(uni_idx))).astype(np.integer)
+#
+#         uni_set = copy.copy(self)
+#         uni_cache = [self.cache[i] for i in uni_idx]
+#         uni_set.cache = uni_cache
+#
+#         rem_set = copy.copy(self)
+#         rem_cache = [self.cache[i] for i in rem_idx]
+#         rem_set.cache = rem_cache
+#
+#         return uni_set, rem_set
