@@ -1,4 +1,4 @@
-from . import image_processing
+from . import augment
 from . import stats
 from . import transforms
 from . import validation
