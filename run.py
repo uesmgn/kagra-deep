@@ -43,31 +43,6 @@ def train(model, device, trainer, optim, epoch, use_amp=False):
     loss /= num_samples
     wandb.log({"epoch": epoch, "loss_train": loss})
 
-def wandb_log(data, name, targets, epoch, type=None):
-    import math
-    import matplotlib.pyplot as plt
-    import torchvision.transforms.functional as ttf
-    import torchvision as tv
-    from sklearn.manifold import TSNE
-
-    labels = np.unique(targets)
-    indices = {t: np.where(targets==t)[0] for t in np.unique(targets)}
-
-    if type == "grid_image" and data.ndim == 3:
-        idx = [v[0] for v in indices.values()]
-        nrow = math.ceil(np.sqrt(len(idx))) + 1
-        data = tv.utils.make_grid(data[idx, ...], nrow=nrow)
-        pil = ttf.to_pil_image(data)
-        wandb.log({"epoch": epoch, name: [wandb.Image(pil, caption=name)]})
-    elif type == "tsne" and data.ndim == 2:
-        z = TSNE(n_components=2).fit_transform(data)
-        xx, yy = z.T
-        for target in targets:
-            idx = np.where(labels==target)
-            x = xx[idx]
-            y = yy[idx]
-            plt.scatter(x, y, label=target)
-        wandb.log({"epoch": epoch, name: plt})
 
 def test(model, device, tester, epoch, log_params={}):
     print(f"----- test at epoch: {epoch} -----")
@@ -80,6 +55,7 @@ def test(model, device, tester, epoch, log_params={}):
             for step, (x, target) in enumerate(tester):
                 x, target = x.to(device, non_blocking=True), target.to(device, non_blocking=True)
                 params, loss_step = model(x, target)
+
                 targets.append(target)
                 for key, value in params.items():
                     if key in log_params and torch.is_tensor(value):
@@ -94,7 +70,7 @@ def test(model, device, tester, epoch, log_params={}):
     wandb.log({"epoch": epoch, "loss_test": loss})
     for key, params in log_params.items():
         data = torch.cat(logger[key]).squeeze().cpu()
-        wandb_log(data, key, targets, epoch, **params)
+        utils.stats.wandb_log(data, targets, key, epoch, **params)
 
 
 def run(args):
@@ -139,7 +115,7 @@ def run(args):
 
     for epoch in range(args.num_epochs):
         train(model, device, trainer, optim, epoch, use_amp=args.use_amp)
-        if epoch % args.eval_step == args.eval_step - 1:
+        if epoch % args.eval_step == 0:
             test(model, device, tester, epoch, log_params=args.log_params)
 
 
