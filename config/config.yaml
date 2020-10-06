@@ -19,10 +19,14 @@ run:
   eval_step: 2
 
   log_params:
+    x:
+      type: grid_image
     xt:
       type: grid_image
     z:
       type: tsne
+    target:
+      type: confusion_matrix
 
   net:
     name: resnet34
