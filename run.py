@@ -52,7 +52,7 @@ def wandb_log(data, name, targets, type=None):
     labels = np.unique(targets)
     indices = {t: np.where(targets==t)[0] for t in np.unique(targets)}
 
-    if type == "grid_image" and value.ndim == 3:
+    if type == "grid_image" and data.ndim == 3:
         idx = [v[0] for v in indices.values()]
         nrow = math.ceil(np.sqrt(len(idx))) + 1
         grid = tv.utils.make_grid(data[idx, ...], nrow=nrow).permute(1,2,0)
@@ -61,7 +61,7 @@ def wandb_log(data, name, targets, type=None):
         plt.tight_layout()
         wandb.log({"epoch": epoch, name: plt})
         plt.close()
-    elif type == "tsne" and value.ndim == 2:
+    elif type == "tsne" and data.ndim == 2:
         z = TSNE(n_components=2).fit_transform(data)
         xx, yy = z.T
         for target in targets:
@@ -100,8 +100,8 @@ def test(model, device, tester, epoch, log_params={}):
 
     wandb.log({"epoch": epoch, "loss_test": loss})
     for key, params in log_params.items():
-        value = torch.cat(logger[key]).squeeze().cpu()
-        wandb_log(value, key, targets, **params)
+        data = torch.cat(logger[key]).squeeze().cpu()
+        wandb_log(data, key, targets, **params)
 
 
 
