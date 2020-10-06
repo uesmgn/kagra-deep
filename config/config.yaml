@@ -25,7 +25,7 @@ run:
       type: tsne
 
   net:
-    name: resnet18
+    name: resnet34
     params:
       in_channels: 3
 
@@ -43,12 +43,12 @@ run:
     name: hdf5
     params:
       root: /content/dataset_small.h5
-      shape: [4, 466, 566]
+      # shape: [4, 224, 272]
 
   sampler:
-    name: None
+    name: balancer
     params:
-      num_samples: 12800
+      num_samples: 25600
 
   loader:
     params:
