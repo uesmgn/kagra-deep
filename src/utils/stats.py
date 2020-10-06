@@ -35,8 +35,8 @@ def wandb_log(data, targets, name, epoch, type=None):
         wandb.log({"epoch": epoch, name: plt})
 
     elif type == "confusion_matrix" and data.ndim == 1:
-        xlabels = np.unique(targets)
-        ylabels = np.unique(data)
+        xlabels = list(np.unique(targets))
+        ylabels = list(np.unique(data))
         cm = np.zeros((len(xlabels), len(ylabels)), dtype=np.int)
         for i, j in zip(data, targets):
             cm[xlabels.index(i), ylabels.index(j)] += 1
