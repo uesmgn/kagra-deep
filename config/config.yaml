@@ -16,8 +16,8 @@ run:
   train_size: 0.7
   use_amp: True
   opt_level: O1
-  eval_step: 5
-  
+  eval_step: 2
+
   log_params:
     xt:
       type: grid_image
