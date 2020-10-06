@@ -47,7 +47,7 @@ class M1(Module):
         x_densed = self.encoder(x)
         z, z_mean, z_var = self.gaussian(x_densed)
         xt = self.decoder(z)
-        params = dict(x=x, xt=xt, z=z, z_mean=z_mean, z_var=z_var)
+        params = dict(x=x, xt=xt, z=z, z_mean=z_mean, z_var=z_var, target=target)
         loss = self.criterion(x, xt, z_mean, z_var)
         return params, loss
 
