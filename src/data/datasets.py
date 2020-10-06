@@ -23,7 +23,7 @@ class HDF5(data.Dataset):
         self.target_tag = target_tag
         self.shape = shape
 
-        self.fp = self.__fp()
+        self.fp = None
 
         self.cache = None
         print("Initializing dataset cache...")
@@ -81,11 +81,8 @@ class HDF5(data.Dataset):
 
     def init_cache(self, indices=None):
         self.cache = []
-        try:
-            self.cache = self.__children(self.fp)
-        except:
-            self.fp = self.__fp()
-            self.cache = self.__children(self.fp)
+        with self.__fp() as fp:
+            self.cache = self.__children(fp)
         if isinstance(indices, list):
             self.cache = [self.cache[i] for i in indices]
         return self
@@ -109,12 +106,9 @@ class HDF5(data.Dataset):
 
     def __getitem__(self, i):
         ref, target = self.cache[i]
-        try:
-            item = self.fp[ref]
-        except:
-            self.fp = self.__fp()
-            item = self.fp[ref]
-        x = self.__load_data(item)
+        with self.__fp() as fp:
+            item = fp[ref]
+            x = self.__load_data(item)
         if self.transform is not None:
             x = self.transform(x)
         if self.__target_transform is not None:
