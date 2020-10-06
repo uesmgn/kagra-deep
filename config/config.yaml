@@ -42,7 +42,7 @@ run:
   dataset:
     name: hdf5
     params:
-      root: /content/dataset_lzf.h5
+      root: /content/dataset_small.h5
       shape: [4, 466, 566]
 
   sampler:
