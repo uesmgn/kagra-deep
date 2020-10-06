@@ -31,6 +31,7 @@ def wandb_log(data, targets, name, epoch, type=None):
             x = xx[idx]
             y = yy[idx]
             plt.scatter(x, y, label=label)
+        plt.legend(loc='upper right')
         wandb.log({"epoch": epoch, name: plt})
 
     elif type == "confusion_matrix" and data.ndim == 1:
