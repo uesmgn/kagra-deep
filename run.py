@@ -68,9 +68,12 @@ def test(model, device, tester, epoch, log_params={}):
     targets = torch.cat(targets).squeeze().cpu()
 
     wandb.log({"epoch": epoch, "loss_test": loss})
-    for key, params in log_params.items():
-        data = torch.cat(logger[key]).squeeze().cpu()
-        utils.stats.wandb_log(data, targets, key, epoch, **params)
+    for name, params in log_params.items():
+        if name in logger:
+            data = torch.cat(logger[name]).squeeze().cpu()
+            utils.stats.wandb_log(data, targets, name, epoch, **params)
+        else:
+            print(f"param {name} can't output the log.")
 
 
 def run(args):
