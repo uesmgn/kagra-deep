@@ -47,7 +47,7 @@ class CenterMaximizedResizeCrop:
         w, h = _get_image_size(x)
         tw, th = self.target_size
         x = _to_pil_image(x)
-        if w >= tw and h >= th:
+        if w > tw and h > th:
             ratio = max(tw, th) / min(w, h)
             x = ttf.resize(x, (int(h * ratio), int(w * ratio)))
         x = ttf.center_crop(x, (self.target_size))
@@ -75,7 +75,7 @@ class RandomMaximizedResizeCrop:
         w, h = _get_image_size(x)
         tw, th = self.target_size
         x = _to_pil_image(x)
-        if w >= tw and h >= th:
+        if w > tw and h > th:
             ratio = max(tw, th) / min(w, h)
             x = ttf.resize(x, (int(h * ratio), int(w * ratio)))
         i, j, h, w = self.get_params(x, self.target_size)

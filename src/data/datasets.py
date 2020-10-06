@@ -13,17 +13,6 @@ __class__ = [
     'HDF5'
 ]
 
-def _global(name):
-    keys = [key for key in globals().keys() if key in __class__]
-    for key in keys:
-        if key.lower() == name.lower():
-            return globals()[key]
-    raise ValueError("Available class names are {}.".format(keys))
-
-def get_dataset(name, **kwargs):
-    dataset = _global(name)(**kwargs)
-    return dataset
-
 class HDF5(data.Dataset):
     def __init__(self, root, transform=None, target_transform=None, target_tag="target", shape=None):
         super().__init__()
@@ -34,8 +23,7 @@ class HDF5(data.Dataset):
         self.target_tag = target_tag
         self.shape = shape
 
-        self.fp = None
-        self.open_once()
+        self.fp = self.__fp()
 
         self.cache = None
         print("Initializing dataset cache...")
@@ -44,9 +32,6 @@ class HDF5(data.Dataset):
         except:
             raise RuntimeError(f"Failed to load items from {self.root}.")
         print(f"Successfully loaded {len(self)} items in cache from {self.root}.")
-
-    def open_once(self):
-        self.fp = h5py.File(self.root, 'r', libver='latest', swmr=True)
 
     @property
     def targets(self):
@@ -99,7 +84,7 @@ class HDF5(data.Dataset):
         try:
             self.cache = self.__children(self.fp)
         except:
-            self.open_once()
+            self.fp = self.__fp()
             self.cache = self.__children(self.fp)
         if isinstance(indices, list):
             self.cache = [self.cache[i] for i in indices]
@@ -119,12 +104,15 @@ class HDF5(data.Dataset):
                     items.append((v.ref, target))
         return items
 
+    def __fp(self):
+        return h5py.File(self.root, 'r', libver='latest')
+
     def __getitem__(self, i):
         ref, target = self.cache[i]
         try:
             item = self.fp[ref]
         except:
-            self.open_once()
+            self.fp = self.__fp()
             item = self.fp[ref]
         x = self.__load_data(item)
         if self.transform is not None:
@@ -144,50 +132,3 @@ class HDF5(data.Dataset):
             x = np.array(item[:])
         x = ttf.to_tensor(x.transpose(1, 2, 0))
         return x
-
-#
-#     def split_balancing(self, num_per_label=10):
-#         balenced_dict = defaultdict(lambda: [])
-#         idx = np.arange(self.__len__())
-#         for i in idx:
-#             _, it = self.cache[i]
-#             if len(balenced_dict[it]) < num_per_label:
-#                 balenced_dict[it].append(i)
-#         uni_idx = np.array([i for v in balenced_dict.values() for i in v]).astype(np.integer)
-#         rem_idx = np.array(list(set(idx) - set(uni_idx))).astype(np.integer)
-#
-#         uni_set = copy.copy(self)
-#         uni_cache = [self.cache[i] for i in uni_idx]
-#         uni_set.cache = uni_cache
-#
-#         rem_set = copy.copy(self)
-#         rem_cache = [self.cache[i] for i in rem_idx]
-#         rem_set.cache = rem_cache
-#
-#         return uni_set, rem_set
-#
-#     def split_balancing_by_rate(self, rate_per_label=0.1):
-#         balenced_dict = defaultdict(lambda: [])
-#         idx = np.arange(self.__len__())
-#         num_per_labels = []
-#         for k, v in self.counter.items():
-#             num_per_labels.append((k, int(v * rate_per_label)))
-#         num_per_labels = dict(num_per_labels)
-#         for i in idx:
-#             _, it = self.cache[i]
-#             num_per_label = num_per_labels[it]
-#             if len(balenced_dict[it]) < num_per_label:
-#                 balenced_dict[it].append(i)
-#
-#         uni_idx = np.array([i for v in balenced_dict.values() for i in v]).astype(np.integer)
-#         rem_idx = np.array(list(set(idx) - set(uni_idx))).astype(np.integer)
-#
-#         uni_set = copy.copy(self)
-#         uni_cache = [self.cache[i] for i in uni_idx]
-#         uni_set.cache = uni_cache
-#
-#         rem_set = copy.copy(self)
-#         rem_cache = [self.cache[i] for i in rem_idx]
-#         rem_set.cache = rem_cache
-#
-#         return uni_set, rem_set

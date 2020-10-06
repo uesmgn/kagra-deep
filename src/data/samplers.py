@@ -7,17 +7,6 @@ __class__ = [
     'Balancer'
 ]
 
-def _global(name):
-    keys = [key for key in globals().keys() if key in __class__]
-    for key in keys:
-        if key.lower() == name.lower():
-            return globals()[key]
-    raise ValueError("Available class names are {}.".format(keys))
-
-def get_sampler(name, dataset, **kwargs):
-    sampler = _global(name)(dataset, **kwargs)
-    return sampler
-
 class Balancer(data.sampler.Sampler):
 
     def __init__(self, dataset, num_samples=None):

@@ -6,12 +6,10 @@ from tqdm import tqdm
 import re
 import h5py
 from hashids import Hashids
-from PIL.Image import Image
+from PIL import Image
 import torchvision.transforms.functional as ttf
 import numpy as np
-import warnings
 import src.utils.validation as validation
-import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser()
 
@@ -59,18 +57,17 @@ df = df.reset_index(drop=True)
 df = df.reindex(columns=['unique_id', 'file_path', 'target',
                          'bundle_id', 'span'])
 
-def file2img(file):
-    # imread and remove alpha channel
-    img = Image.open(file)
 
-
-    img = img[66:532, 105:671]
-    # grayscale
-    img = color.rgb2gray(img)
-    # img = transform.resize(img, shape, anti_aliasing=True)
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        img = img_as_ubyte(img)
+def file2img(file, target_size=(224, 224)):
+    # read file and convert to gray scale
+    img = Image.open(file).convert("L")
+    img = ttf.crop(img, 66, 105, 466, 566)
+    w, h = img.size
+    tw, th = target_size
+    if w > tw and h > th:
+        ratio = max(tw, th) / min(w, h)
+        img = ttf.resize(img, (int(h * ratio), int(w * ratio)))
+    img = np.asarray(img, dtype=np.uint8)
     return img
 
 def process(fp, df, dataset_id, **kwargs):
@@ -82,8 +79,7 @@ def process(fp, df, dataset_id, **kwargs):
     ds = fp.create_dataset(dataset_id,
                            data=images,
                            shape=images.shape,
-                           dtype='uint8',
-                           compression='lzf')
+                           dtype='uint8')
     for k, v in kwargs.items():
         ds.attrs[k] = v
 
