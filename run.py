@@ -43,9 +43,10 @@ def train(model, device, trainer, optim, epoch, use_amp=False):
     loss /= num_samples
     wandb.log({"epoch": epoch, "loss_train": loss})
 
-def wandb_log(data, name, targets, type=None):
+def wandb_log(data, name, targets, epoch, type=None):
     import math
     import matplotlib.pyplot as plt
+    import torchvision.transforms.functional as ttf
     import torchvision as tv
     from sklearn.manifold import TSNE
 
@@ -55,12 +56,9 @@ def wandb_log(data, name, targets, type=None):
     if type == "grid_image" and data.ndim == 3:
         idx = [v[0] for v in indices.values()]
         nrow = math.ceil(np.sqrt(len(idx))) + 1
-        grid = tv.utils.make_grid(data[idx, ...], nrow=nrow).permute(1,2,0)
-        plt.imshow(grid)
-        plt.axis("off")
-        plt.tight_layout()
-        wandb.log({"epoch": epoch, name: plt})
-        plt.close()
+        data = tv.utils.make_grid(data[idx, ...], nrow=nrow)
+        pil = ttf.to_pil_image(data)
+        wandb.log({"epoch": epoch, name: [wandb.Image(pil, caption=name)]})
     elif type == "tsne" and data.ndim == 2:
         z = TSNE(n_components=2).fit_transform(data)
         xx, yy = z.T
@@ -68,13 +66,8 @@ def wandb_log(data, name, targets, type=None):
             idx = np.where(labels==target)
             x = xx[idx]
             y = yy[idx]
-            plt.scatter(x, y, s=8.0, label=target)
-        plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left',
-                   borderaxespad=0, fontsize=8)
-        plt.tight_layout()
+            plt.scatter(x, y, label=target)
         wandb.log({"epoch": epoch, name: plt})
-        plt.close()
-
 
 def test(model, device, tester, epoch, log_params={}):
     print(f"----- test at epoch: {epoch} -----")
@@ -101,8 +94,7 @@ def test(model, device, tester, epoch, log_params={}):
     wandb.log({"epoch": epoch, "loss_test": loss})
     for key, params in log_params.items():
         data = torch.cat(logger[key]).squeeze().cpu()
-        wandb_log(data, key, targets, **params)
-
+        wandb_log(data, key, targets, epoch, **params)
 
 
 def run(args):
