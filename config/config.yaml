@@ -17,6 +17,7 @@ run:
   use_amp: True
   opt_level: O1
   eval_step: 5
+  
   log_params:
     xt:
       type: grid_image
