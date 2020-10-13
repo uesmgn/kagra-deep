@@ -57,11 +57,11 @@ def init_config(args):
 def to_device(device, *args):
     ret = []
     for arg in args:
+        print(arg)
         if torch.is_tensor(arg):
             ret.append(arg.to(device, non_blocking=True))
         elif isinstance(arg, abc.Sequence):
-            for x in arg:
-                ret.extend(to_device(x))
+            ret.extend(to_device(device, *arg))
         else:
             raise ValueError(f"Input is invalid argument type: {type(arg)}.")
     return tuple(ret)
