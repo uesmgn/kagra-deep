@@ -44,13 +44,13 @@ sampler:
   params:
 
 train:
-  batch_size: 128
+  batch_size: 64
   num_workers: 4
   pin_memory: True
   drop_last: True
 
 test:
-  batch_size: 128
+  batch_size: 64
   num_workers: 4
   pin_memory: True
   drop_last: False
