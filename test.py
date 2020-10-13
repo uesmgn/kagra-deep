@@ -109,6 +109,8 @@ def main(args):
     net = cfg.get_net(args.net)
     model = cfg.get_model(args.model, net=net).to(device)
     optim = cfg.get_optim(args.optim, params=model.parameters())
+    if use_apex:
+        model, optim = amp.initialize(model, optim, opt_level=args.opt_level)
     train_set, test_set = cfg.get_datasets(args.dataset)
     train_loader = cfg.get_loader(args.train, train_set)
     test_loader = cfg.get_loader(args.test, test_set)
