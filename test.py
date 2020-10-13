@@ -3,6 +3,7 @@ import hydra
 import logging
 import torch
 from collections import abc
+import numbers
 from tqdm import tqdm
 
 try:
@@ -68,7 +69,12 @@ def to_device(device, *args):
 
 def train(model, optim, loader, device, weights=None, use_apex=False):
     model.train()
-    weights = torch.tensor(weights).to(device)
+    if isinstance(weights, abc.Sequence):
+        weights = torch.tensor(weights).to(device)
+    elif isinstance(weights, numbers.Number):
+        weights = float(weights)
+    else:
+        raise ValueError(f"Invalid weights: {weights}")
     loss = 0
     num_samples = 0
     with tqdm(total=len(loader)) as pbar:
@@ -118,7 +124,6 @@ def main(args):
     for epoch in range(num_epochs):
         print(f"--- training at epoch {epoch} ---")
         loss_train = train(model, optim, train_loader, device, weights=weights, use_apex=use_apex)
-        print(loss)
         wandb.log({"epoch": epoch, "loss_train": loss_train})
 
 
