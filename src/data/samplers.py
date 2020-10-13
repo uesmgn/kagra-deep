@@ -7,7 +7,7 @@ __class__ = ["Balancer"]
 
 
 class Balancer(data.sampler.Sampler):
-    def __init__(self, dataset, expansion=5.0):
+    def __init__(self, dataset, expansion=1.0):
         self.dataset = dataset
         if isinstance(expansion, float):
             self.num_samples = int(len(dataset) * self.expansion)
@@ -15,9 +15,6 @@ class Balancer(data.sampler.Sampler):
             self.num_samples = expansion
         else:
             raise ValueError("Invalid argument.")
-        self.init()
-
-    def init(self):
         self.indices = list(range(len(self.dataset)))
         targets = self.dataset.targets
         counter = defaultdict(lambda: 0)
