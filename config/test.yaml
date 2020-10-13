@@ -6,7 +6,7 @@ targets: [1080Lines, 1400Ripples, Air_Compressor, Blip,
           Power_Line, Repeating_Blips, Scattered_Light, Scratchy,
           Tomte, Violin_Mode, Whistle, Other]
 use_other: True
-sample_expansion: 10.
+sample_expansion: 50000
 train_size: 0.7
 use_apex: True
 opt_level: O1
