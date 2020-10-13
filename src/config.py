@@ -46,13 +46,31 @@ def instantiate(d, name):
     raise ValueError("Available class names are {}, but input is {}.".format(keys, name))
 
 
-def zip_loader(x, y, *args):
-    args = [x, y, *args]
-    max_idx = np.argmax([len(arg) for arg in args])
-    max_arg = args.pop(max_idx)
-    args = [cycle(arg) for arg in args]
-    args.insert(max_idx, max_arg)
-    return zip(*args)
+class ZipLoader(object):
+    def __init__(self, x, y, *args):
+        args = [x, y, *args]
+        max_idx = np.argmax([len(arg) for arg in args])
+        max_arg = args.pop(max_idx)
+        args = [cycle(arg) for arg in args]
+        args.insert(max_idx, max_arg)
+        self.iterators = [iter(arg) for arg in args]
+        self.len = len(max_arg)
+
+    def __iter__(self):
+        return self
+
+    def __len__(self):
+        return self.len
+
+    def __next__(self):
+        sentinel = object()
+        result = []
+        for it in self.iterators:
+            elem = next(it, None)
+            if elem is None:
+                raise StopIteration()
+            result.append(elem)
+        return tuple(result)
 
 
 class Config(object):
@@ -150,6 +168,6 @@ class Config(object):
             loaders = (
                 DataLoader(ds, sampler=self.sampler_callback(ds), **params) for ds in datasets
             )
-            return zip_loader(*loaders)
+            return ZipLoader(*loaders)
         else:
             return DataLoader(datasets, sampler=self.sampler_callback(datasets), **params)
