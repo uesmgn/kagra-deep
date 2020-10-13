@@ -6,6 +6,7 @@ from collections import abc
 from itertools import cycle
 import torch
 import numpy as np
+from torch.utils.data import DataLoader
 
 try:
     import apex
@@ -47,18 +48,31 @@ def instantiate(d, name):
 
 
 class ZipLoader(object):
-    def __init__(self, x, y, *args):
-        args = [x, y, *args]
-        max_idx = np.argmax([len(arg) for arg in args])
-        max_arg = args.pop(max_idx)
-        args = [cycle(arg) for arg in args]
-        args.insert(max_idx, max_arg)
-        self.args = args
-        self.len = len(max_arg)
+    def __init__(self, *datasets, sampler_callback=None, **params):
+        batch_size = params.pop("batch_size", 1)
+        datasets = [x for x in datasets]
+        max_idx = np.argmax([len(ds) for ds in datasets])
+        max_ds = datasets.pop(max_idx)
+        loaders = []
+        for i, ds in enumerate(datasets):
+            new_batch = len(ds) * batch_size // len(max_ds)
+            loader = self.to_loader(ds, sampler_callback, batch_size=new_batch, **params)
+            loaders.append(loader)
+        loaders.insert(
+            max_idx, self.to_loader(max_ds, sampler_callback, batch_size=batch_size, **params)
+        )
+        self.loaders = loaders
+        self.len = len(loaders[max_idx])
         self.iterators = None
 
+    def to_loader(self, ds, sampler_callback=None, **params):
+        sampler = None
+        if callable(sampler_callback):
+            sampler = sampler_callback(ds)
+        return DataLoader(ds, sampler=sampler, **params)
+
     def __iter__(self):
-        self.iterators = [iter(arg) for arg in self.args]
+        self.iterators = [iter(loader) for loader in self.loaders]
         return self
 
     def __len__(self):
@@ -68,10 +82,10 @@ class ZipLoader(object):
         sentinel = object()
         ret = []
         for it in self.iterators:
-            elem = next(it, None)
-            if elem is None:
+            el = next(it, sentinel)
+            if el is sentinel:
                 raise StopIteration()
-            ret.append(elem)
+            ret.append(el)
         return tuple(ret)
 
 
@@ -162,14 +176,10 @@ class Config(object):
         return train_set, test_set
 
     def get_loader(self, cfg, datasets):
-        from torch.utils.data import DataLoader
 
         params = check_params(cfg)
         # if datasets is sequence, return zip of loaders
         if isinstance(datasets, abc.Sequence):
-            loaders = (
-                DataLoader(ds, sampler=self.sampler_callback(ds), **params) for ds in datasets
-            )
-            return ZipLoader(*loaders)
+            return ZipLoader(*datasets, sampler_callback=self.sampler_callback, **params)
         else:
             return DataLoader(datasets, sampler=self.sampler_callback(datasets), **params)
