@@ -4,6 +4,13 @@ import logging
 import torch
 from collections import abc
 
+try:
+    import apex
+
+    use_apex = True
+except ImportError:
+    use_apex = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -83,12 +90,7 @@ def train(model, optim, loader, device="cpu", weights=None, use_apex=False):
 
 @hydra.main(config_path="config", config_name="test")
 def main(args):
-    try:
-        import apex
-
-        use_apex = True
-    except ImportError:
-        use_apex = False
+    global use_apex
     use_apex = args.use_apex and use_apex
 
     init_wandb(args.wandb)
