@@ -5,7 +5,7 @@ import torch
 from collections import abc
 
 try:
-    import apex
+    from apex import amp
 
     use_apex = True
 except ImportError:
@@ -77,7 +77,7 @@ def train(model, optim, loader, device="cpu", weights=None, use_apex=False):
         loss_step = (l * weights).sum()
         optim.zero_grad()
         if use_apex:
-            with apex.amp.scale_loss(loss_step, optim) as loss_scaled:
+            with amp.scale_loss(loss_step, optim) as loss_scaled:
                 loss_scaled.backward()
         else:
             loss_step.backward()
