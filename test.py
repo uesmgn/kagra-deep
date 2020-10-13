@@ -3,6 +3,7 @@ import hydra
 import logging
 import torch
 from collections import abc
+from tqdm import tqdm
 
 try:
     from apex import amp
@@ -71,20 +72,23 @@ def train(model, optim, loader, device="cpu", weights=None, use_apex=False):
     weights = torch.tensor(weights).to(device)
     loss = 0
     num_samples = 0
-    for data in loader:
-        data = to_device(*data, device=device)
-        l = model(*data)
-        loss_step = (l * weights).sum()
-        optim.zero_grad()
-        if use_apex:
-            with amp.scale_loss(loss_step, optim) as loss_scaled:
-                loss_scaled.backward()
-        else:
-            loss_step.backward()
-        optim.step()
-        loss += l.detach().cpu()
-        num_samples += data[0].shape[0]
+    with tqdm(total=len(loader)) as pbar:
+        for data in loader:
+            data = to_device(*data, device=device)
+            l = model(*data)
+            loss_step = (l * weights).sum()
+            optim.zero_grad()
+            if use_apex:
+                with amp.scale_loss(loss_step, optim) as loss_scaled:
+                    loss_scaled.backward()
+            else:
+                loss_step.backward()
+            optim.step()
+            loss += l.detach()
+            num_samples += data[0].shape[0]
+            pbar.update(1)
     loss /= num_samples
+    loss = loss.cpu().numpy()
     return loss
 
 
@@ -97,7 +101,10 @@ def main(args):
 
     cfg = init_config(args)
 
-    device = args.device
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    if torch.cuda.is_available():
+        torch.backends.cudnn.benchmark = True
+
     num_epochs = args.num_epochs
     weights = args.weights
     net = cfg.get_net(args.net)
