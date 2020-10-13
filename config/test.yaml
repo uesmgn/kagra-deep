@@ -42,6 +42,7 @@ dataset:
 sampler:
   name: balancer
   params:
+    expansion: 10000
 
 train:
   batch_size: 128
