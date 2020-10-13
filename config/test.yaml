@@ -1,5 +1,4 @@
 type: co+ss
-device: cpu
 use_channels: [1,2,3]
 targets: [1080Lines, 1400Ripples, Air_Compressor, Blip,
           Chirp, Extremely_Loud, Helix, Koi_Fish, Light_Modulation,
