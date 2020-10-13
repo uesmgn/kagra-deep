@@ -54,7 +54,7 @@ def init_config(args):
     return config.Config(**params)
 
 
-def to_device(*args, device="cpu"):
+def to_device(device, *args):
     ret = []
     for arg in args:
         if torch.is_tensor(arg):
@@ -67,15 +67,14 @@ def to_device(*args, device="cpu"):
     return tuple(ret)
 
 
-def train(model, optim, loader, device="cpu", weights=None, use_apex=False):
+def train(model, optim, loader, device, weights=None, use_apex=False):
     model.train()
     weights = torch.tensor(weights).to(device)
     loss = 0
     num_samples = 0
     with tqdm(total=len(loader)) as pbar:
         for data in loader:
-            data = to_device(*data, device=device)
-            print(data)
+            data = to_device(device, *data)
             l = model(*data)
             loss_step = (l * weights).sum()
             optim.zero_grad()
@@ -117,9 +116,7 @@ def main(args):
 
     for epoch in range(num_epochs):
         print(f"--- training at epoch {epoch} ---")
-        loss_train = train(
-            model, optim, train_loader, device=device, weights=weights, use_apex=use_apex
-        )
+        loss_train = train(model, optim, train_loader, device, weights=weights, use_apex=use_apex)
         print(loss)
         wandb.log({"epoch": epoch, "loss_train": loss_train})
 
