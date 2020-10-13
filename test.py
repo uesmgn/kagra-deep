@@ -61,7 +61,7 @@ def to_device(device, *args):
             ret.append(arg.to(device, non_blocking=True))
         elif isinstance(arg, abc.Sequence):
             for x in arg:
-                ret += to_device(x)
+                ret.extend(to_device(x))
         else:
             raise ValueError(f"Input is invalid argument type: {type(arg)}.")
     return tuple(ret)
@@ -75,10 +75,8 @@ def train(model, optim, loader, device, weights=None, use_apex=False):
     with tqdm(total=len(loader)) as pbar:
         for data in loader:
             print(len(data))
-            print(data)
             data = to_device(device, *data)
             print(len(data))
-            print(data)
             l = model(*data)
             loss_step = (l * weights).sum()
             optim.zero_grad()
