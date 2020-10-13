@@ -53,10 +53,12 @@ class ZipLoader(object):
         max_arg = args.pop(max_idx)
         args = [cycle(arg) for arg in args]
         args.insert(max_idx, max_arg)
-        self.iterators = [iter(arg) for arg in args]
+        self.args = args
         self.len = len(max_arg)
+        self.iterators = None
 
     def __iter__(self):
+        self.iterators = [iter(arg) for arg in self.args]
         return self
 
     def __len__(self):
@@ -64,13 +66,13 @@ class ZipLoader(object):
 
     def __next__(self):
         sentinel = object()
-        result = []
+        ret = []
         for it in self.iterators:
             elem = next(it, None)
             if elem is None:
                 raise StopIteration()
-            result.append(elem)
-        return tuple(result)
+            ret.append(elem)
+        return tuple(ret)
 
 
 class Config(object):
