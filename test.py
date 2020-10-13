@@ -75,6 +75,7 @@ def train(model, optim, loader, device="cpu", weights=None, use_apex=False):
     with tqdm(total=len(loader)) as pbar:
         for data in loader:
             data = to_device(*data, device=device)
+            print(data)
             l = model(*data)
             loss_step = (l * weights).sum()
             optim.zero_grad()
