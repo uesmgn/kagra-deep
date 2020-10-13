@@ -74,6 +74,8 @@ def train(model, optim, loader, device, weights=None, use_apex=False):
     num_samples = 0
     with tqdm(total=len(loader)) as pbar:
         for data in loader:
+            print(len(data))
+            print(data)
             data = to_device(device, *data)
             print(len(data))
             print(data)
