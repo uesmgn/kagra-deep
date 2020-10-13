@@ -37,7 +37,7 @@ optim:
 dataset:
   name: hdf5
   params:
-    root: /Users/gen/workspace/github/GravitySpy/processed/dataset_small.h5
+    root: /content/dataset_small.h5
 
 sampler:
   name: balancer
