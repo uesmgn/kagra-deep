@@ -69,12 +69,6 @@ def to_device(device, *args):
 
 def train(model, optim, loader, device, weights=None, use_apex=False):
     model.train()
-    if isinstance(weights, abc.Sequence):
-        weights = torch.tensor(weights).to(device)
-    elif isinstance(weights, numbers.Number):
-        weights = float(weights)
-    else:
-        raise ValueError(f"Invalid weights: {weights}")
     loss = 0
     num_samples = 0
     with tqdm(total=len(loader)) as pbar:
@@ -111,7 +105,15 @@ def main(args):
         torch.backends.cudnn.benchmark = True
 
     num_epochs = args.num_epochs
+
     weights = args.weights
+    if isinstance(weights, abc.Sequence):
+        weights = torch.tensor(weights).to(device)
+    elif isinstance(weights, numbers.Number):
+        weights = float(weights)
+    else:
+        raise ValueError(f"Invalid weights: {weights}")
+
     net = cfg.get_net(args.net)
     model = cfg.get_model(args.model, net=net).to(device)
     optim = cfg.get_optim(args.optim, params=model.parameters())
