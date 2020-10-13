@@ -57,7 +57,6 @@ def init_config(args):
 def to_device(device, *args):
     ret = []
     for arg in args:
-        print(arg)
         if torch.is_tensor(arg):
             ret.append(arg.to(device, non_blocking=True))
         elif isinstance(arg, abc.Sequence):
@@ -74,9 +73,7 @@ def train(model, optim, loader, device, weights=None, use_apex=False):
     num_samples = 0
     with tqdm(total=len(loader)) as pbar:
         for data in loader:
-            print(len(data))
             data = to_device(device, *data)
-            print(len(data))
             l = model(*data)
             loss_step = (l * weights).sum()
             optim.zero_grad()
