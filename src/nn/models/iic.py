@@ -4,26 +4,33 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from ..layers import Module
+from ..utils import Module
 
-__all__ = [
-    'IIC'
-]
+__all__ = ["IIC"]
+
 
 class IIC(Module):
-    def __init__(self, net, num_classes=10, num_classes_over=100, num_heads=10):
+    def __init__(
+        self,
+        net,
+        num_classes=10,
+        num_classes_over=100,
+        num_heads=5,
+    ):
         super().__init__()
         # remove last fc layer
         self.encoder = nn.Sequential(*list(net.children())[:-1])
         self.num_heads = num_heads
-        self.clustering_heads = nn.ModuleList([
-            nn.Linear(net.fc_in, num_classes) for _ in range(num_heads)])
-        self.over_clustering_heads = nn.ModuleList([
-            nn.Linear(net.fc_in, num_classes_over) for _ in range(num_heads)])
+        self.clustering_heads = nn.ModuleList(
+            [nn.Linear(net.fc_in, num_classes) for _ in range(num_heads)]
+        )
+        self.over_clustering_heads = nn.ModuleList(
+            [nn.Linear(net.fc_in, num_classes_over) for _ in range(num_heads)]
+        )
         self.initialize_weights()
 
-    def initialize_headers_weights(self):
-        print('initialize headers weights...')
+    def initialize_step(self):
+        print("initialize headers weights...")
         for m in self.clustering_heads:
             nn.init.xavier_normal_(m.weight)
             nn.init.zeros_(m.bias)
@@ -31,53 +38,60 @@ class IIC(Module):
             nn.init.xavier_normal_(m.weight)
             nn.init.zeros_(m.bias)
 
-    def forward(self, x, head_index=None):
+    def forward(self, *args):
+        if len(args) == 3:
+            # unsupervised co-training
+            return self.__usl(*args)
+        elif len(args) == 6:
+            # semi-supervised co-training
+            return self.__ssl(*args)
+        else:
+            raise ValueError("args is invalid.")
+
+    def __usl(self, x, xt, _):
+        y, y_over = self.__forward(x)
+        yt, yt_over = self.__forward(xt)
+        mi = self.__mi_heads(y, yt)
+        mi_over = self.__mi_heads(y_over, yt_over)
+        return torch.cat([mi, mi_over])
+
+    def __sl(self, x, target):
+        y, _ = self.__forward(x)
+        return self.__ce_heads(y, target)
+
+    def __ssl(self, lx, lxt, lt, ux, uxt, _):
+        mi_labeled = self.__usl(lx, lxt, _)
+        supervised = self.__sl(lx, lt)
+        mi_unlabeled = self.__usl(ux, uxt, _)
+        return torch.cat([mi_labeled, supervised, mi_unlabeled])
+
+    def __forward(self, x):
         x_densed = self.encoder(x)
-        y_outputs = [F.softmax(head(x_densed), dim=-1) for head in self.clustering_heads]
-        y_over_outputs = [F.softmax(head(x_densed), dim=-1) for head in self.over_clustering_heads]
-        return torch.stack(y_outputs), torch.stack(y_over_outputs)
+        y_heads = [F.softmax(head(x_densed), dim=-1) for head in self.clustering_heads]
+        y = torch.stack(y_heads).squeeze()
+        y_over_heads = [F.softmax(head(x_densed), dim=-1) for head in self.over_clustering_heads]
+        y_over = torch.stack(y_over_heads).squeeze()
+        return y, y_over
 
-    def mutual_info(self, y, yt, head_dim=0):
-        # get loss function and best head index
+    def __mi(self, y, yt):
         eps = torch.finfo(y.dtype).eps
-        y, yt = y.squeeze(head_dim), yt.squeeze(head_dim)
+        _, k = y.size()
+        p = (y.unsqueeze(2) * yt.unsqueeze(1)).sum(dim=0)
+        p = ((p + p.t()) / 2) / p.sum()
+        p[(p < eps).data] = eps
+        pi = p.sum(dim=1).view(k, 1).expand(k, k)
+        pj = p.sum(dim=0).view(1, k).expand(k, k)
+        return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
 
-        def criterion(z, zt):
-            _, k = z.size()
-            p = (z.unsqueeze(2) * zt.unsqueeze(1)).sum(dim=0)
-            p = ((p + p.t()) / 2) / p.sum()
-            p[(p < eps).data] = eps
-            pi = p.sum(dim=1).view(k, 1).expand(k, k)
-            pj = p.sum(dim=0).view(1, k).expand(k, k)
-            return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
+    def __mi_heads(self, y, yt):
+        return (
+            torch.stack([self.__mi(y[i], yt[i]) for i in range(self.num_heads)]).sum().unsqueeze(0)
+        )
 
-        if y.ndim == yt.ndim == 3:
-            loss = []
-            for i in range(y.shape[head_dim]):
-                index = torch.LongTensor([i]).to(y.device)
-                yi = torch.index_select(y, head_dim, index).squeeze()
-                yti = torch.index_select(yt, head_dim, index).squeeze()
-                loss.append(criterion(yi, yti))
-            loss = torch.stack(loss)
-            return loss
-        elif y.ndim == yt.ndim == 2:
-            loss = criterion(y, yt)
-            return loss.unsqueeze(0)
-        else:
-            raise ValueError('ndim of y, yt must be 2 or 3.')
+    def __ce(self, y, target):
+        return F.cross_entropy(y, target)
 
-    def cross_entropy(self, y, target, head_dim=0):
-        if y.ndim == 3:
-            loss = []
-            for i in range(y.shape[head_dim]):
-                index = torch.LongTensor([i]).to(y.device)
-                yi = torch.index_select(y, head_dim, index).squeeze()
-                ce = F.cross_entropy(yi, target, weight=None, reduction='sum')
-                loss.append(ce)
-            loss = torch.stack(loss)
-            return loss
-        elif y.ndim == 2:
-            loss = F.cross_entropy(yi, target, weight=None, reduction='sum')
-            return loss.unsqueeze(0)
-        else:
-            raise ValueError('ndim of y, yt must be 2 or 3.')
+    def __ce_heads(self, y, target):
+        return (
+            torch.stack([self.__ce(y[i], target) for i in range(self.num_heads)]).sum().unsqueeze(0)
+        )

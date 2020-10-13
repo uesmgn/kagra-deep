@@ -1,13 +1,12 @@
 import torch
 import torch.nn as nn
-from ..layers import Module
 
 __all__ = [
     'ResNet', 'ResNet18', 'ResNet34', 'ResNet50',
 ]
 
 
-class ResNet(Module):
+class ResNet(nn.Module):
 
     def __init__(self, blocks, expansion=1, in_channels=3, num_classes=10):
         super().__init__()
@@ -27,7 +26,6 @@ class ResNet(Module):
         self.fc = nn.Sequential(
             nn.Linear(512 * expansion, num_classes)
         )
-        self.initialize_weights()
 
     def forward(self, x):
         x = self.head(x)

@@ -2,41 +2,41 @@ import os
 import h5py
 import torch
 from collections import abc, defaultdict
+from itertools import cycle
 from torch.utils import data
+import torchvision.transforms as tf
 import torchvision.transforms.functional as ttf
 import numpy as np
 from sklearn.model_selection import train_test_split
-import warnings
+import inspect
 import copy
+import warnings
 
-__class__ = [
-    'HDF5'
-]
+__class__ = ["HDF5", "Co"]
+
 
 class HDF5(data.Dataset):
-    def __init__(self, root, transform=None, target_transform=None, target_tag="target", shape=None):
+    def __init__(self, root, transform, target_transform, target_tag="target", shape=None):
         super().__init__()
-        self.root = os.path.abspath(root)
+        self.__root = os.path.abspath(root)
+        if not os.path.isfile(self.__root):
+            raise FileNotFoundError(f"No such file or directory: '{self.__root}'")
+
         self.transform = transform
         self.__target_transform = target_transform
-        self.__target_validate = lambda x: True
-        self.target_tag = target_tag
-        self.shape = shape
+        self.__target_tag = target_tag
+        self.__shape = shape
 
-        self.fp = None
-
-        self.cache = None
-        print("Initializing dataset cache...")
+        self.__cache = None
         try:
-            _ = self.init_cache()
-        except:
-            raise RuntimeError(f"Failed to load items from {self.root}.")
-        print(f"Successfully loaded {len(self)} items in cache from {self.root}.")
+            _ = self.__init_cache()
+        except Exception as err:
+            raise err
 
     @property
     def targets(self):
         tmp = []
-        for _, target in self.cache:
+        for _, target in self.__cache:
             if self.__target_transform is not None:
                 target = self.__target_transform(target)
             tmp.append(target)
@@ -46,7 +46,7 @@ class HDF5(data.Dataset):
     def counter(self):
         cnt = defaultdict(lambda: 0)
         for i in range(len(self)):
-            _, target = self.cache[i]
+            _, target = self.__cache[i]
             if self.__target_transform is not None:
                 target = self.__target_transform(target)
             cnt[target] += 1
@@ -60,31 +60,37 @@ class HDF5(data.Dataset):
     @target_transform.setter
     def target_transform(self, callback):
         self.__target_transform = callback
-        self.__target_validate = callback
-        self.init_cache()
-
-    def get_target(self, i):
-        _, target = self.cache[i]
-        if self.__target_transform is not None:
-            target = self.__target_transform(target)
-        return target
+        self.__init_cache()
 
     def split(self, train_size=0.7, stratify=None):
         idx = list(range(len(self)))
-        train_idx, test_idx = train_test_split(idx,
-                                               train_size=train_size,
-                                               random_state=123,
-                                               stratify=stratify)
-        train_set = copy.copy(self).init_cache(train_idx)
-        test_idx = copy.copy(self).init_cache(test_idx)
-        return train_set, test_idx
+        train_idx, test_idx = train_test_split(
+            idx, train_size=train_size, random_state=123, stratify=stratify
+        )
+        train_set = copy.copy(self).__init_cache(train_idx)
+        test_set = copy.copy(self).__init_cache(test_idx)
+        return train_set, test_set
 
-    def init_cache(self, indices=None):
-        self.cache = []
-        with self.__fp() as fp:
-            self.cache = self.__children(fp)
+    def __getitem__(self, i):
+        ref, target = self.__cache[i]
+        with self.__open(self.__root) as fp:
+            item = fp[ref]
+            x = self.__load(item)
+        if self.transform is not None:
+            x = self.transform(x)
+        if self.__target_transform is not None:
+            target = self.__target_transform(target)
+        return x, target
+
+    def __len__(self):
+        return len(self.__cache)
+
+    def __init_cache(self, indices=None):
+        self.__cache = []
+        with self.__open(self.__root) as fp:
+            self.__cache = self.__children(fp)
         if isinstance(indices, list):
-            self.cache = [self.cache[i] for i in indices]
+            self.__cache = [self.__cache[i] for i in indices]
         return self
 
     def __children(self, d):
@@ -93,36 +99,45 @@ class HDF5(data.Dataset):
             if isinstance(v, abc.MutableMapping):
                 items.extend(self.__children(v))
             else:
-                target = v.attrs['target']
-                val = self.__target_validate(target)
-                if val is not None:
-                    if not isinstance(val, (str, int)):
-                        warnings.warn('target should be int or str.')
+                target = v.attrs.get(self.__target_tag)
+                if target is not None:
+                    tmp = target
+                    if self.__target_transform is not None:
+                        tmp = self.__target_transform(tmp)
+                    if tmp is None:
+                        continue
+                    if not isinstance(tmp, (str, int)):
+                        warnings.warn("target data type must be int or str.")
                     items.append((v.ref, target))
         return items
 
-    def __fp(self):
-        return h5py.File(self.root, 'r', libver='latest')
+    def __open(self, path):
+        return h5py.File(path, "r", libver="latest")
 
-    def __getitem__(self, i):
-        ref, target = self.cache[i]
-        with self.__fp() as fp:
-            item = fp[ref]
-            x = self.__load_data(item)
-        if self.transform is not None:
-            x = self.transform(x)
-        if self.__target_transform is not None:
-            target = self.__target_transform(target)
-        return x, target
-
-    def __len__(self):
-        return len(self.cache)
-
-    def __load_data(self, item):
-        if self.shape is not None:
-            x = np.empty(self.shape, dtype=np.uint8)
+    def __load(self, item):
+        if self.__shape is not None:
+            x = np.empty(self.__shape, dtype=np.uint8)
             item.read_direct(x)
         else:
             x = np.array(item[:])
         x = ttf.to_tensor(x.transpose(1, 2, 0))
         return x
+
+
+class Co(data.Dataset):
+    def __init__(self, dataset, augment_transform=None):
+        super().__init__()
+        assert hasattr(dataset, "transform")
+        transform = dataset.transform or (lambda x: x)
+        augment_transform = augment_transform or transform
+        dataset.transform = tf.Lambda(lambda x: (transform(x), augment_transform(x)))
+        self.dataset = dataset
+        self.targets = dataset.targets
+        self.counter = dataset.counter
+
+    def __getitem__(self, i):
+        (x, xt), target = self.dataset[i]
+        return x, xt, target
+
+    def __len__(self):
+        return len(self.dataset)

@@ -5,6 +5,7 @@ import PIL
 import random
 import numbers
 import types
+from collections import abc
 
 
 def _get_image_size(x):
@@ -15,6 +16,7 @@ def _get_image_size(x):
     else:
         raise TypeError("Unexpected type {}".format(type(x)))
 
+
 def _to_pil_image(x):
     if ttf._is_pil_image(x):
         return x
@@ -22,6 +24,7 @@ def _to_pil_image(x):
         return ttf.to_pil_image(x)
     else:
         raise TypeError("Unexpected type {} or dimention".format(type(x)))
+
 
 def _to_tensor(x):
     if ttf._is_pil_image(x):
@@ -31,12 +34,19 @@ def _to_tensor(x):
     else:
         raise TypeError("Unexpected type {}".format(type(x)))
 
+
 def _lower(x):
     if isinstance(x, str):
         return x.lower()
     return x
 
-class CenterMaximizedResizeCrop:
+
+class Compose(tt.Compose):
+    def __init__(self, transforms):
+        super().__init__(transforms)
+
+
+class CenterMaximizedResizeCrop(object):
     def __init__(self, target_size):
         if isinstance(target_size, numbers.Number):
             self.target_size = (int(target_size), int(target_size))
@@ -54,7 +64,8 @@ class CenterMaximizedResizeCrop:
         x = ttf.to_tensor(x)
         return x
 
-class RandomMaximizedResizeCrop:
+
+class RandomMaximizedResizeCrop(object):
     def __init__(self, target_size):
         if isinstance(target_size, numbers.Number):
             self.target_size = (int(target_size), int(target_size))
@@ -83,28 +94,33 @@ class RandomMaximizedResizeCrop:
         x = ttf.to_tensor(x)
         return x
 
-class SelectIndices:
+
+class SelectIndices(object):
     def __init__(self, indices, dim=0):
-        self.select_indices = tt.Lambda(
-            lambda x: x.index_select(dim, torch.LongTensor(indices))
-        )
+        assert isinstance(indices, abc.Sequence)
+        self.select_indices = tt.Lambda(lambda x: x.index_select(dim, torch.LongTensor(indices)))
 
     def __call__(self, x):
         x = _to_tensor(x)
         return self.select_indices(x)
 
 
-class ToIndex:
+class ToIndex(object):
     def __init__(self, targets, alt=None):
         assert isinstance(alt, (int, type(None)))
-        targets_ = []
+        tmp = []
         for target in targets:
             if not isinstance(target, (int, str)):
-                raise NotImplementedError('target must be str or int type.')
+                raise NotImplementedError("target must be str or int type.")
             target = _lower(target)
-            targets_.append(target)
-        self.to_index = lambda x: targets_.index(x) if x in targets_ else alt
+            tmp.append(target)
+        self.indices = list(range(len(targets)))
+        self.to_index = lambda x: tmp.index(x) if x in tmp else alt
 
     def __call__(self, x):
         x = _lower(x)
-        return self.to_index(x)
+        idx = self.to_index(x)
+        try:
+            return self.indices[idx]
+        except:
+            return None

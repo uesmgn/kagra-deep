@@ -1,30 +1,49 @@
 import math
+import inspect
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 import matplotlib.pyplot as plt
 import torchvision
+from abc import ABCMeta, abstractmethod
 
 __all__ = [
-    'Module', 'Reshape', 'Activation', 'Gaussian',
+    "instantiate",
+    "Module",
+    "Reshape",
+    "Activation",
+    "Gaussian",
 ]
 
-class Module(nn.Module):
+
+def instantiate(self, d, name):
+    assert isinstance(d, types.ModuleType)
+    keys = []
+    for key, obj in inspect.getmembers(d):
+        if inspect.isclass(obj) and d.__name__ in obj.__module__:
+            keys.append(key)
+    for key in keys:
+        if key.lower() == name.lower():
+            return vars(d)[key]
+    raise ValueError("Available class names are {}, but input is {}.".format(keys, name))
+
+
+class Module(nn.Module, metaclass=ABCMeta):
     def __init__(self):
         super().__init__()
 
-    def load_part_of_state_dict(self, state_dict):
+    def load_state_dict_part(self, state_dict):
         own_state = self.state_dict()
         for name, param in state_dict.items():
             if name not in own_state:
                 continue
             own_state[name].copy_(param)
 
-    def initialize_weights(self, mode='fan_in'):
+    def initialize_weights(self, mode="fan_in"):
         for m in self.modules():
             if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
-                nn.init.kaiming_normal_(m.weight, mode=mode, nonlinearity='relu')
+                nn.init.kaiming_normal_(m.weight, mode=mode, nonlinearity="relu")
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
             elif isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d):
@@ -34,14 +53,36 @@ class Module(nn.Module):
                 nn.init.xavier_normal_(m.weight)
                 nn.init.zeros_(m.bias)
 
+    @abstractmethod
+    def initialize_step(self):
+        pass
+
+    @abstractmethod
+    def forward(self, *args):
+        pass
+
+
 class Conv2dModule(nn.Module):
-    def __init__(self, in_channels, out_channels, stride=1,
-                 batchnorm=True, activation=nn.ReLU(inplace=True)):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        stride=1,
+        batchnorm=True,
+        activation=nn.ReLU(inplace=True),
+    ):
         super().__init__()
         layers = []
-        layers.append(nn.Conv2d(in_channels, out_channels,
-                                kernel_size=stride+2, stride=stride,
-                                padding=1, bias=False))
+        layers.append(
+            nn.Conv2d(
+                in_channels,
+                out_channels,
+                kernel_size=stride + 2,
+                stride=stride,
+                padding=1,
+                bias=False,
+            )
+        )
         if batchnorm:
             layers.append(nn.BatchNorm2d(out_channels))
         if activation is not None:
@@ -50,15 +91,29 @@ class Conv2dModule(nn.Module):
 
     def forward(self, x):
         return self.layers(x)
+
 
 class ConvTranspose2dModule(nn.Module):
-    def __init__(self, in_channels, out_channels, stride=1,
-                 batchnorm=True, activation=nn.ReLU(inplace=True)):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        stride=1,
+        batchnorm=True,
+        activation=nn.ReLU(inplace=True),
+    ):
         super().__init__()
         layers = []
-        layers.append(nn.ConvTranspose2d(in_channels, out_channels,
-                                         kernel_size=stride+2, stride=stride,
-                                         padding=1, bias=False))
+        layers.append(
+            nn.ConvTranspose2d(
+                in_channels,
+                out_channels,
+                kernel_size=stride + 2,
+                stride=stride,
+                padding=1,
+                bias=False,
+            )
+        )
         if batchnorm:
             layers.append(nn.BatchNorm2d(out_channels))
         if activation is not None:
@@ -67,6 +122,7 @@ class ConvTranspose2dModule(nn.Module):
 
     def forward(self, x):
         return self.layers(x)
+
 
 class Reshape(nn.Module):
     def __init__(self, outer_shape):
@@ -76,21 +132,23 @@ class Reshape(nn.Module):
     def forward(self, x):
         return x.view(x.size(0), *self.outer_shape)
 
+
 class Activation(nn.Module):
     def __init__(self, activation, **kwargs):
         super().__init__()
         activation = activation.lower()
-        if activation == 'relu':
+        if activation == "relu":
             self.activation = nn.ReLU(**kwargs)
-        elif activation == 'sigmoid':
+        elif activation == "sigmoid":
             self.activation = nn.Sigmoid(**kwargs)
-        elif activation == 'softmax':
+        elif activation == "softmax":
             self.activation = nn.Softmax(**kwargs)
         else:
-            raise ValueError(f'activation {activation} is invalid.')
+            raise ValueError(f"activation {activation} is invalid.")
 
     def forward(self, x):
         return self.activation(x)
+
 
 class Gaussian(nn.Module):
     def __init__(self, in_dim, out_dim):

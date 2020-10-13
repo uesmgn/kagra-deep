@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from ..layers import Module
 
 __all__ = [
     'VGG', 'VGG11', 'VGG13', 'VGG16', 'VGG19',
@@ -52,7 +51,7 @@ __all__ = [
 #  -----------------------------------------------
 
 
-class VGG(Module):
+class VGG(nn.Module):
 
     def __init__(self, features, num_classes=10):
         super().__init__()
