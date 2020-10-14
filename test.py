@@ -179,7 +179,7 @@ def main(args):
     for epoch in range(num_epochs):
         logger.info(f"--- training at epoch {epoch} ---")
         train_loss = train(model, optim, train_loader, device, weights=weights, use_apex=use_apex)
-        log_loss(train_loss, epoch, prefix="train_loss")
+        log_loss(epoch, train_loss, prefix="train_loss")
         if epoch % args.eval_step == 0:
             logger.info(f"--- evaluating at epoch {epoch} ---")
             test_loss, params = eval(model, test_loader, device)
