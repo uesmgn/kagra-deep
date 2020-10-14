@@ -111,7 +111,7 @@ def log_loss(epoch, loss, prefix=""):
         elif loss.ndim == 1:
             losses = loss.numpy()
             total = losses.sum()
-            for i, l in enumerate(loss):
+            for i, l in enumerate(losses):
                 key = "_".join(map(lambda x: str(x), filter(bool, [prefix, i])))
                 d[key] = l
         else:
@@ -133,13 +133,13 @@ def log_params(epoch, params, cfg, prefix=""):
             func = cfg[k]
             if isinstance(func, str):
                 obj = getattr(plt, func)(v)
-                keys = list(filter(lambda x: x, [prefix, k, func]))
-                wandb.log({"_".join(keys): obj}, step=epoch)
+                key = "_".join(map(lambda x: str(x), filter(bool, [prefix, k, func])))
+                wandb.log({key: obj}, step=epoch)
             elif isinstance(func, abc.Sequence):
                 for f in func:
                     obj = getattr(plt, f)(v)
-                    keys = list(filter(lambda x: x, [prefix, k, f]))
-                    wandb.log({"_".join(keys): obj}, step=epoch)
+                    key = "_".join(map(lambda x: str(x), filter(bool, [prefix, k, f])))
+                    wandb.log({key: obj}, step=epoch)
             else:
                 raise ValueError("Invalid arguments.")
 
