@@ -5,6 +5,9 @@ import torch
 from collections import abc
 import numbers
 from tqdm import tqdm
+import numpy as np
+
+np.set_printoptions(threshold=np.inf)
 
 try:
     from apex import amp
