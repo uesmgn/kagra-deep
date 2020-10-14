@@ -128,13 +128,15 @@ def log_params(params, epoch, cfg):
     for k, v in params.items():
         if k in cfg:
             func = cfg[k]
-            if isinstance(func, abc.Sequence):
+            if isinstance(func, str):
+                obj = getattr(plt, func)(v)
+                wandb.log({f"{k}_{func}": obj}, step=epoch)
+            elif isinstance(func, abc.Sequence):
                 for f in func:
                     obj = getattr(plt, f)(v)
                     wandb.log({f"{k}_{f}": obj}, step=epoch)
             else:
-                obj = getattr(plt, func)(v)
-                wandb.log({f"{k}_{func}": obj}, step=epoch)
+                raise ValueError("Invalid arguments.")
 
 
 @hydra.main(config_path="config", config_name="test")
