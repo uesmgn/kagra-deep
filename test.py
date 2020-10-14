@@ -90,15 +90,55 @@ def train(model, optim, loader, device, weights=None, use_apex=False):
     return loss
 
 
+class TensorDict(dict):
+    def __init__(self):
+        pass
+
+    def stack(self, d):
+        for k, v in p.items():
+            assert torch.is_tensor(v)
+            if loss.is_cuda:
+                loss = loss.cpu()
+            if k not in self:
+                self[k] = v
+            else:
+                new = torch.cat([self[k], v])
+                self[k] = new
+
+
+def test(model, loader, device):
+    model.eval()
+    params = TensorDict()
+    num_samples = 0
+    with torch.no_grad():
+        with tqdm(total=len(loader)) as pbar:
+            for data in loader:
+                data = to_device(device, *data)
+                l, p = model(*data)
+                params.stack(p)
+                loss += l
+                num_samples += data[0].shape[0]
+                pbar.update(1)
+    loss /= num_samples
+    return loss, dict(params)
+
+
 def log_loss(loss, epoch, prefix="loss"):
     d = {}
     if torch.is_tensor(loss):
+        loss = loss.squeeze()
         if loss.is_cuda:
             loss = loss.cpu()
-        loss = loss.numpy()
-        total = loss.sum()
-        d = {f"{prefix}_{i}": l for i, l in enumerate(loss)}
-        d[f"{prefix}_total"] = total
+        if loss.ndim == 0:
+            loss = loss.item()
+            d = {prefix: loss}
+        elif loss.ndim == 1:
+            loss = loss.numpy()
+            total = loss.sum()
+            d = {f"{prefix}_{i}": l for i, l in enumerate(loss)}
+            d[f"{prefix}_total"] = total
+        else:
+            raise ValueError("Invalid arguments.")
     elif isinstance(loss, numbers.Number):
         d = {prefix: loss}
     else:
@@ -143,6 +183,8 @@ def main(args):
 
         train_loss = train(model, optim, train_loader, device, weights=weights, use_apex=use_apex)
         log_loss(train_loss, epoch, prefix="train_loss")
+        test_loss, params = test(model, test_loader, device)
+        log_loss(test_loss, epoch, prefix="test_loss")
 
 
 if __name__ == "__main__":
