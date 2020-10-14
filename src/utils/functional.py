@@ -32,15 +32,18 @@ class TensorDict(dict):
         pass
 
     def stack(self, d):
-        for k, v in d.items():
-            assert torch.is_tensor(v)
-            if v.is_cuda:
-                v = v.cpu()
-            if k not in self:
-                self[k] = v
-            else:
-                new = torch.cat([self[k], v])
-                self[k] = new
+        if isinstance(d, abc.MutableMapping):
+            for k, v in d.items():
+                assert torch.is_tensor(v)
+                if v.is_cuda:
+                    v = v.cpu()
+                if k not in self:
+                    self[k] = v
+                else:
+                    new = torch.cat([self[k], v])
+                    self[k] = new
+        else:
+            raise ValueError("Invalid arguments.")
 
 
 def tensordict():
