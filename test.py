@@ -95,7 +95,7 @@ class TensorDict(dict):
         pass
 
     def stack(self, d):
-        for k, v in p.items():
+        for k, v in d.items():
             assert torch.is_tensor(v)
             if loss.is_cuda:
                 loss = loss.cpu()
