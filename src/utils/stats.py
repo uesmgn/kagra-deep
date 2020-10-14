@@ -29,7 +29,6 @@ class Plotter(object):
             y = torch.argmax(y, -1)
             y = y.numpy()
         elif y.ndim == 3:
-            print(y.shape)
             y = y[..., 0]
             print("select top head.")
             ylabels = list(range(y.shape[-1]))
@@ -39,6 +38,10 @@ class Plotter(object):
             raise ValueError("Invalid input.")
         assert len(self.target) == len(y)
 
+        print(xlabels)
+        print(ylabels)
+        print(self.target)
+        print(y)
         cm = np.zeros((len(xlabels), len(ylabels)), dtype=np.int)
         for i, j in zip(self.target, y):
             cm[xlabels.index(i), ylabels.index(j)] += 1
