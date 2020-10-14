@@ -109,6 +109,7 @@ class TensorDict(dict):
 def test(model, loader, device):
     model.eval()
     params = TensorDict()
+    loss = 0
     num_samples = 0
     with torch.no_grad():
         with tqdm(total=len(loader)) as pbar:
@@ -180,9 +181,9 @@ def main(args):
 
     for epoch in range(num_epochs):
         logger.info(f"--- training at epoch {epoch} ---")
-
         train_loss = train(model, optim, train_loader, device, weights=weights, use_apex=use_apex)
         log_loss(train_loss, epoch, prefix="train_loss")
+        logger.info(f"--- testing at epoch {epoch} ---")
         test_loss, params = test(model, test_loader, device)
         log_loss(test_loss, epoch, prefix="test_loss")
 
