@@ -99,30 +99,33 @@ def eval(model, loader, device):
     return loss, params
 
 
-def log_loss(loss, epoch, prefix="loss"):
+def log_loss(epoch, loss, prefix=""):
     d = {}
+    total = 0
     if torch.is_tensor(loss):
         loss = loss.squeeze()
         if loss.is_cuda:
             loss = loss.cpu()
         if loss.ndim == 0:
-            loss = loss.item()
-            d = {prefix: loss}
+            total = loss.item()
         elif loss.ndim == 1:
-            loss = loss.numpy()
-            total = loss.sum()
-            d = {f"{prefix}_{i}": l for i, l in enumerate(loss)}
-            d[f"{prefix}_total"] = total
+            losses = loss.numpy()
+            total = losses.sum()
+            for i, l in enumerate(loss):
+                key = "_".join(map(lambda x: str(x), filter(bool, [prefix, i])))
+                d[key] = l
         else:
             raise ValueError("Invalid arguments.")
     elif isinstance(loss, numbers.Number):
-        d = {prefix: loss}
+        total = loss
     else:
         raise ValueError("Invalid arguments.")
+    key = "_".join(filter(bool, [prefix, "total"]))
+    d[key] = total
     wandb.log(d, step=epoch)
 
 
-def log_params(params, epoch, cfg):
+def log_params(epoch, params, cfg, prefix=""):
     target = params.pop("target")
     plt = stats.plotter(target)
     for k, v in params.items():
@@ -130,11 +133,13 @@ def log_params(params, epoch, cfg):
             func = cfg[k]
             if isinstance(func, str):
                 obj = getattr(plt, func)(v)
-                wandb.log({f"{k}_{func}": obj}, step=epoch)
+                keys = list(filter(lambda x: x, [prefix, k, func]))
+                wandb.log({"_".join(keys): obj}, step=epoch)
             elif isinstance(func, abc.Sequence):
                 for f in func:
                     obj = getattr(plt, f)(v)
-                    wandb.log({f"{k}_{f}": obj}, step=epoch)
+                    keys = list(filter(lambda x: x, [prefix, k, f]))
+                    wandb.log({"_".join(keys): obj}, step=epoch)
             else:
                 raise ValueError("Invalid arguments.")
 
@@ -178,8 +183,8 @@ def main(args):
         if epoch % args.eval_step == 0:
             logger.info(f"--- evaluating at epoch {epoch} ---")
             test_loss, params = eval(model, test_loader, device)
-            log_loss(test_loss, epoch, prefix="test_loss")
-            log_params(params, epoch, args.log)
+            log_loss(epoch, test_loss, prefix="test_loss")
+            log_params(epoch, params, args.log)
 
 
 if __name__ == "__main__":
