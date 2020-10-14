@@ -143,11 +143,11 @@ def log_params(epoch, params, funcs, prefix=""):
             obj = None
 
             if f == "confusion_matrix":
-                args = plt.confusion_matrix(param)
+                xlabels, ylabels, matrix = plt.confusion_matrix(param)
                 try:
-                    obj = wandb.plots.HeatMap(*args, show_text=True)
+                    obj = wandb.plots.HeatMap(xlabels, ylabels, matrix, show_text=True)
                 except:
-                    print(name, args)
+                    print(name, matrix)
 
             if obj is not None:
                 try:
