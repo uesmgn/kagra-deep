@@ -58,7 +58,7 @@ class IIC(Module):
     def __test(self, x, target):
         y, y_over = self.__forward(x)
         ce = self.__ce_heads(y, target, reduction="none")
-        return ce, {"y": y, "y_over": y_over}
+        return ce, {"y": y, "y_over": y_over, "target": target}
 
     def __usl(self, x, xt, _):
         y, y_over = self.__forward(x)
