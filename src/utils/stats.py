@@ -29,6 +29,7 @@ class Plotter(object):
             y = torch.argmax(y, -1)
             y = y.numpy()
         elif y.ndim == 3:
+            print(y.shape)
             y = y[..., 0]
             print("select top head.")
             ylabels = list(range(y.shape[-1]))
@@ -39,7 +40,7 @@ class Plotter(object):
         assert len(self.target) == len(y)
 
         cm = np.zeros((len(xlabels), len(ylabels)), dtype=np.int)
-        for i, j in zip(y, self.target):
+        for i, j in zip(self.target, y):
             cm[xlabels.index(i), ylabels.index(j)] += 1
         return wandb.plots.HeatMap(xlabels, ylabels, cm, show_text=True)
 
