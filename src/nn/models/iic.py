@@ -57,7 +57,7 @@ class IIC(Module):
 
     def __test(self, x, target):
         y, y_over = self.__forward(x)
-        ce = self.__ce_heads(y, target)
+        ce = self.__ce_heads(y, target, reduction="none")
         return ce, {"y": y, "y_over": y_over}
 
     def __usl(self, x, xt, _):
@@ -95,19 +95,19 @@ class IIC(Module):
         pj = p.sum(dim=0).view(1, k).expand(k, k)
         return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
 
-    def __mi_heads(self, y, yt):
-        return (
-            torch.stack([self.__mi(y[..., i], yt[..., i]) for i in range(self.num_heads)])
-            .sum()
-            .unsqueeze(0)
-        )
+    def __mi_heads(self, y, yt, reduction="sum"):
+        loss = torch.stack([self.__mi(y[..., i], yt[..., i]) for i in range(self.num_heads)])
+        if reduction == "sum":
+            return loss.sum().unsqueeze(0)
+        elif reduction == "none":
+            return loss.unsqueeze(0)
 
     def __ce(self, y, target):
         return F.cross_entropy(y, target)
 
-    def __ce_heads(self, y, target):
-        return (
-            torch.stack([self.__ce(y[..., i], target) for i in range(self.num_heads)])
-            .sum()
-            .unsqueeze(0)
-        )
+    def __ce_heads(self, y, target, reduction="sum"):
+        loss = torch.stack([self.__ce(y[..., i], target) for i in range(self.num_heads)])
+        if reduction == "sum":
+            return loss.sum().unsqueeze(0)
+        elif reduction == "none":
+            return loss.unsqueeze(0)
