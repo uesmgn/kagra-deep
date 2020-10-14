@@ -25,23 +25,17 @@ class Plotter(object):
             y = y.numpy()
             ylabels = list(np.unique(y))
         elif y.ndim == 2:
-            ylabels = list(range(y.shape[-1]))
             y = torch.argmax(y, -1)
             y = y.numpy()
         elif y.ndim == 3:
             y = y[..., 0]
             print("select top head.")
-            ylabels = list(range(y.shape[-1]))
             y = torch.argmax(y, -1)
             y = y.numpy()
         else:
             raise ValueError("Invalid input.")
         assert len(self.target) == len(y)
-
-        print(xlabels)
-        print(ylabels)
-        print(self.target)
-        print(y)
+        ylabels = list(np.unique(y))
         cm = np.zeros((len(xlabels), len(ylabels)), dtype=np.int)
         for i, j in zip(self.target, y):
             cm[xlabels.index(i), ylabels.index(j)] += 1
