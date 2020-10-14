@@ -15,6 +15,7 @@ except ImportError:
 
 from src import config
 from src.utils import transforms as tf
+from src.utils import stats
 from src.utils.functional import to_device, tensordict
 from src.data import samplers
 
@@ -80,7 +81,7 @@ def train(model, optim, loader, device, weights=None, use_apex=False):
     return loss
 
 
-def test(model, loader, device):
+def eval(model, loader, device):
     model.eval()
     params = tensordict()
     loss = 0
@@ -95,7 +96,7 @@ def test(model, loader, device):
                 num_samples += data[0].shape[0]
                 pbar.update(1)
     loss /= num_samples
-    return loss, dict(params)
+    return loss, params
 
 
 def log_loss(loss, epoch, prefix="loss"):
@@ -119,6 +120,21 @@ def log_loss(loss, epoch, prefix="loss"):
     else:
         raise ValueError("Invalid arguments.")
     wandb.log(d, step=epoch)
+
+
+def log_params(params, epoch, cfg):
+    target = params.pop("target")
+    plt = stats.plotter(targets)
+    for k, v in params.items():
+        if k in cfg:
+            func = cfg[k]
+            if isinstance(func, abc.Sequence):
+                for f in func:
+                    obj = getattr(plt, f)(v)
+                    wandb.log({f"{k}_{f}": obj}, step=epoch)
+            else:
+                obj = getattr(plt, func)(v)
+                wandb.log({f"{k}_{func}": obj}, step=epoch)
 
 
 @hydra.main(config_path="config", config_name="test")
@@ -157,9 +173,11 @@ def main(args):
         logger.info(f"--- training at epoch {epoch} ---")
         train_loss = train(model, optim, train_loader, device, weights=weights, use_apex=use_apex)
         log_loss(train_loss, epoch, prefix="train_loss")
-        logger.info(f"--- testing at epoch {epoch} ---")
-        test_loss, params = test(model, test_loader, device)
-        log_loss(test_loss, epoch, prefix="test_loss")
+        if epoch % args.eval_step == 0:
+            logger.info(f"--- evaluating at epoch {epoch} ---")
+            test_loss, params = eval(model, test_loader, device)
+            log_loss(test_loss, epoch, prefix="test_loss")
+            log_params(params, epoch, args.log)
 
 
 if __name__ == "__main__":
