@@ -22,27 +22,24 @@ class Plotter(object):
             y = y.cpu()
 
         if y.ndim == 1:
-            pass
+            ylabels = list(np.unique(y))
         elif y.ndim == 2:
+            ylabels = list(range(y.shape[-1]))
             y = torch.argmax(y, -1)
         elif y.ndim == 3:
             y = y[..., 0]
+            ylabels = list(range(y.shape[-1]))
             y = torch.argmax(y, -1)
         else:
             raise ValueError("Invalid input.")
         y = y.numpy()
-        ylabels = list(np.unique(y))
 
-        cm = np.zeros((len(xlabels), len(ylabels)), dtype=np.int)
+        matrix = np.zeros((len(xlabels), len(ylabels)), dtype=np.int)
 
         for i, j in zip(self.target, y):
-            cm[xlabels.index(i), ylabels.index(j)] += 1
+            matrix[xlabels.index(i), ylabels.index(j)] += 1
 
-        try:
-            obj = wandb.plots.HeatMap(xlabels, ylabels, cm, show_text=True)
-            return obj
-        except:
-            return None
+        return xlabels, ylabels, matrix
 
 
 def plotter(target):
