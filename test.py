@@ -124,7 +124,7 @@ def log_loss(loss, epoch, prefix="loss"):
 
 def log_params(params, epoch, cfg):
     target = params.pop("target")
-    plt = stats.plotter(targets)
+    plt = stats.plotter(target)
     for k, v in params.items():
         if k in cfg:
             func = cfg[k]
