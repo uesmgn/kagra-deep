@@ -57,8 +57,6 @@ class IIC(Module):
 
     def __test(self, x, target):
         y, y_over = self.__forward(x)
-        print(y.shape)
-        print(y_over.shape)
         ce = self.__ce_heads(y, target)
         return ce, {"y": y, "y_over": y_over}
 
