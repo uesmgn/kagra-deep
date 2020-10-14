@@ -132,14 +132,13 @@ def log_params(epoch, params, cfg, prefix=""):
         if k in cfg:
             func = cfg[k]
             if isinstance(func, str):
-                obj = getattr(plt, func)(v)
                 key = "_".join(map(lambda x: str(x), filter(bool, [prefix, k, func])))
-                wandb.log({key: obj}, step=epoch)
-            elif isinstance(func, abc.Sequence):
-                for f in func:
-                    obj = getattr(plt, f)(v)
-                    key = "_".join(map(lambda x: str(x), filter(bool, [prefix, k, f])))
-                    wandb.log({key: obj}, step=epoch)
+                if func == "confusion_matrix":
+                    args = plt.confusion_matrix(v)
+                    wandb.log({key: wandb.plots.HeatMap(*args, show_text=True)}, step=epoch)
+                else:
+                    # add other configulation
+                    pass
             else:
                 raise ValueError("Invalid arguments.")
 
