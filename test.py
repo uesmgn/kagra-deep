@@ -13,6 +13,12 @@ try:
 except ImportError:
     use_apex = False
 
+from src import config
+from src.utils import transforms as tf
+from src.utils.functional import to_device, tensordict
+from src.data import samplers
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -22,10 +28,6 @@ def wandb_init(args):
 
 
 def config_init(args):
-    from src import config
-    from src.utils import transforms as tf
-    from src.data import samplers
-
     transform = tf.Compose(
         [
             tf.SelectIndices(args.use_channels, 0),
@@ -55,18 +57,6 @@ def config_init(args):
     return config.Config(**params)
 
 
-def to_device(device, *args):
-    ret = []
-    for arg in args:
-        if torch.is_tensor(arg):
-            ret.append(arg.to(device, non_blocking=True))
-        elif isinstance(arg, abc.Sequence):
-            ret.extend(to_device(device, *arg))
-        else:
-            raise ValueError(f"Input is invalid argument type: {type(arg)}.")
-    return tuple(ret)
-
-
 def train(model, optim, loader, device, weights=None, use_apex=False):
     model.train()
     loss = 0
@@ -90,25 +80,9 @@ def train(model, optim, loader, device, weights=None, use_apex=False):
     return loss
 
 
-class TensorDict(dict):
-    def __init__(self):
-        pass
-
-    def stack(self, d):
-        for k, v in d.items():
-            assert torch.is_tensor(v)
-            if v.is_cuda:
-                v = v.cpu()
-            if k not in self:
-                self[k] = v
-            else:
-                new = torch.cat([self[k], v])
-                self[k] = new
-
-
 def test(model, loader, device):
     model.eval()
-    params = TensorDict()
+    params = tensordict()
     loss = 0
     num_samples = 0
     with torch.no_grad():
