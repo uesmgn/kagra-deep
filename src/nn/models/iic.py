@@ -39,14 +39,28 @@ class IIC(Module):
             nn.init.zeros_(m.bias)
 
     def forward(self, *args):
-        if len(args) == 3:
-            # unsupervised co-training
-            return self.__usl(*args)
-        elif len(args) == 6:
-            # semi-supervised co-training
-            return self.__ssl(*args)
+        if self.training:
+            if len(args) == 3:
+                # unsupervised co-training
+                return self.__usl(*args)
+            elif len(args) == 6:
+                # semi-supervised co-training
+                return self.__ssl(*args)
+            else:
+                raise ValueError("args is invalid.")
         else:
-            raise ValueError("args is invalid.")
+            if len(args) == 2:
+                # unsupervised co-training
+                return self.__test(*args)
+            else:
+                raise ValueError("args is invalid.")
+
+    def __test(self, x, target):
+        y, y_over = self.__forward(x)
+        print(y.shape)
+        print(y_over.shape)
+        ce = self.__ce_heads(y, target)
+        return ce, {"y": y, "y_over": y_over}
 
     def __usl(self, x, xt, _):
         y, y_over = self.__forward(x)
