@@ -82,9 +82,9 @@ class IIC(Module):
     def __forward(self, x):
         x_densed = self.encoder(x)
         y_heads = [F.softmax(head(x_densed), dim=-1) for head in self.clustering_heads]
-        y = torch.stack(y_heads).squeeze()
+        y = torch.stack(y_heads, -1)
         y_over_heads = [F.softmax(head(x_densed), dim=-1) for head in self.over_clustering_heads]
-        y_over = torch.stack(y_over_heads).squeeze()
+        y_over = torch.stack(y_over_heads, -1)
         return y, y_over
 
     def __mi(self, y, yt):
@@ -99,7 +99,9 @@ class IIC(Module):
 
     def __mi_heads(self, y, yt):
         return (
-            torch.stack([self.__mi(y[i], yt[i]) for i in range(self.num_heads)]).sum().unsqueeze(0)
+            torch.stack([self.__mi(y[..., i], yt[..., i]) for i in range(self.num_heads)])
+            .sum()
+            .unsqueeze(0)
         )
 
     def __ce(self, y, target):
@@ -107,5 +109,7 @@ class IIC(Module):
 
     def __ce_heads(self, y, target):
         return (
-            torch.stack([self.__ce(y[i], target) for i in range(self.num_heads)]).sum().unsqueeze(0)
+            torch.stack([self.__ce(y[..., i], target) for i in range(self.num_heads)])
+            .sum()
+            .unsqueeze(0)
         )
