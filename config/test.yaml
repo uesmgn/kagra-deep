@@ -33,6 +33,8 @@ model:
   name: iic
   params:
     num_classes: 20
+    num_classes_over: 40
+    num_heads: 1
 
 optim:
   name: adam
