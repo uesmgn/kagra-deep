@@ -16,12 +16,12 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-def init_wandb(args):
+def wandb_init(args):
     wandb.init(project=args.project, tags=args.tags, group=args.group)
     wandb.run.name = args.name + "_" + wandb.run.id
 
 
-def init_config(args):
+def config_init(args):
     from src import config
     from src.utils import transforms as tf
     from src.data import samplers
@@ -87,8 +87,23 @@ def train(model, optim, loader, device, weights=None, use_apex=False):
             num_samples += data[0].shape[0]
             pbar.update(1)
     loss /= num_samples
-    loss = loss.cpu().numpy()
     return loss
+
+
+def log_loss(loss, epoch, prefix="loss"):
+    d = {}
+    if torch.is_tensor(loss):
+        if loss.is_cuda:
+            loss = loss.cpu()
+        loss = loss.numpy()
+        total = loss.sum()
+        d = {f"{prefix}_{i}": l for i, l in enumerate(loss)}
+        d[f"{prefix}_total"] = total
+    elif isinstance(loss, numbers.Number):
+        d = {prefix: loss}
+    else:
+        raise ValueError("Invalid arguments.")
+    wandb.log(d, step=epoch)
 
 
 @hydra.main(config_path="config", config_name="test")
@@ -96,9 +111,9 @@ def main(args):
     global use_apex
     use_apex = args.use_apex and use_apex
 
-    init_wandb(args.wandb)
+    wandb_init(args.wandb)
 
-    cfg = init_config(args)
+    cfg = config_init(args)
 
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     if torch.cuda.is_available():
@@ -124,9 +139,10 @@ def main(args):
     test_loader = cfg.get_loader(args.test, test_set)
 
     for epoch in range(num_epochs):
-        print(f"--- training at epoch {epoch} ---")
-        loss_train = train(model, optim, train_loader, device, weights=weights, use_apex=use_apex)
-        wandb.log({"epoch": epoch, "loss_train": loss_train})
+        logger.info(f"--- training at epoch {epoch} ---")
+
+        train_loss = train(model, optim, train_loader, device, weights=weights, use_apex=use_apex)
+        log_loss(train_loss, epoch, prefix="train_loss")
 
 
 if __name__ == "__main__":
