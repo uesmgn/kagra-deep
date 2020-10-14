@@ -17,7 +17,7 @@ class Plotter(object):
 
     def confusion_matrix(self, y):
         assert torch.is_tensor(y)
-        xlabels = list(np.unique(targets))
+        xlabels = list(np.unique(self.target))
         if y.is_cuda:
             y = y.cpu()
         if y.ndim == 1:
@@ -36,9 +36,10 @@ class Plotter(object):
             y = y.numpy()
         else:
             raise ValueError("Invalid input.")
+        assert len(self.target) == len(y)
 
         cm = np.zeros((len(xlabels), len(ylabels)), dtype=np.int)
-        for i, j in zip(y, targets):
+        for i, j in zip(y, self.target):
             cm[xlabels.index(i), ylabels.index(j)] += 1
         return wandb.plots.HeatMap(xlabels, ylabels, cm, show_text=True)
 
