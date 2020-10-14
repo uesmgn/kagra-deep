@@ -11,7 +11,12 @@ train_size: 0.7
 use_apex: True
 opt_level: O1
 num_epochs: 100
-weights: 1.
+weights: [1., 1., 10., 1., 1.]
+eval_step: 5
+
+log:
+  y: confusion_matrix
+  y_over: confusion_matrix
 
 wandb:
   project: kagra-deep
