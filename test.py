@@ -128,23 +128,31 @@ def log_loss(epoch, loss, prefix=""):
 def log_params(epoch, params, funcs, prefix=""):
     target = params.pop("target")
     plt = stats.plotter(target)
+
     for key, param in params.items():
         f = None
+
         if key in funcs:
-            f = cfg[key]
+            f = funcs[key]
+
         if isinstance(f, str):
-            name = "_".join(map(lambda x: str(x), filter(bool, [prefix, k, f])))
+            name = "_".join(map(lambda x: str(x), filter(bool, [prefix, key, f])))
             obj = None
+
             if f == "confusion_matrix":
-                args = plt.confusion_matrix(v)
-                obj = wandb.plots.HeatMap(*args, show_text=True)
+                args = plt.confusion_matrix(param)
+                try:
+                    obj = wandb.plots.HeatMap(*args, show_text=True)
+                except:
+                    print(name, args)
+
             if obj is not None:
                 try:
-                    wandb.log({key: obj, "epoch": epoch})
+                    wandb.log({name: obj, "epoch": epoch})
                 except:
                     pass
         else:
-            raise ValueError("Invalid arguments.")
+            pass
 
 
 @hydra.main(config_path="config", config_name="test")
