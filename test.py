@@ -115,7 +115,7 @@ def log_loss(epoch, loss, prefix=""):
             losses = loss.numpy()
             total = losses.sum()
             for i, l in enumerate(losses):
-                key = "_".join(map(lambda x: str(x), filter(bool, [prefix, i])))
+                key = "_".join(filter(bool, [prefix, str(i)]))
                 d[key] = l
         else:
             raise ValueError("Invalid arguments.")
