@@ -130,4 +130,3 @@ dmypy.json
 outputs
 wandb
 testdata
-.DS_Store
