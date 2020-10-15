@@ -59,7 +59,7 @@ class IIC(Module):
                 loss = self.__ce_heads(y, target, reduction="none")
                 idx = torch.argmin(loss).item()
                 print("best_idx:", idx)
-                pred = torch.argmax(y[..., idx])
+                pred = torch.argmax(y[..., idx], -1)
                 print("pred:", pred)
                 params = self.__metrics(target, pred)
                 print("params:", params)
