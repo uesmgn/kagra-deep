@@ -92,8 +92,8 @@ class TensorDict(dict):
         return new
 
     def multi_class_metrics(self, true_label, pred_label):
-        target = self[true_label].view().detach().cpu().numpy()
-        pred = self[pred_label].view().detach().cpu().numpy()
+        target = self[true_label].view(-1).detach().cpu().numpy()
+        pred = self[pred_label].view(-1).detach().cpu().numpy()
 
         precision_micro = precision_score(target, pred, average="micro")
         precision_macro = precision_score(target, pred, average="macro")
