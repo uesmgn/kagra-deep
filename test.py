@@ -192,12 +192,12 @@ def main(args):
 
     for epoch in range(num_epochs):
         logger.info(f"--- training at epoch {epoch} ---")
-        train_res = train(model, train_loader, device, optim, weights=weights, use_apex=use_apex)
-        wandb.log(train_res, step=epoch)
+        train_loss = train(model, train_loader, device, optim, weights=weights, use_apex=use_apex)
+        wandb.log(train_loss, step=epoch)
         if epoch % args.eval_step == 0:
             logger.info(f"--- evaluating at epoch {epoch} ---")
-            eval_res = eval(model, eval_loader, device)
-            wandb.log(eval_res, step=epoch)
+            eval_loss, eval_metrics = eval(model, eval_loader, device)
+            wandb.log(eval_loss, step=epoch)
 
 
 if __name__ == "__main__":
