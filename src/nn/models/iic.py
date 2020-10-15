@@ -58,8 +58,6 @@ class IIC(Module):
                 loss = self.__ce_heads(y, target, reduction="none")
                 if self.best_index is None:
                     self.best_index = 0
-                print(y.shape)
-                print(y[..., self.best_index].shape)
                 pred = torch.argmax(y[..., self.best_index], -1)
                 return loss, target, pred
             else:
