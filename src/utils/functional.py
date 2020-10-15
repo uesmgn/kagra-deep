@@ -25,9 +25,7 @@ def multi_class_metrics(target, pred):
     f1_macro = f1_score(target, pred, average="macro", zero_division=0)
     f1_weighted = f1_score(target, pred, average="weighted", zero_division=0)
 
-    labels = np.unique(target)
-    print(labels)
-    print(np.unique(pred))
+    labels = list(np.unique(target))
 
     cm = confusion_matrix(target, pred, labels=labels)
 
