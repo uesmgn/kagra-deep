@@ -36,8 +36,7 @@ def to_acronym(name):
 
 @hydra.main(config_path="config", config_name="config")
 def run(cfg: DictConfig):
-    device = torch.device(
-        'cuda') if torch.cuda.is_available() else torch.device('cpu')
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
 
