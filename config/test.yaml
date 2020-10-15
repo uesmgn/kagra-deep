@@ -16,8 +16,8 @@ eval_step: 5
 
 wandb:
   project: kagra-deep
-  name: iic_ss
-  tags: [iic, usl]
+  name: iic_ssl
+  tags: [iic, ssl]
   group: iic
 
 net:
