@@ -44,6 +44,7 @@ class IIC(Module):
         if self.training:
             if len(args) == 3:
                 # unsupervised co-training loss
+                x, xt, target = args
                 return self.__usl(*args)
             elif len(args) == 6:
                 # semi-supervised co-training loss
@@ -57,13 +58,13 @@ class IIC(Module):
                 y, _ = self.__forward(x)
                 loss = self.__ce_heads(y, target, reduction="none")
                 print("loss.shape:", loss.shape)
-                best_idx = torch.argmin(loss).item()
-                print("best_idx:", best_idx)
-                pred = torch.argmax(y[best_idx], -1)
+                idx = torch.argmin(loss).item()
+                print("best_idx:", idx)
+                pred = torch.argmax(y[..., idx])
                 print("pred:", pred)
-                params = __metrics(target, pred)
+                params = self.__metrics(target, pred)
                 print("params:", params)
-                params["best_idx"] = best_idx
+                params["best_idx"] = idx
                 return loss, params
             else:
                 raise ValueError("args is invalid.")
