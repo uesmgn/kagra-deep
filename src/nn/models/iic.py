@@ -41,24 +41,19 @@ class IIC(Module):
     def forward(self, *args):
         if self.training:
             if len(args) == 3:
-                # unsupervised co-training
+                # unsupervised co-training loss
                 return self.__usl(*args)
             elif len(args) == 6:
-                # semi-supervised co-training
+                # semi-supervised co-training loss
                 return self.__ssl(*args)
             else:
                 raise ValueError("args is invalid.")
         else:
             if len(args) == 2:
-                # unsupervised co-training
-                return self.__test(*args)
+                # supervised training loss
+                return self.__sl(*args)
             else:
                 raise ValueError("args is invalid.")
-
-    def __test(self, x, target):
-        y, y_over = self.__forward(x)
-        ce = self.__ce_heads(y, target, reduction="none")
-        return ce, {"y": y, "y_over": y_over, "target": target}
 
     def __usl(self, x, xt, _):
         y, y_over = self.__forward(x)
