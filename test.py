@@ -199,11 +199,7 @@ def main(args):
             logger.info(f"--- evaluating at epoch {epoch} ---")
             eval_loss, eval_metrics = eval(model, eval_loader, device)
             wandb.log(eval_loss, step=epoch)
-            for key, x in eval_metrics.items():
-                try:
-                    wandb.log({key: x}, step=epoch)
-                except:
-                    logger.error(f"Failed to wandb.log of '{key}'.")
+            wandb.log(eval_metrics, step=epoch)
 
 
 if __name__ == "__main__":
