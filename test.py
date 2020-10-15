@@ -87,8 +87,7 @@ def train(model, loader, device, optim, weights=1.0, use_apex=False):
 
 def eval(model, loader, device):
     result = tensordict()
-    target = torch.empty(0).to(device)
-    pred = torch.empty(0).to(device)
+    params = tensordict()
 
     model.eval()
     with torch.no_grad():
@@ -97,11 +96,10 @@ def eval(model, loader, device):
                 data = to_device(device, *data)
                 loss, t, p = model(*data)
                 result.cat({"eval_loss": loss})
-                target = torch.cat([target, t])
-                pred = torch.cat([pred, p])
+                params.cat({"target": t, "pred": p}, dim=0)
                 pbar.update(1)
 
-    metrics = multi_class_metrics(target, pred)
+    metrics = multi_class_metrics(params["target"], params["pred"])
     result.reduction("mean", keep_dim=-1).flatten()
     return result, metrics
 
