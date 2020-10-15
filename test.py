@@ -90,13 +90,11 @@ def eval(model, loader, device):
     params = tensordict()
 
     model.eval()
-
     with torch.no_grad():
         with tqdm(total=len(loader)) as pbar:
             for data in loader:
                 data = to_device(device, *data)
                 loss, target, pred = model(*data)
-
                 result.stack({"eval_loss": loss})
                 params.stack({"target": target, "pred": pred})
                 pbar.update(1)
