@@ -1,6 +1,8 @@
 import torch
 from collections import abc
 from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix
+import plotly.figure_factory as ff
+import numpy as np
 
 __all__ = ["to_device", "flatten", "tensordict"]
 
@@ -91,23 +93,30 @@ class TensorDict(dict):
             return self
         return new
 
-    def multi_class_metrics(self, true_label, pred_label):
+    def multi_class_metrics(self, true_label, pred_label, num_classes=20):
         target = self[true_label].view(-1).detach().cpu().numpy()
         pred = self[pred_label].view(-1).detach().cpu().numpy()
 
-        precision_micro = precision_score(target, pred, average="micro")
-        precision_macro = precision_score(target, pred, average="macro")
-        precision_weighted = precision_score(target, pred, average="weighted")
+        precision_micro = precision_score(target, pred, average="micro", zero_division=0)
+        precision_macro = precision_score(target, pred, average="macro", zero_division=0)
+        precision_weighted = precision_score(target, pred, average="weighted", zero_division=0)
 
-        recall_micro = recall_score(target, pred, average="micro")
-        recall_macro = recall_score(target, pred, average="macro")
-        recall_weighted = recall_score(target, pred, average="weighted")
+        recall_micro = recall_score(target, pred, average="micro", zero_division=0)
+        recall_macro = recall_score(target, pred, average="macro", zero_division=0)
+        recall_weighted = recall_score(target, pred, average="weighted", zero_division=0)
 
         f1_micro = f1_score(target, pred, average="micro", zero_division=0)
         f1_macro = f1_score(target, pred, average="macro", zero_division=0)
         f1_weighted = f1_score(target, pred, average="weighted", zero_division=0)
 
-        cm = confusion_matrix(target, pred)
+        labels = np.unique(target)
+        cm = confusion_matrix(target, pred, labels=labels)
+
+        fig = ff.create_annotated_heatmap(
+            cm, x=labels, y=labels, annotation_text=cm, colorscale="Blues", showscale=True
+        )
+        fig.update_xaxes(side="bottom")
+        fig.update_yaxes(autorange="reversed")
 
         params = {
             "precision_micro": precision_micro,
@@ -119,7 +128,7 @@ class TensorDict(dict):
             "f1_micro": f1_micro,
             "f1_macro": f1_macro,
             "f1_weighted": f1_weighted,
-            "cm": cm,
+            "cm": fig,
         }
         return params
 
