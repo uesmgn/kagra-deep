@@ -178,4 +178,4 @@ class Classifier(nn.Module):
     def forward(self, x):
         logit = self.dense(x)
         y = F.softmax(logit, -1)
-        return y
+        return y, logit
