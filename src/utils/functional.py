@@ -25,10 +25,10 @@ def multi_class_metrics(target, pred):
 
     labels = list(np.unique(target))
 
-    cm = confusion_matrix(target, pred, labels=labels)
+    matrix = confusion_matrix(target, pred, labels=labels)
 
     fig = ff.create_annotated_heatmap(
-        cm, x=labels, y=labels, annotation_text=cm, colorscale="Blues", showscale=True
+        matrix, x=labels, y=labels, annotation_text=matrix, colorscale="Blues", showscale=True
     )
     fig.update_xaxes(side="bottom")
     fig.update_yaxes(autorange="reversed")
@@ -43,7 +43,7 @@ def multi_class_metrics(target, pred):
         "f1_micro": f1_micro,
         "f1_macro": f1_macro,
         "f1_weighted": f1_weighted,
-        "cm": fig,
+        "confusion_matrix": fig,
     }
     return params
 
