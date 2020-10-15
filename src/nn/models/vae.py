@@ -98,7 +98,7 @@ class M2(Module):
 
     def __sl(self, x, target):
         x_densed = self.encoder(x)
-        y = F.one_hot(target).to(torch.float)
+        y = F.one_hot(target, num_classes=self.num_classes).to(torch.float)
         z, z_mean, z_var = self.gaussian(torch.cat([x_densed, y], -1))
         xt = self.decoder(torch.cat([z, y], -1))
         bce = self.__bce(x, xt)
