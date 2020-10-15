@@ -58,7 +58,7 @@ def config_init(args):
     return config.Config(**params)
 
 
-def train(model, optim, loader, device, weights=1.0, use_apex=False):
+def train(model, loader, device, optim, weights=1.0, use_apex=False):
 
     result = tensordict()
 
@@ -86,21 +86,21 @@ def train(model, optim, loader, device, weights=1.0, use_apex=False):
 
 
 def eval(model, loader, device):
+    result = tensordict()
+
     model.eval()
-    params = tensordict()
-    loss = 0
-    num_samples = 0
+
     with torch.no_grad():
         with tqdm(total=len(loader)) as pbar:
             for data in loader:
                 data = to_device(device, *data)
-                l, p = model(*data)
-                params.stack(p)
-                loss += l
-                num_samples += data[0].shape[0]
+                loss = model(*data)
+
+                result.stack({"eval_loss": loss})
                 pbar.update(1)
-    loss /= num_samples
-    return loss, params
+
+    result.reduction("mean", keep_dim=-1).flatten()
+    return result
 
 
 # def log_loss(epoch, params, prefix=""):
@@ -186,20 +186,18 @@ def main(args):
     optim = cfg.get_optim(args.optim, params=model.parameters())
     if use_apex:
         model, optim = amp.initialize(model, optim, opt_level=args.opt_level)
-    train_set, test_set = cfg.get_datasets(args.dataset)
+    train_set, eval_set = cfg.get_datasets(args.dataset)
     train_loader = cfg.get_loader(args.train, train_set)
-    test_loader = cfg.get_loader(args.test, test_set)
+    eval_loader = cfg.get_loader(args.eval, eval_set)
 
     for epoch in range(num_epochs):
         logger.info(f"--- training at epoch {epoch} ---")
-        train_res = train(model, optim, train_loader, device, weights=weights, use_apex=use_apex)
-        print(train_res)
+        train_res = train(model, train_loader, device, optim, weights=weights, use_apex=use_apex)
         wandb.log(train_res, step=epoch)
-        # if epoch % args.eval_step == 0:
-        #     logger.info(f"--- evaluating at epoch {epoch} ---")
-        #     test_loss, params = eval(model, test_loader, device)
-        #     log_loss(epoch, test_loss, prefix="test_loss")
-        #     log_params(epoch, params, args.log)
+        if epoch % args.eval_step == 0:
+            logger.info(f"--- evaluating at epoch {epoch} ---")
+            eval_res = eval(model, eval_loader, device)
+            wandb.log(eval_res, step=epoch)
 
 
 if __name__ == "__main__":
