@@ -78,7 +78,7 @@ def train(model, loader, device, optim, weights=1.0, use_apex=False):
                 loss_step.backward()
             optim.step()
 
-            result.stack({"train_loss": loss})
+            result.cat({"train_loss": loss})
             pbar.update(1)
 
     result.reduction("mean", keep_dim=-1).flatten()
@@ -95,8 +95,8 @@ def eval(model, loader, device):
             for data in loader:
                 data = to_device(device, *data)
                 loss, target, pred = model(*data)
-                result.stack({"eval_loss": loss})
-                params.stack({"target": target, "pred": pred})
+                result.cat({"eval_loss": loss})
+                params.cat({"target": target, "pred": pred})
                 pbar.update(1)
 
     metrics = params.multi_class_metrics("target", "pred")
