@@ -175,9 +175,11 @@ class Config(object):
             train_set = (l, u)
         return train_set, test_set
 
-    def get_loader(self, cfg, datasets):
+    def get_loader(self, cfg, datasets, train=True):
 
         params = check_params(cfg)
+        if not train:
+            return DataLoader(datasets, **params)
         # if datasets is sequence, return zip of loaders
         if isinstance(datasets, abc.Sequence):
             return ZipLoader(*datasets, sampler_callback=self.sampler_callback, **params)
