@@ -1,4 +1,4 @@
-type: co+ss
+type: co
 use_channels: [1,2,3]
 targets: [1080Lines, 1400Ripples, Air_Compressor, Blip,
           Chirp, Extremely_Loud, Helix, Koi_Fish, Light_Modulation,
@@ -16,8 +16,8 @@ eval_step: 5
 
 wandb:
   project: kagra-deep
-  name: iic_ssl
-  tags: [iic, ssl]
+  name: iic_usl
+  tags: [iic, usl]
   group: iic
 
 net:
