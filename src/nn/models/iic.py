@@ -29,6 +29,7 @@ class IIC(Module):
         self.over_clustering_heads = nn.ModuleList(
             [nn.Linear(net.fc_in, num_classes_over) for _ in range(num_heads)]
         )
+        self.best_index = None
         self.initialize_weights()
 
     def initialize_step(self):
@@ -57,14 +58,10 @@ class IIC(Module):
                 x, target = args
                 y, _ = self.__forward(x)
                 loss = self.__ce_heads(y, target, reduction="none")
-                idx = torch.argmin(loss).item()
-                print("best_idx:", idx)
-                pred = torch.argmax(y[..., idx], -1)
-                print("pred:", pred)
-                params = self.__metrics(target, pred)
-                print("params:", params)
-                params["best_idx"] = idx
-                return loss, params
+                if self.best_index is None:
+                    self.best_index = 0
+                pred = torch.argmax(y[..., self.best_index], -1)
+                return loss, target, pred
             else:
                 raise ValueError("args is invalid.")
 
@@ -137,7 +134,7 @@ class IIC(Module):
         f1_macro = f1_score(target, pred, average="macro", zero_division=0)
         f1_weighted = f1_score(target, pred, average="weighted", zero_division=0)
 
-        cm = confusion_matrix(y_true, y_pred)
+        cm = confusion_matrix(target, pred)
 
         params = {
             "precision_micro": precision_micro,
