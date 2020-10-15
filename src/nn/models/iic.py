@@ -6,6 +6,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from ..utils import Module
 
+from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix
+
 __all__ = ["IIC"]
 
 
@@ -119,7 +121,6 @@ class IIC(Module):
             return loss
 
     def __metrics(self, target, pred):
-        from sklearn.metrics import *
 
         target = target.cpu().numpy()
         pred = pred.cpu().numpy()
