@@ -62,9 +62,24 @@ class M2(Module):
         super().__init__()
         # remove last fc layer
         self.num_classes = num_classes
-        self.encoder = nn.Sequential(*list(net.children())[:-1])
-        self.classifier = Classifier(net.fc_in, num_classes)
-        self.gaussian = Gaussian(net.fc_in + num_classes, z_dim)
+        self.encoder = nn.Sequential(
+            *list(net.children())[:-1],
+            nn.Linear(net.fc_in, 512),
+            nn.BatchNorm1d(512),
+            nn.ReLU(inplace=True),
+        )
+        self.classifier = nn.Sequential(
+            nn.Linear(512, 512),
+            nn.BatchNorm1d(512),
+            nn.ReLU(inplace=True),
+            Classifier(512, num_classes),
+        )
+        self.gaussian = nn.Sequential(
+            nn.Linear(512 + num_classes, 512),
+            nn.BatchNorm1d(512),
+            nn.ReLU(inplace=True),
+            Gaussian(512, z_dim),
+        )
         self.decoder = nn.Sequential(
             nn.Linear(z_dim + num_classes, 512 * 7 * 7),
             nn.ReLU(inplace=True),
@@ -84,9 +99,9 @@ class M2(Module):
     def forward(self, *args):
         if self.training:
             lx, target, ux, _ = args
-            sl_loss = self.__sl(lx, target)
-            usl_loss = self.__usl(ux, _)
-            return torch.cat([sl_loss, usl_loss])
+            labeled_loss = self.__labeled(lx, target)
+            unlabeled_loss = self.__unlabeled(ux, _)
+            return torch.cat([labeled_loss, unlabeled_loss])
         else:
             x, target = args
             x_densed = self.encoder(x)
@@ -96,30 +111,34 @@ class M2(Module):
             loss = self.__ce(y_logits, target)
             return loss, {"target": target, "pred": pred, "z": z}
 
-    def __sl(self, x, target):
+    def __labeled(self, x, target):
         x_densed = self.encoder(x)
         y = F.one_hot(target, num_classes=self.num_classes).to(torch.float)
         z, z_mean, z_var = self.gaussian(torch.cat([x_densed, y], -1))
         xt = self.decoder(torch.cat([z, y], -1))
-        bce = self.__bce(x, xt)
-        kl = self.__kl_norm(z_mean, z_var)
+        log_p_x = self.__bce(x, xt)
+        log_p_x = -np.log(1 / self.num_classes)
+        log_p_z = self.__kl_norm(z_mean, z_var)
+        labeled_loss = log_p_x + log_p_x + log_p_z
 
         _, y_logits = self.classifier(x_densed)
-        ce = self.__ce(y_logits, target)
+        sup_loss = self.__ce(y_logits, target)
 
-        return torch.cat([bce, kl, ce])
+        return torch.cat([labeled_loss, sup_loss])
 
-    def __usl(self, x, _):
+    def __unlabeled(self, x, _):
         x_densed = self.encoder(x)
         y, _ = self.classifier(x_densed)
         z, z_mean, z_var = self.gaussian(torch.cat([x_densed, y], -1))
         xt = self.decoder(torch.cat([z, y], -1))
-        bce = self.__bce(x, xt)
-        kl = self.__kl_norm(z_mean, z_var)
-        return torch.cat([bce, kl])
+        log_p_x = self.__bce(x, xt)
+        log_p_z = self.__kl_norm(z_mean, z_var)
+        unlabeled_loss = log_p_x + log_p_z
+        return unlabeled_loss
 
     def __ce(self, y, target):
-        return F.cross_entropy(y, target).unsqueeze(0)
+        ce = F.cross_entropy(y, target)
+        return ce.unsqueeze(0)
 
     def __bce(self, x, xt):
         bce = F.binary_cross_entropy_with_logits(xt, x, reduction="sum")
