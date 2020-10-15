@@ -74,16 +74,18 @@ class TensorDict(dict):
     def __init__(self):
         pass
 
-    def cat(self, d):
+    def cat(self, d, dim=None):
         if isinstance(d, abc.MutableMapping):
             for key, x in d.items():
                 assert torch.is_tensor(x)
-                x = x.unsqueeze(0).detach().cpu()
+                x = x.detach().cpu()
+                if dim is None:
+                    x = x.unsqueeze(0)
                 if key not in self:
                     self[key] = x
                 else:
                     old = self[key]
-                    self[key] = torch.cat([old, x], dim=0)
+                    self[key] = torch.cat([old, x], dim or 0)
         else:
             raise ValueError("Invalid arguments.")
 
