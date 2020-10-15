@@ -16,7 +16,7 @@ except ImportError:
 from src import config
 from src.utils import transforms
 from src.utils import stats
-from src.utils.functional import to_device, tensordict, multi_class_metrics
+from src.utils.functional import to_device, flatten, tensordict, multi_class_metrics
 from src.data import samplers
 
 
@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 def wandb_init(args):
     wandb.init(project=args.project, tags=args.tags, group=args.group)
     wandb.run.name = args.name + "_" + wandb.run.id
+    wandb.config.update(flatten(args))
 
 
 def config_init(args):
@@ -100,66 +101,11 @@ def eval(model, loader, device, epoch):
                 params.cat({"target": t, "pred": p}, dim=0)
                 pbar.update(1)
 
-    metrics = multi_class_metrics(params["target"], params["pred"])
     result.reduction("mean", keep_dim=-1).flatten()
+    metrics = multi_class_metrics(params["target"], params["pred"])
+    result.update(metrics)
     result["epoch"] = epoch
-    metrics["epoch"] = epoch
-    return result, metrics
-
-
-# def log_loss(epoch, params, prefix=""):
-#     d = {}
-#     if torch.is_tensor(loss):
-#         loss = loss.squeeze()
-#         if loss.is_cuda:
-#             loss = loss.cpu()
-#         if loss.ndim == 0:
-#             total = loss.item()
-#         elif loss.ndim == 1:
-#             losses = loss.numpy()
-#             total = losses.sum()
-#             for i, l in enumerate(losses):
-#                 key = "_".join(filter(bool, [prefix, str(i)]))
-#                 d[key] = l
-#         else:
-#             raise ValueError("Invalid arguments.")
-#     elif isinstance(loss, numbers.Number):
-#         total = loss
-#     else:
-#         raise ValueError("Invalid arguments.")
-#     key = "_".join(filter(bool, [prefix, "total"]))
-#     d[key] = total
-#     wandb.log(d, step=epoch)
-#
-#
-# def log_params(epoch, params, funcs, prefix=""):
-#     target = params.pop("target")
-#     plt = stats.plotter(target)
-#
-#     for key, param in params.items():
-#         f = None
-#
-#         if key in funcs:
-#             f = funcs[key]
-#
-#         if isinstance(f, str):
-#             name = "_".join(map(lambda x: str(x), filter(bool, [prefix, key, f])))
-#             obj = None
-#
-#             if f == "confusion_matrix":
-#                 xlabels, ylabels, matrix = plt.confusion_matrix(param)
-#                 try:
-#                     obj = wandb.plots.HeatMap(xlabels, ylabels, matrix, show_text=True)
-#                 except:
-#                     print(name, matrix)
-#
-#             if obj is not None:
-#                 try:
-#                     wandb.log({name: obj, "epoch": epoch})
-#                 except:
-#                     pass
-#         else:
-#             pass
+    return result
 
 
 @hydra.main(config_path="config", config_name="test")
@@ -196,15 +142,14 @@ def main(args):
 
     for epoch in range(num_epochs):
         logger.info(f"--- training at epoch {epoch} ---")
-        train_loss = train(
+        train_res = train(
             model, optim, train_loader, device, epoch, weights=weights, use_apex=use_apex
         )
-        wandb.log(train_loss)
+        wandb.log(train_res)
         if epoch % args.eval_step == 0:
             logger.info(f"--- evaluating at epoch {epoch} ---")
-            eval_loss, eval_metrics = eval(model, eval_loader, device, epoch)
-            wandb.log(eval_loss)
-            wandb.log(eval_metrics)
+            eval_res = eval(model, eval_loader, device, epoch)
+            wandb.log(eval_res)
 
 
 if __name__ == "__main__":
