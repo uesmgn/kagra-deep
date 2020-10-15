@@ -50,8 +50,8 @@ class M1(Module):
 
     def __bce(self, x, xt):
         bce = F.binary_cross_entropy_with_logits(xt, x, reduction="sum")
-        return bce
+        return bce.unsqueeze(0)
 
     def __kl_norm(self, mean, var):
         kl = 0.5 * (torch.log(1.0 / var) + (var + torch.pow(mean, 2)) - 1).sum()
-        return kl
+        return kl.unsqueeze(0)
