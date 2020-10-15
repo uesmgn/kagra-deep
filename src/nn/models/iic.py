@@ -51,7 +51,18 @@ class IIC(Module):
         else:
             if len(args) == 2:
                 # supervised training loss
-                return self.__sl(*args)
+                x, target = args
+                y, _ = self.__forward(x)
+                loss = self.__ce_heads(y, target, reduction="none")
+                print("loss.shape:", loss.shape)
+                best_idx = torch.argmin(loss).item()
+                print("best_idx:", best_idx)
+                pred = torch.argmax(y[best_idx], -1)
+                print("pred:", pred)
+                params = __metrics(target, pred)
+                print("params:", params)
+                params["best_idx"] = best_idx
+                return loss, params
             else:
                 raise ValueError("args is invalid.")
 
@@ -95,7 +106,7 @@ class IIC(Module):
         if reduction == "sum":
             return loss.sum().unsqueeze(0)
         elif reduction == "none":
-            return loss.unsqueeze(0)
+            return loss
 
     def __ce(self, y, target):
         return F.cross_entropy(y, target)
@@ -105,4 +116,39 @@ class IIC(Module):
         if reduction == "sum":
             return loss.sum().unsqueeze(0)
         elif reduction == "none":
-            return loss.unsqueeze(0)
+            return loss
+
+    def __metrics(self, target, pred):
+        from sklearn.metrics import *
+
+        target = target.cpu().numpy()
+        pred = pred.cpu().numpy()
+
+        precision_micro = precision_score(target, pred, average="micro")
+        precision_macro = precision_score(target, pred, average="macro")
+        precision_weighted = precision_score(target, pred, average="weighted")
+
+        recall_micro = recall_score(target, pred, average="micro")
+        recall_macro = recall_score(target, pred, average="macro")
+        recall_weighted = recall_score(target, pred, average="weighted")
+
+        f1_micro = f1_score(target, pred, average="micro", zero_division=0)
+        f1_macro = f1_score(target, pred, average="macro", zero_division=0)
+        f1_weighted = f1_score(target, pred, average="weighted", zero_division=0)
+
+        cm = confusion_matrix(y_true, y_pred)
+
+        params = {
+            "precision_micro": precision_micro,
+            "precision_macro": precision_macro,
+            "precision_weighted": precision_weighted,
+            "recall_micro": recall_micro,
+            "recall_macro": recall_macro,
+            "recall_weighted": recall_weighted,
+            "f1_micro": f1_micro,
+            "f1_macro": f1_macro,
+            "f1_weighted": f1_weighted,
+            "cm": cm,
+        }
+
+        return params
