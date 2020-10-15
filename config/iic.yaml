@@ -13,6 +13,7 @@ opt_level: O1
 num_epochs: 10000
 weights: 1.
 eval_step: 5
+metrics_fn: multi_class_metrics
 
 wandb:
   project: kagra-deep
