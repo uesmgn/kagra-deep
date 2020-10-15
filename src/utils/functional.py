@@ -33,17 +33,62 @@ class TensorDict(dict):
 
     def stack(self, d):
         if isinstance(d, abc.MutableMapping):
-            for k, v in d.items():
-                assert torch.is_tensor(v)
-                if v.is_cuda:
-                    v = v.cpu()
-                if k not in self:
-                    self[k] = v
+            for key, x in d.items():
+                assert torch.is_tensor(x)
+                x = x.unsqueeze(0).detach().cpu()
+                if key not in self:
+                    self[key] = x
                 else:
-                    new = torch.cat([self[k], v])
-                    self[k] = new
+                    old = self[key]
+                    self[key] = torch.cat([old, x])
         else:
             raise ValueError("Invalid arguments.")
+
+    def reduction(self, mode="mean", keep_dim=None, inplace=True):
+        new = {}
+        for key, x in self.items():
+            indices = list(range(x.ndim))
+            if isinstance(keep_dim, int):
+                indices.pop(keep_dim)
+            for i in indices:
+                if mode == "mean":
+                    x = x.mean(i).unsqueeze(i)
+                elif mode == "sum":
+                    x = x.sum(i).unsqueeze(i)
+                else:
+                    raise ValueError("Invalid arguments.")
+            new[key] = x.squeeze()
+        if inplace:
+            self.clear()
+            self.update(new)
+            return self
+        return new
+
+    def flatten(self, inplace=True, total=True):
+        new = {}
+        for key, value in self.items():
+            if torch.is_tensor(value):
+                try:
+                    value = value.item()
+                except:
+                    value = value.tolist()
+            if isinstance(value, abc.Sequence):
+                if len(value) >= 10:
+                    raise ValueError("dimention is too large.")
+                tmp = 0
+                for i, x in enumerate(value):
+                    new_key = "{}_{}".format(key, i)
+                    new[new_key] = x
+                    tmp += x
+                if total:
+                    new["{}_total".format(key)] = tmp
+            else:
+                new[key] = value
+        if inplace:
+            self.clear()
+            self.update(new)
+            return self
+        return new
 
 
 def tensordict():
