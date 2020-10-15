@@ -16,7 +16,7 @@ except ImportError:
 from src import config
 from src.utils import transforms
 from src.utils import stats
-from src.utils.functional import to_device, tensordict
+from src.utils.functional import to_device, tensordict, multi_class_metrics
 from src.data import samplers
 
 
@@ -80,28 +80,28 @@ def train(model, loader, device, optim, weights=1.0, use_apex=False):
 
             result.cat({"train_loss": loss})
             pbar.update(1)
-    print(result["train_loss"].shape)
     result.reduction("mean", keep_dim=-1)
-    print(result["train_loss"].shape)
     result.flatten()
     return result
 
 
 def eval(model, loader, device):
     result = tensordict()
-    params = tensordict()
+    target = torch.empty(0)
+    pred = torch.empty(0)
 
     model.eval()
     with torch.no_grad():
         with tqdm(total=len(loader)) as pbar:
             for data in loader:
                 data = to_device(device, *data)
-                loss, target, pred = model(*data)
+                loss, t, p = model(*data)
                 result.cat({"eval_loss": loss})
-                params.cat({"target": target, "pred": pred})
+                target = torch.cat([target, t])
+                pred = torch.cat([pred, p])
                 pbar.update(1)
 
-    metrics = params.multi_class_metrics("target", "pred")
+    metrics = multi_class_metrics(target, pred)
     result.reduction("mean", keep_dim=-1).flatten()
     return result, metrics
 
