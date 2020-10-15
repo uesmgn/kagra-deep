@@ -4,6 +4,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 from ..utils import Module, Gaussian, Classifier, Reshape, ConvTranspose2dModule
 
 __all__ = ["M1", "M2"]
