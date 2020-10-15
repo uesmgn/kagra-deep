@@ -10,6 +10,8 @@ __all__ = ["to_device", "multi_class_metrics", "flatten", "tensordict"]
 def multi_class_metrics(target, pred):
     target = target.view(-1).detach().cpu().numpy()
     pred = pred.view(-1).detach().cpu().numpy()
+    print(target)
+    print(pred)
 
     precision_micro = precision_score(target, pred, average="micro", zero_division=0)
     precision_macro = precision_score(target, pred, average="macro", zero_division=0)
@@ -24,6 +26,9 @@ def multi_class_metrics(target, pred):
     f1_weighted = f1_score(target, pred, average="weighted", zero_division=0)
 
     labels = np.unique(target)
+    print(labels)
+    print(np.unique(pred))
+
     cm = confusion_matrix(target, pred, labels=labels)
 
     fig = ff.create_annotated_heatmap(
