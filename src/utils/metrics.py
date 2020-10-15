@@ -74,7 +74,7 @@ def latent_space_metrics(target, z):
 
     fig = go.Figure()
     for i, label in enumerate(labels):
-        idx = np.where(targets == label)
+        idx = np.where(target == label)
         fig.add_trace(
             go.Scattergl(x=xx[idx], y=yy[idx], name=str(label), mode="markers", marker_color=i)
         )
