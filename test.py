@@ -87,8 +87,8 @@ def train(model, loader, device, optim, weights=1.0, use_apex=False):
 
 def eval(model, loader, device):
     result = tensordict()
-    target = torch.empty(0)
-    pred = torch.empty(0)
+    target = torch.empty(0).to(device)
+    pred = torch.empty(0).to(device)
 
     model.eval()
     with torch.no_grad():
