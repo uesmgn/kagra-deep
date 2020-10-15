@@ -17,7 +17,7 @@ from src import config
 from src.utils import transforms
 from src.utils import stats
 from src.utils import metrics
-from src.utils.functional import to_device, flatten, tensordict, multi_class_metrics
+from src.utils.functional import to_device, flatten, tensordict
 from src.data import samplers
 
 
