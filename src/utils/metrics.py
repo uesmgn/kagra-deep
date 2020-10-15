@@ -70,6 +70,8 @@ def latent_space_metrics(target, z):
 
     labels = np.unique(target)
     z = TSNE(n_components=2).fit_transform(z)
+    xx, yy = z.T
+
     fig = go.Figure()
     for i, label in enumerate(labels):
         idx = np.where(targets == label)
