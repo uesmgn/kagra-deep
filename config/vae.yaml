@@ -1,4 +1,4 @@
-type: basic
+type: ss
 use_channels: [1,2,3]
 targets: [1080Lines, 1400Ripples, Air_Compressor, Blip,
           Chirp, Extremely_Loud, Helix, Koi_Fish, Light_Modulation,
@@ -13,12 +13,12 @@ opt_level: O1
 num_epochs: 10000
 weights: 1.
 eval_step: 5
-metrics_fn: latent_space_metrics
+metrics_fn: [latent_space_metrics, multi_class_metrics]
 
 wandb:
   project: kagra-deep
-  name: vae_usl
-  tags: [vae, usl]
+  name: vae_ssl
+  tags: [vae, ssl]
   group: vae
 
 net:
@@ -27,9 +27,10 @@ net:
     in_channels: 3
 
 model:
-  name: m1
+  name: m2
   params:
     z_dim: 64
+    num_classes: 20
 
 optim:
   name: adam

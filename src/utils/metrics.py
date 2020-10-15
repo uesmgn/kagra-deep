@@ -14,7 +14,7 @@ import plotly.graph_objects as go
 import numpy as np
 
 
-def multi_class_metrics(target, pred):
+def multi_class_metrics(target, pred, **kwargs):
     target = target.view(-1).detach().cpu().numpy()
     pred = pred.view(-1).detach().cpu().numpy()
 
@@ -64,7 +64,7 @@ def multi_class_metrics(target, pred):
     return params
 
 
-def latent_space_metrics(target, z):
+def latent_space_metrics(target, z, **kwargs):
     target = target.view(-1).detach().cpu().numpy()
     z = z.detach().cpu().numpy()
 

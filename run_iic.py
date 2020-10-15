@@ -98,8 +98,14 @@ def eval(model, loader, device, epoch, metrics_callback=None):
             params.cat(param)
 
     res.mean("eval_loss", keep_dim=-1).flatten("eval_loss")
+
     if callable(metrics_callback):
         res.update(metrics_callback(**params))
+    elif isinstance(metrics_callback, abc.Sequence):
+        for fn in metrics_callback:
+            if callable(fn):
+                res.update(fn(**params))
+
     return res
 
 
@@ -119,9 +125,11 @@ def main(args):
 
     num_epochs = args.num_epochs
 
-    metrics_fn = getattr(metrics, args.metrics_fn)
-    if not callable(metrics_fn):
-        metrics_fn = None
+    metrics_fn = None
+    if hasattr(metrics, args.metrics_fn):
+        metrics_fn = getattr(metrics, args.metrics_fn)
+    elif isinstance(args.metrics_fn, abc.Sequence):
+        metrics_fn = [getattr(metrics, fn) for fn in args.metrics_fn if hasattr(metrics, fn)]
 
     if isinstance(args.weights, abc.Sequence):
         weights = torch.tensor(args.weights).to(device)
