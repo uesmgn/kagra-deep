@@ -129,4 +129,5 @@ dmypy.json
 *.bu
 outputs
 wandb
-test*
+testdata
+.DS_Store
