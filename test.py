@@ -102,9 +102,8 @@ def eval(model, loader, device):
                 pbar.update(1)
 
     metrics = params.multi_class_metrics("target", "pred")
-    print(metrics)
     result.reduction("mean", keep_dim=-1).flatten()
-    return result
+    return result, metrics
 
 
 # def log_loss(epoch, params, prefix=""):
@@ -202,6 +201,11 @@ def main(args):
             logger.info(f"--- evaluating at epoch {epoch} ---")
             eval_loss, eval_metrics = eval(model, eval_loader, device)
             wandb.log(eval_loss, step=epoch)
+            for key, x in eval_metrics.items():
+                try:
+                    wandb.log({key: x}, step=epoch)
+                except:
+                    logger.error(f"Failed to wandb.log of '{key}'.")
 
 
 if __name__ == "__main__":
