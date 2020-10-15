@@ -109,7 +109,7 @@ def eval(model, loader, device, epoch, metrics_callback=None):
     return res
 
 
-@hydra.main(config_path="config", config_name="iic")
+@hydra.main(config_path="config", config_name="vae_usl")
 def main(args):
     wandb_init(args.wandb)
     wandb.config.update(flatten(args))
@@ -126,10 +126,10 @@ def main(args):
     num_epochs = args.num_epochs
 
     metrics_fn = None
-    if hasattr(metrics, args.metrics_fn):
-        metrics_fn = getattr(metrics, args.metrics_fn)
-    elif isinstance(args.metrics_fn, abc.Sequence):
+    if isinstance(args.metrics_fn, abc.Sequence):
         metrics_fn = [getattr(metrics, fn) for fn in args.metrics_fn if hasattr(metrics, fn)]
+    elif hasattr(metrics, args.metrics_fn):
+        metrics_fn = getattr(metrics, args.metrics_fn)
 
     if isinstance(args.weights, abc.Sequence):
         weights = torch.tensor(args.weights).to(device)
