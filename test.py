@@ -101,7 +101,8 @@ def eval(model, loader, device):
                 params.stack({"target": target, "pred": pred})
                 pbar.update(1)
 
-    print(params)
+    metrics = params.multi_class_metrics("target", "pred")
+    print(metrics)
     result.reduction("mean", keep_dim=-1).flatten()
     return result
 
