@@ -127,10 +127,12 @@ def main(args):
 
     metrics_fn = None
     try:
-        if isinstance(args.metrics_fn, abc.Sequence):
+        if isinstance(args.metrics_fn, str):
+            metrics_fn = getattr(metrics, args.metrics_fn)
+        elif isinstance(args.metrics_fn, abc.Sequence):
             metrics_fn = [getattr(metrics, fn) for fn in args.metrics_fn]
         else:
-            metrics_fn = getattr(metrics, args.metrics_fn)
+            raise
     except:
         raise ValueError(f"Invalid arguments. {args.metrics_fn}")
 
