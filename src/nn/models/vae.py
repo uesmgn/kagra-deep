@@ -90,32 +90,33 @@ class M2(Module):
         else:
             x, target = args
             x_densed = self.encoder(x)
-            y = self.classifier(x_densed)
+            y, y_logits = self.classifier(x_densed)
             z, z_mean, z_var = self.gaussian(torch.cat([x_densed, y], -1))
-            pred = torch.argmax(y, -1)
-            loss = self.__ce(y, target)
+            pred = torch.argmax(y_logits, -1)
+            loss = self.__ce(y_logits, target)
             return loss, {"target": target, "pred": pred, "z": z}
-
-    def __usl(self, x, _):
-        x_densed = self.encoder(x)
-        y = self.classifier(x_densed)
-        z, z_mean, z_var = self.gaussian(torch.cat([x_densed, y], -1))
-        xt = self.decoder(torch.cat([z, y], -1))
-        bce = self.__bce(x, xt)
-        kl = self.__kl_norm(z_mean, z_var)
-        loss = torch.cat([bce, kl])
-        return loss
 
     def __sl(self, x, target):
         x_densed = self.encoder(x)
-        y = self.classifier(x_densed)
+        y = F.one_hot(target).to(torch.float)
         z, z_mean, z_var = self.gaussian(torch.cat([x_densed, y], -1))
         xt = self.decoder(torch.cat([z, y], -1))
         bce = self.__bce(x, xt)
         kl = self.__kl_norm(z_mean, z_var)
-        ce = self.__ce(y, target)
-        loss = torch.cat([bce, kl, ce])
-        return loss
+
+        _, y_logits = self.classifier(x_densed)
+        ce = self.__ce(y_logits, target)
+
+        return torch.cat([bce, kl, ce])
+
+    def __usl(self, x, _):
+        x_densed = self.encoder(x)
+        y, _ = self.classifier(x_densed)
+        z, z_mean, z_var = self.gaussian(torch.cat([x_densed, y], -1))
+        xt = self.decoder(torch.cat([z, y], -1))
+        bce = self.__bce(x, xt)
+        kl = self.__kl_norm(z_mean, z_var)
+        return torch.cat([bce, kl])
 
     def __ce(self, y, target):
         return F.cross_entropy(y, target).unsqueeze(0)
