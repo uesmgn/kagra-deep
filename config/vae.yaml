@@ -13,12 +13,13 @@ opt_level: O1
 num_epochs: 10000
 weights: 1.
 eval_step: 5
+metrics_fn: latent_space_metrics
 
 wandb:
   project: kagra-deep
-  name: iic_usl
-  tags: [iic, usl]
-  group: iic
+  name: vae_usl
+  tags: [vae, usl]
+  group: vae
 
 net:
   name: resnet34
@@ -26,11 +27,9 @@ net:
     in_channels: 3
 
 model:
-  name: iic
+  name: m1
   params:
-    num_classes: 20
-    num_classes_over: 40
-    num_heads: 1
+    z_dim: 64
 
 optim:
   name: adam

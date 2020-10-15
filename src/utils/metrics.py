@@ -9,6 +9,8 @@ from sklearn.metrics import (
     adjusted_rand_score,
 )
 import plotly.figure_factory as ff
+from sklearn.manifold import TSNE
+import plotly.graph_objects as go
 import numpy as np
 
 
@@ -60,3 +62,18 @@ def multi_class_metrics(target, pred):
         "confusion_matrix": fig,
     }
     return params
+
+
+def latent_space_metrics(target, z):
+    target = target.view(-1).detach().cpu().numpy()
+    z = z.detach().cpu().numpy()
+
+    labels = np.unique(target)
+    z = TSNE(n_components=2).fit_transform(z)
+    fig = go.Figure()
+    for i, label in enumerate(labels):
+        idx = np.where(targets == label)
+        fig.add_trace(
+            go.Scattergl(x=xx[idx], y=yy[idx], name=str(label), mode="markers", marker_color=i)
+        )
+    return {"z_tsne": fig}

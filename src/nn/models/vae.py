@@ -4,7 +4,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from ..utils import Module, Gaussian, Classifier, Reshape, ConvTranspose2dModule
+from ..utils import Module, Gaussian, Reshape, ConvTranspose2dModule
 
 __all__ = ["M1"]
 
@@ -40,7 +40,7 @@ class M1(Module):
         if self.training:
             return loss
         else:
-            return loss, target, z
+            return loss, {"target": target, "z": z}
 
     def __forward(self, x, target):
         x_densed = self.encoder(x)

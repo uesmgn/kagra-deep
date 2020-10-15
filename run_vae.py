@@ -103,7 +103,7 @@ def eval(model, loader, device, epoch, metrics_callback=None):
     return res
 
 
-@hydra.main(config_path="config", config_name="iic")
+@hydra.main(config_path="config", config_name="vae")
 def main(args):
     wandb_init(args.wandb)
     wandb.config.update(flatten(args))
