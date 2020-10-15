@@ -1,5 +1,6 @@
 import torch
 from collections import abc
+from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix
 
 __all__ = ["to_device", "flatten", "tensordict"]
 
@@ -89,6 +90,38 @@ class TensorDict(dict):
             self.update(new)
             return self
         return new
+
+    def multi_class_metrics(self, true_label, pred_label):
+        target = self[true_label].view().detach().cpu().numpy()
+        pred = self[pred_label].view().detach().cpu().numpy()
+
+        precision_micro = precision_score(target, pred, average="micro")
+        precision_macro = precision_score(target, pred, average="macro")
+        precision_weighted = precision_score(target, pred, average="weighted")
+
+        recall_micro = recall_score(target, pred, average="micro")
+        recall_macro = recall_score(target, pred, average="macro")
+        recall_weighted = recall_score(target, pred, average="weighted")
+
+        f1_micro = f1_score(target, pred, average="micro", zero_division=0)
+        f1_macro = f1_score(target, pred, average="macro", zero_division=0)
+        f1_weighted = f1_score(target, pred, average="weighted", zero_division=0)
+
+        cm = confusion_matrix(target, pred)
+
+        params = {
+            "precision_micro": precision_micro,
+            "precision_macro": precision_macro,
+            "precision_weighted": precision_weighted,
+            "recall_micro": recall_micro,
+            "recall_macro": recall_macro,
+            "recall_weighted": recall_weighted,
+            "f1_micro": f1_micro,
+            "f1_macro": f1_macro,
+            "f1_weighted": f1_weighted,
+            "cm": cm,
+        }
+        return params
 
 
 def tensordict():
