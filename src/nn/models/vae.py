@@ -91,7 +91,7 @@ class M2(Module):
             x, target = args
             x_densed = self.encoder(x)
             y = self.classifier(x_densed)
-            z, z_mean, z_var = self.gaussian(torch.cat([x_densed, y]))
+            z, z_mean, z_var = self.gaussian(torch.cat([x_densed, y], -1))
             pred = torch.argmax(y, -1)
             loss = self.__ce(y, target)
             return loss, {"target": target, "pred": pred, "z": z}
@@ -99,8 +99,8 @@ class M2(Module):
     def __usl(self, x, _):
         x_densed = self.encoder(x)
         y = self.classifier(x_densed)
-        z, z_mean, z_var = self.gaussian(torch.cat([x_densed, y]))
-        xt = self.decoder(torch.cat([z, y]))
+        z, z_mean, z_var = self.gaussian(torch.cat([x_densed, y], -1))
+        xt = self.decoder(torch.cat([z, y], -1))
         bce = self.__bce(x, xt)
         kl = self.__kl_norm(z_mean, z_var)
         loss = torch.cat([bce, kl])
@@ -109,8 +109,8 @@ class M2(Module):
     def __sl(self, x, target):
         x_densed = self.encoder(x)
         y = self.classifier(x_densed)
-        z, z_mean, z_var = self.gaussian(torch.cat([x_densed, y]))
-        xt = self.decoder(torch.cat([z, y]))
+        z, z_mean, z_var = self.gaussian(torch.cat([x_densed, y], -1))
+        xt = self.decoder(torch.cat([z, y], -1))
         bce = self.__bce(x, xt)
         kl = self.__kl_norm(z_mean, z_var)
         ce = self.__ce(y, target)
