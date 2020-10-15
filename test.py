@@ -58,7 +58,7 @@ def config_init(args):
     return config.Config(**params)
 
 
-def train(model, loader, device, optim, weights=1.0, use_apex=False):
+def train(model, optim, loader, device, epoch, weights=1.0, use_apex=False):
 
     result = tensordict()
 
@@ -82,10 +82,11 @@ def train(model, loader, device, optim, weights=1.0, use_apex=False):
             pbar.update(1)
     result.reduction("mean", keep_dim=-1)
     result.flatten()
+    result["epoch"] = epoch
     return result
 
 
-def eval(model, loader, device):
+def eval(model, loader, device, epoch):
     result = tensordict()
     params = tensordict()
 
@@ -101,6 +102,8 @@ def eval(model, loader, device):
 
     metrics = multi_class_metrics(params["target"], params["pred"])
     result.reduction("mean", keep_dim=-1).flatten()
+    result["epoch"] = epoch
+    metrics["epoch"] = epoch
     return result, metrics
 
 
@@ -193,13 +196,15 @@ def main(args):
 
     for epoch in range(num_epochs):
         logger.info(f"--- training at epoch {epoch} ---")
-        train_loss = train(model, train_loader, device, optim, weights=weights, use_apex=use_apex)
-        wandb.log(train_loss, step=epoch)
+        train_loss = train(
+            model, optim, train_loader, device, epoch, weights=weights, use_apex=use_apex
+        )
+        wandb.log(train_loss)
         if epoch % args.eval_step == 0:
             logger.info(f"--- evaluating at epoch {epoch} ---")
-            eval_loss, eval_metrics = eval(model, eval_loader, device)
-            wandb.log(eval_loss, step=epoch)
-            wandb.log(eval_metrics, step=epoch)
+            eval_loss, eval_metrics = eval(model, eval_loader, device, epoch)
+            wandb.log(eval_loss)
+            wandb.log(eval_metrics)
 
 
 if __name__ == "__main__":
