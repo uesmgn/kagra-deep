@@ -39,7 +39,7 @@ class TensorDict(dict):
         if isinstance(d, abc.MutableMapping):
             for key, x in d.items():
                 assert torch.is_tensor(x)
-                x = x.squeeze().detach().cpu()
+                x = x.detach().cpu()
                 if key not in self:
                     self[key] = x
                 else:
@@ -52,7 +52,7 @@ class TensorDict(dict):
         if isinstance(d, abc.MutableMapping):
             for key, x in d.items():
                 assert torch.is_tensor(x)
-                x = x.squeeze().unsqueeze(dim).detach().cpu()
+                x = x.unsqueeze(dim).detach().cpu()
                 if key not in self:
                     self[key] = x
                 else:
