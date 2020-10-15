@@ -191,7 +191,7 @@ def main(args):
         model, optim = amp.initialize(model, optim, opt_level=args.opt_level)
     train_set, eval_set = cfg.get_datasets(args.dataset)
     train_loader = cfg.get_loader(args.train, train_set)
-    eval_loader = cfg.get_loader(args.eval, eval_set)
+    eval_loader = cfg.get_loader(args.eval, eval_set, train=False)
 
     for epoch in range(num_epochs):
         logger.info(f"--- training at epoch {epoch} ---")
