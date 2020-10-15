@@ -122,6 +122,10 @@ def main(args):
 
     num_epochs = args.num_epochs
 
+    metrics_fn = getattr(metrics, args.metrics_fn)
+    if not callable(metrics_fn):
+        metrics_fn = None
+
     if isinstance(args.weights, abc.Sequence):
         weights = torch.tensor(args.weights).to(device)
     elif isinstance(args.weights, numbers.Number):
@@ -146,7 +150,7 @@ def main(args):
         wandb.log(train_res)
         if epoch % args.eval_step == 0:
             logger.info(f"--- evaluating at epoch {epoch} ---")
-            eval_res = eval(model, eval_loader, device, epoch, metrics.multi_class_metrics)
+            eval_res = eval(model, eval_loader, device, epoch, metrics_fn)
             wandb.log(eval_res)
 
 
