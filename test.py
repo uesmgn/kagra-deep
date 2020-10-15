@@ -26,7 +26,6 @@ logger = logging.getLogger(__name__)
 def wandb_init(args):
     wandb.init(project=args.project, tags=args.tags, group=args.group)
     wandb.run.name = args.name + "_" + wandb.run.id
-    wandb.config.update(flatten(args))
 
 
 def config_init(args):
@@ -110,10 +109,11 @@ def eval(model, loader, device, epoch):
 
 @hydra.main(config_path="config", config_name="test")
 def main(args):
+    wandb_init(args.wandb)
+    wandb.config.update(flatten(args))
+
     global use_apex
     use_apex = args.use_apex and use_apex
-
-    wandb_init(args.wandb)
 
     cfg = config_init(args)
 
