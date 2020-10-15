@@ -5,9 +5,6 @@ import torch
 from collections import abc
 import numbers
 from tqdm import tqdm
-import numpy as np
-
-np.set_printoptions(threshold=np.inf)
 
 try:
     from apex import amp
@@ -17,7 +14,7 @@ except ImportError:
     use_apex = False
 
 from src import config
-from src.utils import transforms as tf
+from src.utils import transforms
 from src.utils import stats
 from src.utils.functional import to_device, tensordict
 from src.data import samplers
@@ -32,20 +29,20 @@ def wandb_init(args):
 
 
 def config_init(args):
-    transform = tf.Compose(
+    transform = transforms.Compose(
         [
-            tf.SelectIndices(args.use_channels, 0),
-            tf.CenterMaximizedResizeCrop(224),
+            transforms.SelectIndices(args.use_channels, 0),
+            transforms.CenterMaximizedResizeCrop(224),
         ]
     )
-    augment_transform = tf.Compose(
+    augment_transform = transforms.Compose(
         [
-            tf.SelectIndices(args.use_channels, 0),
-            tf.RandomMaximizedResizeCrop(224),
+            transforms.SelectIndices(args.use_channels, 0),
+            transforms.RandomMaximizedResizeCrop(224),
         ]
     )
     alt = -1 if args.use_other else None
-    target_transform = tf.ToIndex(args.targets, alt=alt)
+    target_transform = transforms.ToIndex(args.targets, alt=alt)
 
     def sampler_callback(ds):
         return samplers.Balancer(ds, args.sample_expansion)
@@ -61,15 +58,18 @@ def config_init(args):
     return config.Config(**params)
 
 
-def train(model, optim, loader, device, weights=None, use_apex=False):
+def train(model, optim, loader, device, weights=1.0, use_apex=False):
+
+    result = tensordict()
+
     model.train()
-    loss = 0
-    num_samples = 0
+
     with tqdm(total=len(loader)) as pbar:
         for data in loader:
             data = to_device(device, *data)
-            l = model(*data)
-            loss_step = (l * weights).sum()
+            loss = model(*data)
+            loss_step = (loss * weights).sum()
+
             optim.zero_grad()
             if use_apex:
                 with amp.scale_loss(loss_step, optim) as loss_scaled:
@@ -77,11 +77,12 @@ def train(model, optim, loader, device, weights=None, use_apex=False):
             else:
                 loss_step.backward()
             optim.step()
-            loss += l.detach()
-            num_samples += data[0].shape[0]
+
+            result.stack({"train_loss": loss})
             pbar.update(1)
-    loss /= num_samples
-    return loss
+
+    result.reduction("mean", keep_dim=-1).flatten()
+    return result
 
 
 def eval(model, loader, device):
@@ -102,60 +103,59 @@ def eval(model, loader, device):
     return loss, params
 
 
-def log_loss(epoch, loss, prefix=""):
-    d = {}
-    total = 0
-    if torch.is_tensor(loss):
-        loss = loss.squeeze()
-        if loss.is_cuda:
-            loss = loss.cpu()
-        if loss.ndim == 0:
-            total = loss.item()
-        elif loss.ndim == 1:
-            losses = loss.numpy()
-            total = losses.sum()
-            for i, l in enumerate(losses):
-                key = "_".join(filter(bool, [prefix, str(i)]))
-                d[key] = l
-        else:
-            raise ValueError("Invalid arguments.")
-    elif isinstance(loss, numbers.Number):
-        total = loss
-    else:
-        raise ValueError("Invalid arguments.")
-    key = "_".join(filter(bool, [prefix, "total"]))
-    d[key] = total
-    wandb.log(d, step=epoch)
-
-
-def log_params(epoch, params, funcs, prefix=""):
-    target = params.pop("target")
-    plt = stats.plotter(target)
-
-    for key, param in params.items():
-        f = None
-
-        if key in funcs:
-            f = funcs[key]
-
-        if isinstance(f, str):
-            name = "_".join(map(lambda x: str(x), filter(bool, [prefix, key, f])))
-            obj = None
-
-            if f == "confusion_matrix":
-                xlabels, ylabels, matrix = plt.confusion_matrix(param)
-                try:
-                    obj = wandb.plots.HeatMap(xlabels, ylabels, matrix, show_text=True)
-                except:
-                    print(name, matrix)
-
-            if obj is not None:
-                try:
-                    wandb.log({name: obj, "epoch": epoch})
-                except:
-                    pass
-        else:
-            pass
+# def log_loss(epoch, params, prefix=""):
+#     d = {}
+#     if torch.is_tensor(loss):
+#         loss = loss.squeeze()
+#         if loss.is_cuda:
+#             loss = loss.cpu()
+#         if loss.ndim == 0:
+#             total = loss.item()
+#         elif loss.ndim == 1:
+#             losses = loss.numpy()
+#             total = losses.sum()
+#             for i, l in enumerate(losses):
+#                 key = "_".join(filter(bool, [prefix, str(i)]))
+#                 d[key] = l
+#         else:
+#             raise ValueError("Invalid arguments.")
+#     elif isinstance(loss, numbers.Number):
+#         total = loss
+#     else:
+#         raise ValueError("Invalid arguments.")
+#     key = "_".join(filter(bool, [prefix, "total"]))
+#     d[key] = total
+#     wandb.log(d, step=epoch)
+#
+#
+# def log_params(epoch, params, funcs, prefix=""):
+#     target = params.pop("target")
+#     plt = stats.plotter(target)
+#
+#     for key, param in params.items():
+#         f = None
+#
+#         if key in funcs:
+#             f = funcs[key]
+#
+#         if isinstance(f, str):
+#             name = "_".join(map(lambda x: str(x), filter(bool, [prefix, key, f])))
+#             obj = None
+#
+#             if f == "confusion_matrix":
+#                 xlabels, ylabels, matrix = plt.confusion_matrix(param)
+#                 try:
+#                     obj = wandb.plots.HeatMap(xlabels, ylabels, matrix, show_text=True)
+#                 except:
+#                     print(name, matrix)
+#
+#             if obj is not None:
+#                 try:
+#                     wandb.log({name: obj, "epoch": epoch})
+#                 except:
+#                     pass
+#         else:
+#             pass
 
 
 @hydra.main(config_path="config", config_name="test")
@@ -192,13 +192,14 @@ def main(args):
 
     for epoch in range(num_epochs):
         logger.info(f"--- training at epoch {epoch} ---")
-        train_loss = train(model, optim, train_loader, device, weights=weights, use_apex=use_apex)
-        log_loss(epoch, train_loss, prefix="train_loss")
-        if epoch % args.eval_step == 0:
-            logger.info(f"--- evaluating at epoch {epoch} ---")
-            test_loss, params = eval(model, test_loader, device)
-            log_loss(epoch, test_loss, prefix="test_loss")
-            log_params(epoch, params, args.log)
+        train_res = train(model, optim, train_loader, device, weights=weights, use_apex=use_apex)
+        print(train_res)
+        wandb.log(train_res, step=epoch)
+        # if epoch % args.eval_step == 0:
+        #     logger.info(f"--- evaluating at epoch {epoch} ---")
+        #     test_loss, params = eval(model, test_loader, device)
+        #     log_loss(epoch, test_loss, prefix="test_loss")
+        #     log_params(epoch, params, args.log)
 
 
 if __name__ == "__main__":
