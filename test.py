@@ -80,8 +80,10 @@ def train(model, loader, device, optim, weights=1.0, use_apex=False):
 
             result.cat({"train_loss": loss})
             pbar.update(1)
-
-    result.reduction("mean", keep_dim=-1).flatten()
+    print(result["train_loss"].shape)
+    result.reduction("mean", keep_dim=-1)
+    print(result["train_loss"].shape)
+    result.flatten()
     return result
 
 
