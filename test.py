@@ -87,6 +87,7 @@ def train(model, loader, device, optim, weights=1.0, use_apex=False):
 
 def eval(model, loader, device):
     result = tensordict()
+    params = tensordict()
 
     model.eval()
 
@@ -94,11 +95,13 @@ def eval(model, loader, device):
         with tqdm(total=len(loader)) as pbar:
             for data in loader:
                 data = to_device(device, *data)
-                loss = model(*data)
+                loss, target, pred = model(*data)
 
                 result.stack({"eval_loss": loss})
+                params.stack({"target": target, "pred": pred})
                 pbar.update(1)
 
+    print(params)
     result.reduction("mean", keep_dim=-1).flatten()
     return result
 
