@@ -11,7 +11,7 @@ train_size: 0.7
 use_apex: True
 opt_level: O1
 num_epochs: 10000
-weights: 1.
+weights: [1., 1., 10., 1., 1.]
 eval_step: 5
 metrics_fn: [latent_space_metrics, multi_class_metrics]
 
