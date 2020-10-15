@@ -16,6 +16,7 @@ except ImportError:
 from src import config
 from src.utils import transforms
 from src.utils import stats
+from src.utils import metrics
 from src.utils.functional import to_device, flatten, tensordict, multi_class_metrics
 from src.data import samplers
 
@@ -59,35 +60,32 @@ def config_init(args):
 
 
 def train(model, optim, loader, device, epoch, weights=1.0, use_apex=False):
-
-    result = tensordict()
+    # training loss for each items e.g. BCE, KL, CE
+    res = tensordict({"epoch": epoch})
 
     model.train()
+    for data in tqdm(loader):
+        data = to_device(device, *data)
+        loss = model(*data)
 
-    with tqdm(total=len(loader)) as pbar:
-        for data in loader:
-            data = to_device(device, *data)
-            loss = model(*data)
-            loss_step = (loss * weights).sum()
+        loss_step = (loss * weights).sum()
+        optim.zero_grad()
+        if use_apex:
+            with amp.scale_loss(loss_step, optim) as loss_scaled:
+                loss_scaled.backward()
+        else:
+            loss_step.backward()
+        optim.step()
 
-            optim.zero_grad()
-            if use_apex:
-                with amp.scale_loss(loss_step, optim) as loss_scaled:
-                    loss_scaled.backward()
-            else:
-                loss_step.backward()
-            optim.step()
+        res.stack({"train_loss": loss})
 
-            result.cat({"train_loss": loss})
-            pbar.update(1)
-    result.reduction("mean", keep_dim=-1)
-    result.flatten()
-    result["epoch"] = epoch
-    return result
+    res.mean("train_loss", keep_dim=-1).flatten("train_loss")
+    return res
 
 
-def eval(model, loader, device, epoch):
-    result = tensordict()
+def eval(model, loader, device, epoch, metrics_callback=None):
+    # loss for each element
+    res = tensordict({"epoch": epoch})
     params = tensordict()
 
     model.eval()
@@ -95,19 +93,20 @@ def eval(model, loader, device, epoch):
         with tqdm(total=len(loader)) as pbar:
             for data in loader:
                 data = to_device(device, *data)
-                loss, t, p = model(*data)
-                result.cat({"eval_loss": loss})
-                params.cat({"target": t, "pred": p}, dim=0)
+                loss, param = model(*data)
+
+                res.stack({"eval_loss": loss})
+                params.cat(param)
+
                 pbar.update(1)
 
-    result.reduction("mean", keep_dim=-1).flatten()
-    metrics = multi_class_metrics(params["target"], params["pred"])
-    result.update(metrics)
-    result["epoch"] = epoch
-    return result
+    res.mean("eval_loss", keep_dim=-1).flatten("eval_loss")
+    if callable(metrics_callback):
+        res.update(metrics_callback(**params))
+    return res
 
 
-@hydra.main(config_path="config", config_name="test")
+@hydra.main(config_path="config", config_name="iic")
 def main(args):
     wandb_init(args.wandb)
     wandb.config.update(flatten(args))
@@ -123,13 +122,12 @@ def main(args):
 
     num_epochs = args.num_epochs
 
-    weights = args.weights
-    if isinstance(weights, abc.Sequence):
-        weights = torch.tensor(weights).to(device)
-    elif isinstance(weights, numbers.Number):
+    if isinstance(args.weights, abc.Sequence):
+        weights = torch.tensor(args.weights).to(device)
+    elif isinstance(args.weights, numbers.Number):
         weights = float(weights)
     else:
-        raise ValueError(f"Invalid weights: {weights}")
+        weights = 1.0
 
     net = cfg.get_net(args.net)
     model = cfg.get_model(args.model, net=net).to(device)
@@ -148,7 +146,7 @@ def main(args):
         wandb.log(train_res)
         if epoch % args.eval_step == 0:
             logger.info(f"--- evaluating at epoch {epoch} ---")
-            eval_res = eval(model, eval_loader, device, epoch)
+            eval_res = eval(model, eval_loader, device, epoch, metrics.multi_class_metrics)
             wandb.log(eval_res)
 
 

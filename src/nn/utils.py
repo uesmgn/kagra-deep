@@ -8,13 +8,7 @@ import matplotlib.pyplot as plt
 import torchvision
 from abc import ABCMeta, abstractmethod
 
-__all__ = [
-    "instantiate",
-    "Module",
-    "Reshape",
-    "Activation",
-    "Gaussian",
-]
+__all__ = ["instantiate", "Module", "Reshape", "Activation", "Gaussian", "Classifier"]
 
 
 def instantiate(self, d, name):
@@ -174,3 +168,14 @@ class Gaussian(nn.Module):
         eps = torch.randn_like(mean)
         x = mean + eps * std
         return x
+
+
+class Classifier(nn.Module):
+    def __init__(self, in_dim, out_dim):
+        super().__init__()
+        self.dense = nn.Linear(in_dim, out_dim)
+
+    def forward(self, x):
+        logit = self.dense(x)
+        y = F.softmax(logit, -1)
+        return y

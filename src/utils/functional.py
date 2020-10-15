@@ -1,69 +1,9 @@
 import torch
 from collections import abc
-from sklearn.metrics import (
-    precision_score,
-    recall_score,
-    f1_score,
-    confusion_matrix,
-    mutual_info_score,
-    normalized_mutual_info_score,
-    adjusted_mutual_info_score,
-    adjusted_rand_score,
-)
-import plotly.figure_factory as ff
-import numpy as np
-
-__all__ = ["to_device", "multi_class_metrics", "flatten", "tensordict"]
+import warnings
 
 
-def multi_class_metrics(target, pred):
-    target = target.view(-1).detach().cpu().numpy()
-    pred = pred.view(-1).detach().cpu().numpy()
-
-    precision_micro = precision_score(target, pred, average="micro", zero_division=0)
-    precision_macro = precision_score(target, pred, average="macro", zero_division=0)
-    precision_weighted = precision_score(target, pred, average="weighted", zero_division=0)
-
-    recall_micro = recall_score(target, pred, average="micro", zero_division=0)
-    recall_macro = recall_score(target, pred, average="macro", zero_division=0)
-    recall_weighted = recall_score(target, pred, average="weighted", zero_division=0)
-
-    f1_micro = f1_score(target, pred, average="micro", zero_division=0)
-    f1_macro = f1_score(target, pred, average="macro", zero_division=0)
-    f1_weighted = f1_score(target, pred, average="weighted", zero_division=0)
-
-    mis = mutual_info_score(target, pred)
-    nmis = normalized_mutual_info_score(target, pred)
-    amis = adjusted_mutual_info_score(target, pred)
-    ars = adjusted_rand_score(target, pred)
-
-    labels = list(np.unique(target))
-
-    matrix = confusion_matrix(target, pred, labels=labels)
-
-    fig = ff.create_annotated_heatmap(
-        matrix, x=labels, y=labels, annotation_text=matrix, colorscale="Blues", showscale=True
-    )
-    fig.update_xaxes(side="bottom")
-    fig.update_yaxes(autorange="reversed")
-
-    params = {
-        "precision_micro": precision_micro,
-        "precision_macro": precision_macro,
-        "precision_weighted": precision_weighted,
-        "recall_micro": recall_micro,
-        "recall_macro": recall_macro,
-        "recall_weighted": recall_weighted,
-        "f1_micro": f1_micro,
-        "f1_macro": f1_macro,
-        "f1_weighted": f1_weighted,
-        "mutual_info_score": mis,
-        "normalized_mutual_info_score": nmis,
-        "adjusted_mutual_info_score": amis,
-        "adjusted_rand_score": ars,
-        "confusion_matrix": fig,
-    }
-    return params
+__all__ = ["to_device", "flatten", "tensordict"]
 
 
 def to_device(device, *args):
@@ -90,77 +30,72 @@ def flatten(d, parent_key="", sep="."):
 
 
 class TensorDict(dict):
-    def __init__(self):
-        pass
+    def __init__(self, d=None):
+        super().__init__()
+        if isinstance(d, abc.MutableMapping):
+            self.update(d)
 
-    def cat(self, d, dim=None):
+    def cat(self, d, dim=0):
         if isinstance(d, abc.MutableMapping):
             for key, x in d.items():
                 assert torch.is_tensor(x)
-                x = x.detach().cpu()
-                if dim is None:
-                    x = x.unsqueeze(0)
+                x = x.squeeze().detach().cpu()
                 if key not in self:
                     self[key] = x
                 else:
                     old = self[key]
-                    self[key] = torch.cat([old, x], dim or 0)
+                    self[key] = torch.cat([old, x], dim)
         else:
             raise ValueError("Invalid arguments.")
 
-    def reduction(self, mode="mean", keep_dim=None, inplace=True):
-        new = {}
-        for key, x in self.items():
-            indices = list(range(x.ndim))
-            if isinstance(keep_dim, int):
-                indices.pop(keep_dim)
-                for i in indices:
-                    if mode == "mean":
-                        x = x.mean(i).unsqueeze(i)
-                    elif mode == "sum":
-                        x = x.sum(i).unsqueeze(i)
-                    else:
-                        raise ValueError("Invalid arguments.")
-            else:
-                if mode == "mean":
-                    x = x.mean()
-                elif mode == "sum":
-                    x = x.sum()
+    def stack(self, d, dim=0):
+        if isinstance(d, abc.MutableMapping):
+            for key, x in d.items():
+                assert torch.is_tensor(x)
+                x = x.squeeze().unsqueeze(dim).detach().cpu()
+                if key not in self:
+                    self[key] = x
                 else:
-                    raise ValueError("Invalid arguments.")
-            new[key] = x.squeeze()
-        if inplace:
-            self.clear()
-            self.update(new)
-            return self
-        return new
+                    old = self[key]
+                    self[key] = torch.cat([old, x], dim)
+        else:
+            raise ValueError("Invalid arguments.")
 
-    def flatten(self, inplace=True, total=True):
+    def mean(self, key, keep_dim=-1):
+        x = self[key]
+        if torch.is_tensor(x):
+            if isinstance(keep_dim, int):
+                dims = list(range(x.ndim))
+                dims.pop(keep_dim)
+                n = x.shape[keep_dim]
+                x = x.permute(keep_dim, *dims).contiguous().view(n, -1).mean(-1)
+            else:
+                x = x.mean()
+        self.update({key: x})
+        return self
+
+    def flatten(self, key):
+        value = self[key]
         new = {}
-        for key, value in self.items():
-            if torch.is_tensor(value):
-                try:
-                    value = value.item()
-                except:
-                    value = value.tolist()
-            if isinstance(value, abc.Sequence):
-                if len(value) >= 10:
-                    raise ValueError("dimention is too large.")
-                tmp = 0
+        if torch.is_tensor(value):
+            value = value.view(-1).tolist()
+            if len(value) >= 10:
+                warnings.warn("dimention is too large.")
+                new[key] = value
+            else:
+                total = 0
                 for i, x in enumerate(value):
                     new_key = "{}_{}".format(key, i)
                     new[new_key] = x
-                    tmp += x
-                if total:
-                    new["{}_total".format(key)] = tmp
-            else:
-                new[key] = value
-        if inplace:
-            self.clear()
-            self.update(new)
-            return self
-        return new
+                    total += x
+                new["{}_total".format(key)] = total
+        else:
+            new[key] = value
+
+        self.pop(key)
+        self.update(new)
+        return self
 
 
-def tensordict():
-    return TensorDict()
+def tensordict(d=None):
+    return TensorDict(d)

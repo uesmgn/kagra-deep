@@ -59,7 +59,7 @@ class IIC(Module):
                 if self.best_index is None:
                     self.best_index = 0
                 pred = torch.argmax(y[..., self.best_index], -1)
-                return loss, target, pred
+                return loss, {"target": target, "pred": pred}
             else:
                 raise ValueError("args is invalid.")
 
