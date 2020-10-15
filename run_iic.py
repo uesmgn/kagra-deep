@@ -125,7 +125,7 @@ def main(args):
     if isinstance(args.weights, abc.Sequence):
         weights = torch.tensor(args.weights).to(device)
     elif isinstance(args.weights, numbers.Number):
-        weights = float(weights)
+        weights = float(args.weights)
     else:
         weights = 1.0
 
