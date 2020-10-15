@@ -106,7 +106,7 @@ class IIC(Module):
             return loss
 
     def __ce(self, y, target):
-        return F.cross_entropy(y, target)
+        return F.cross_entropy(y, target).unsqueeze(0)
 
     def __ce_heads(self, y, target, reduction="sum"):
         loss = torch.stack([self.__ce(y[..., i], target) for i in range(self.num_heads)])
