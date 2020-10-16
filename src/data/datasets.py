@@ -67,8 +67,8 @@ class HDF5(data.Dataset):
         train_idx, test_idx = train_test_split(
             idx, train_size=train_size, random_state=123, stratify=stratify
         )
-        train_set = copy.copy(self).__init_cache(train_idx)
-        test_set = copy.copy(self).__init_cache(test_idx)
+        train_set = copy.copy(self).__select_indices(train_idx)
+        test_set = copy.copy(self).__select_indices(test_idx)
         return train_set, test_set
 
     def __getitem__(self, i):
@@ -85,11 +85,14 @@ class HDF5(data.Dataset):
     def __len__(self):
         return len(self.__cache)
 
-    def __init_cache(self, indices=None):
+    def __init_cache(self):
         self.__cache = []
         with self.__open(self.__root) as fp:
             self.__cache = self.__children(fp)
-        if isinstance(indices, list):
+        return self
+
+    def __select_indices(self, indices=None):
+        if isinstance(indices, abc.Sequence):
             self.__cache = [self.__cache[i] for i in indices]
         return self
 
