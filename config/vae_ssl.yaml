@@ -12,7 +12,7 @@ labeled_size: 0.1
 use_apex: True
 opt_level: O1
 num_epochs: 10000
-weights: [1., 10., 1.]
+weights: [1., 50., 1.]
 eval_step: 5
 metrics_fn: [latent_space_metrics, multi_class_metrics]
 
@@ -36,7 +36,7 @@ model:
 optim:
   name: adam
   params:
-    lr: 1e-4
+    lr: 1e-3
 
 dataset:
   name: hdf5
