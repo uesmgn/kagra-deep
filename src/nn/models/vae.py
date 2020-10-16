@@ -128,13 +128,22 @@ class M2(Module):
         return torch.cat([labeled_loss, sup_loss])
 
     def __unlabeled(self, x, _):
+        unlabeled_loss = 0
         x_densed = self.encoder(x)
-        y, _ = self.classifier(x_densed)
-        z, z_mean, z_var = self.gaussian(torch.cat([x_densed, y], -1))
-        xt = self.decoder(torch.cat([z, y], -1))
-        log_p_x = self.__bce(x, xt)
-        log_p_z = self.__kl_norm(z_mean, z_var)
-        unlabeled_loss = log_p_x + log_p_z
+        qy, _ = self.classifier(x_densed)
+        y = F.one_hot(torch.arange(self.num_classes), num_classes=self.num_classes)
+        y = y.to(x.device, dtype=x.dtype)
+        for i in range(self.num_classes):
+            qy_i = qy[:, i]
+            y_i = y[:, i].repeat(x.shape[0], 1)
+            z, z_mean, z_var = self.gaussian(torch.cat([x_densed, y_i], -1))
+            xt = self.decoder(torch.cat([z, y_i], -1))
+
+            log_p_x = self.__bce(x, xt)
+            log_p_y = -np.log(1 / self.num_classes)
+            log_p_z = self.__kl_norm(z_mean, z_var)
+            log_q_y = torch.log(qy_i + 1e-8)
+            unlabeled_loss += (log_p_x + log_p_y + log_p_z + log_q_y) * qy_i
         return unlabeled_loss
 
     def __ce(self, y, target):
