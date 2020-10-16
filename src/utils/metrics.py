@@ -69,7 +69,7 @@ def latent_space_metrics(target, z, **kwargs):
     z = z.detach().cpu().numpy()
 
     labels = np.unique(target)
-    z = TSNE(n_components=2).fit_transform(z)
+    z = TSNE(n_components=2, n_jobs=-1).fit_transform(z)
     xx, yy = z.T
 
     fig = go.Figure()
