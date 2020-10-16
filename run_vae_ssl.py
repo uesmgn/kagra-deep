@@ -54,6 +54,8 @@ def config_init(args):
         "augment_transform": augment_transform,
         "target_transform": target_transform,
         "sampler_callback": sampler_callback,
+        "train_size": args.train_size,
+        "labeled_size": args.labeled_size,
     }
 
     return config.Config(**params)
