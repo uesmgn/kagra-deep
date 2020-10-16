@@ -164,10 +164,10 @@ class Config(object):
         dataset = instantiate(datasets, name)(
             transform=self.transform, target_transform=self.target_transform, **params
         )
-        logger.info(f"Successfully loaded {len(dataset)} data.", dataset.counter)
+        logger.info(f"Successfully loaded {len(dataset)} data.\n{dataset.counter}")
         train_set, test_set = dataset.split(self.train_size, stratify=dataset.targets)
-        logger.info(f"train_set: {len(train_set)}\n", train_set.counter)
-        logger.info(f"test_set: {len(test_set)}\n", test_set.counter)
+        logger.info(f"train_set: {len(train_set)}\n{train_set.counter}")
+        logger.info(f"test_set: {len(test_set)}\n{test_set.counter}")
 
         if self.type == "basic":
             if callable(self.sampler_callback):
@@ -176,15 +176,15 @@ class Config(object):
             if callable(self.sampler_callback):
                 train_set.transform = self.augment_transform
             l, u = train_set.split(self.labeled_size, stratify=train_set.targets)
-            logger.info(f"labeled_set: {len(l)}\n", l.counter)
-            logger.info(f"unlabeled_set: {len(u)}\n", u.counter)
+            logger.info(f"labeled_set: {len(l)}\n{l.counter}")
+            logger.info(f"unlabeled_set: {len(u)}\n{u.counter}")
             train_set = (l, u)
         elif self.type == "co":
             train_set = datasets.Co(train_set, self.augment_transform)
         elif self.type == "co+ss":
             l, u = train_set.split(self.labeled_size, stratify=train_set.targets)
-            logger.info(f"labeled_set: {len(l)}\n", l.counter)
-            logger.info(f"unlabeled_set: {len(u)}\n", u.counter)
+            logger.info(f"labeled_set: {len(l)}\n{l.counter}")
+            logger.info(f"unlabeled_set: {len(u)}\n{u.counter}")
             l, u = map(lambda x: datasets.Co(x, self.augment_transform), (l, u))
             train_set = (l, u)
         return train_set, test_set
