@@ -149,8 +149,7 @@ class Gaussian(nn.Module):
         super().__init__()
         self.dense = nn.Linear(in_dim, out_dim * 2)
 
-    def forward(self, x, reparameterize=True):
-        eps = torch.finfo(x.dtype).eps
+    def forward(self, x, reparameterize=True, eps=1e-8):
         x_densed = self.dense(x)
         mean, logit = torch.split(x_densed, x_densed.shape[1] // 2, 1)
         var = F.softplus(logit) + eps
