@@ -18,9 +18,9 @@ class M1(Module):
         self.gaussian = Gaussian(net.fc_in, z_dim)
         self.decoder = nn.Sequential(
             nn.Linear(z_dim, 512 * 7 * 7),
-            nn.ReLU(inplace=True),
-            nn.Dropout(),
             Reshape((512, 7, 7)),
+            nn.BatchNorm2d(512),
+            nn.ReLU(inplace=True),
             ConvTranspose2dModule(512, 512, 2),
             ConvTranspose2dModule(512, 256, 2),
             ConvTranspose2dModule(256, 128, 2),
@@ -83,9 +83,9 @@ class M2(Module):
         )
         self.decoder = nn.Sequential(
             nn.Linear(z_dim + num_classes, 512 * 7 * 7),
-            nn.ReLU(inplace=True),
-            nn.Dropout(),
             Reshape((512, 7, 7)),
+            nn.BatchNorm2d(512),
+            nn.ReLU(inplace=True),
             ConvTranspose2dModule(512, 512, 2),
             ConvTranspose2dModule(512, 256, 2),
             ConvTranspose2dModule(256, 128, 2),
