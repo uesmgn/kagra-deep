@@ -167,7 +167,6 @@ class Config(object):
         if self.type == "basic":
             if callable(self.sampler_callback):
                 train_set.transform = self.augment_transform
-            return train_set, test_set
         elif self.type == "ss":
             if callable(self.sampler_callback):
                 train_set.transform = self.augment_transform
@@ -179,6 +178,7 @@ class Config(object):
             l, u = train_set.split(self.labeled_size, stratify=train_set.targets)
             l, u = map(lambda x: datasets.Co(x, self.augment_transform), (l, u))
             train_set = (l, u)
+        return train_set, test_set
 
     def get_loader(self, cfg, datasets, train=True):
 
