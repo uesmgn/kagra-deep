@@ -8,6 +8,7 @@ targets: [1080Lines, 1400Ripples, Air_Compressor, Blip,
 use_other: True
 sample_expansion: 12800
 train_size: 0.7
+labeled_size: 0.1
 use_apex: True
 opt_level: O1
 num_epochs: 10000
