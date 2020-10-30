@@ -132,7 +132,7 @@ class M2(pl.LightningModule):
 
     def __supervised_loss(self, x, y):
         y_logits = self.classifier(x)
-        loss = (-y * F.log_softmax(y_logits, dim=-1)).sum(-1)
+        loss = (-y * F.log_softmax(y_logits, dim=-1)).sum(-1).mean()
         return loss
 
     def __unlabeled_loss(self, x):
