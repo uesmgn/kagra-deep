@@ -96,6 +96,7 @@ class M2(pl.LightningModule):
     def __init__(self, in_channels=3, mid_dim=512, z_dim=512, num_classes=10):
         super().__init__()
 
+        self.num_classes = num_classes
         self.encoder = Encoder(in_channels=in_channels, out_dim=mid_dim)
         self.classifier = Classifier(in_channels=in_channels, num_classes=num_classes)
         self.gaussian = Gaussian(mid_dim + num_classes, z_dim)
@@ -111,6 +112,7 @@ class M2(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         (lx, ly), (ux, _) = batch
+        ly = F.one_hot(ly, num_classes=self.num_classes)
         labeled_loss = self.__labeled_loss(lx, ly)
         supervised_loss = self.__supervised_loss(lx, ly)
         unlabeled_loss = self.__unlabeled_loss(ux)
@@ -119,8 +121,6 @@ class M2(pl.LightningModule):
 
     def __labeled_loss(self, x, y):
         x_densed = self.encoder(x)
-        print(x_densed.shape)
-        print(y.shape)
         z, z_mean, z_logvar = self.gaussian(torch.cat([x_densed, y], -1))
         x_recon_logits = self.decoder(torch.cat([z, y], -1))
         loss = labeled_elbo(x, x_recon_logits, y, z_mean, z_logvar)
