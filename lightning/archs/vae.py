@@ -42,7 +42,7 @@ def unlabeled_elbo(x, x_recon_logits, y_prob, y_logits, z_mean, z_logvar):
 class Encoder(nn.Module):
     def __init__(self, in_channels=3, out_dim=10):
         super().__init__()
-        net = models.VGG16(in_channels=in_channels, num_classes=out_dim)
+        net = models.ResNet18(in_channels=in_channels, num_classes=out_dim)
         self.blocks = nn.Sequential(
             *list(net.children()),
         )
@@ -55,7 +55,7 @@ class Encoder(nn.Module):
 class Classifier(nn.Module):
     def __init__(self, in_channels=3, num_classes=10):
         super().__init__()
-        net = models.VGG16(in_channels=in_channels, num_classes=num_classes)
+        net = models.ResNet18(in_channels=in_channels, num_classes=num_classes)
         self.blocks = nn.Sequential(
             *list(net.children()),
         )
