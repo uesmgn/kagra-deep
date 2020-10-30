@@ -116,6 +116,10 @@ class M2(pl.LightningModule):
         labeled_loss = self.__labeled_loss(lx, ly)
         supervised_loss = self.__supervised_loss(lx, ly)
         unlabeled_loss = self.__unlabeled_loss(ux)
+        print(labeled_loss, labeled_loss.shape)
+        print(supervised_loss, supervised_loss.shape)
+        print(unlabeled_loss, unlabeled_loss.shape)
+        loss = labeled_loss + supervised_loss + unlabeled_loss
         self.log("train_loss", loss)
         return loss
 
