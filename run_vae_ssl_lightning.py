@@ -37,7 +37,8 @@ def main(args):
     train_loader = ds.get_loader(**args.dataloader)
     test_loader = ds.get_loader(train=False, **args.dataloader)
 
-    model = archs.M2()
+    model = archs.M2(**args.model)
+
     trainer = pl.Trainer(max_epochs=1000, gpus=-1)
     trainer.fit(model, train_loader)
 
