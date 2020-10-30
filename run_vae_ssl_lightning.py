@@ -1,10 +1,13 @@
 import hydra
 import pytorch_lightning as pl
+from pytorch_lightning.loggers import WandbLogger
 
 from lightning import archs
 from lightning import data
 from lightning.utils import transforms
 from lightning.data import samplers
+
+wandb_logger = WandbLogger(name="test01", project="pytorch-lightning")
 
 
 @hydra.main(config_path="config", config_name="test")
@@ -39,7 +42,7 @@ def main(args):
 
     model = archs.M2(**args.model)
 
-    trainer = pl.Trainer(max_epochs=1000, gpus=-1)
+    trainer = pl.Trainer(max_epochs=1000, gpus=-1, logger=wandb_logger)
     trainer.fit(model, train_loader)
 
 
