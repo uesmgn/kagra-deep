@@ -5,155 +5,117 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from ..utils import Module, Gaussian, Classifier, Reshape, ConvTranspose2dModule
+from multipledispatch import dispatch
 
-__all__ = ["M1", "M2"]
+from .. import nets
+
+__all__ = ["M2"]
 
 
-class M1(Module):
-    def __init__(self, net, z_dim=512):
+def categorical_cross_entropy(x):
+    x_prior = F.softmax(torch.ones_like(x), dim=-1).detach()
+    ce = -(x * torch.log(x_prior + 1e-8)).sum(-1)
+    return ce
+
+
+def labeled_elbo(x, x_recon_logits, y, z_mean, z_logvar):
+    b, d = z_mean.shape
+    bce = F.binary_cross_entropy_with_logits(x_recon_logits, x, reduction="sum") / b
+    kld = 0.5 * (z_logvar.exp() - z_logvar + torch.pow(z_mean, 2) - 1).sum() / b
+    cat = categorical_cross_entropy(y).sum() / b  # constant, -np.log(1 / num_classes)
+    l = bce + kld + cat
+    return l
+
+
+def unlabeled_elbo(x, x_recon_logits, y_logits, z_mean, z_logvar):
+    b, d = z_mean.shape
+    _, num_classes = y_logits.shape
+    y_prob = torch.exp(y_logits)
+    h = -(y_prob * y_logits).sum() / b
+
+    bce = (
+        F.binary_cross_entropy_with_logits(x_recon_logits, x, reduction="none").view(b, -1).sum(-1)
+    )
+    kld = 0.5 * (z_logvar.exp() - z_logvar + torch.pow(z_mean, 2) - 1).sum(-1)
+    cat = categorical_cross_entropy(F.one_hot(torch.tensor(0), num_classes=num_classes).float())
+    l = (y_prob * (bce + kld + cat).unsqueeze(1)).sum() / b
+    u = l + h
+    return u
+
+
+class M2_base(nets.BaseModule):
+    def __init__(self, encoder_callback, decoder_callback, z_dim=512, num_classes=20):
         super().__init__()
-        # remove last fc layer
-        self.encoder = nn.Sequential(*list(net.children())[:-1])
-        self.gaussian = Gaussian(net.fc_in, z_dim)
-        self.decoder = nn.Sequential(
-            nn.Linear(z_dim, 512 * 7 * 7),
-            Reshape((512, 7, 7)),
-            nn.BatchNorm2d(512),
-            nn.ReLU(inplace=True),
-            ConvTranspose2dModule(512, 512, 2),
-            ConvTranspose2dModule(512, 256, 2),
-            ConvTranspose2dModule(256, 128, 2),
-            ConvTranspose2dModule(128, 64, 2),
-            ConvTranspose2dModule(64, 3, 2, activation=None),
-        )
-        self.initialize_weights()
-
-    def initialize_step(self):
-        pass
-
-    def forward(self, x, target):
-        x, xt, z, z_mean, z_var = self.__forward(x, target)
-        bce = self.__bce(x, xt)
-        kl = self.__kl_norm(z_mean, z_var)
-        loss = torch.cat([bce, kl])
-
-        if self.training:
-            return loss
-        else:
-            return loss, {"target": target, "z": z}
-
-    def __forward(self, x, target):
-        x_densed = self.encoder(x)
-        z, z_mean, z_var = self.gaussian(x_densed)
-        xt = self.decoder(z)
-        return x, xt, z, z_mean, z_var
-
-    def __bce(self, x, xt):
-        bce = F.binary_cross_entropy_with_logits(xt, x, reduction="sum")
-        return bce.unsqueeze(0)
-
-    def __kl_norm(self, mean, var):
-        kl = 0.5 * (torch.log(1.0 / var) + (var + torch.pow(mean, 2)) - 1).sum()
-        return kl.unsqueeze(0)
-
-
-class M2(Module):
-    def __init__(self, net, z_dim=512, num_classes=20):
-        super().__init__()
-        # remove last fc layer
+        self.z_dim = z_dim
         self.num_classes = num_classes
+
         self.encoder = nn.Sequential(
-            *list(net.children())[:-1],
-            nn.Linear(net.fc_in, 512),
-            nn.BatchNorm1d(512),
+            *list(encoder_callback(512).children()),  # drop last fc layer
             nn.ReLU(inplace=True),
         )
+
         self.classifier = nn.Sequential(
-            nn.Linear(512, 512),
-            nn.BatchNorm1d(512),
-            nn.ReLU(inplace=True),
-            Classifier(512, num_classes),
+            *list(encoder_callback(num_classes).children()),
+            nn.LogSoftmax(dim=-1),
         )
-        self.gaussian = nn.Sequential(
-            nn.Linear(512 + num_classes, 512),
-            nn.BatchNorm1d(512),
-            nn.ReLU(inplace=True),
-            Gaussian(512, z_dim),
-        )
-        self.decoder = nn.Sequential(
-            nn.Linear(z_dim + num_classes, 512 * 7 * 7),
-            Reshape((512, 7, 7)),
-            nn.BatchNorm2d(512),
-            nn.ReLU(inplace=True),
-            ConvTranspose2dModule(512, 512, 2),
-            ConvTranspose2dModule(512, 256, 2),
-            ConvTranspose2dModule(256, 128, 2),
-            ConvTranspose2dModule(128, 64, 2),
-            ConvTranspose2dModule(64, 3, 2, activation=None),
-        )
-        self.initialize_weights()
 
-    def initialize_step(self):
-        pass
+        self.gaussian = nets.Gaussian(512 + num_classes, z_dim)
 
-    def forward(self, *args):
+        self.decoder = decoder_callback(z_dim + num_classes)
+
+    @dispatch(object, object, object, object)
+    def forward(self, lx, target, ux, _):
+        if not self.training:
+            raise NotImplementedError("The number of arguments is unexpected for evaluating.")
+        labeled_loss = self.__labeled(lx, target)
+        supervised_loss = self.__supervised(lx, target)
+        unlabeled_loss = self.__unlabeled(ux)
+        loss = torch.stack([labeled_loss, supervised_loss, unlabeled_loss])
+        return loss
+
+    @dispatch(object, object)
+    def forward(self, x, target):
         if self.training:
-            lx, target, ux, _ = args
-            labeled_loss = self.__labeled(lx, target)
-            unlabeled_loss = self.__unlabeled(ux, _)
-            return torch.cat([labeled_loss, unlabeled_loss])
-        else:
-            x, target = args
-            x_densed = self.encoder(x)
-            y, y_logits = self.classifier(x_densed)
-            z, z_mean, z_var = self.gaussian(torch.cat([x_densed, y], -1))
-            pred = torch.argmax(y_logits, -1)
-            loss = self.__ce(y_logits, target)
-            return loss, {"target": target, "pred": pred, "z": z}
+            raise NotImplementedError("The number of arguments is unexpected for training.")
+        x_densed = self.encoder(x)
+        y_logits = self.classifier(x)
+        y_prob = torch.exp(y_logits)
+        y = torch.argmax(y_prob, -1)
+        z, z_mean, z_logvar = self.gaussian(torch.cat([x_densed, y_prob], -1))
+        loss = F.cross_entropy(y_logits, target)
+        return {"y": y, "z": z, "loss": loss}
 
     def __labeled(self, x, target):
         x_densed = self.encoder(x)
-        y = F.one_hot(target, num_classes=self.num_classes).to(torch.float)
-        z, z_mean, z_var = self.gaussian(torch.cat([x_densed, y], -1))
-        xt = self.decoder(torch.cat([z, y], -1))
-        log_p_x = self.__bce(x, xt)
-        log_p_x = -np.log(1 / self.num_classes)
-        log_p_z = self.__kl_norm(z_mean, z_var)
-        labeled_loss = log_p_x + log_p_x + log_p_z
+        y = F.one_hot(target, num_classes=self.num_classes).float()
+        z, z_mean, z_logvar = self.gaussian(torch.cat([x_densed, y], -1))
+        x_recon_logits = self.decoder(torch.cat([z, y], -1))
+        l = labeled_elbo(x, x_recon_logits, y, z_mean, z_logvar)
+        return l
 
-        _, y_logits = self.classifier(x_densed)
-        sup_loss = self.__ce(y_logits, target)
+    def __supervised(self, x, target):
+        y_logits = self.classifier(x)
+        s = F.cross_entropy(y_logits, target)
+        return s
 
-        return torch.cat([labeled_loss, sup_loss])
-
-    def __unlabeled(self, x, _):
-        unlabeled_loss = 0
+    def __unlabeled(self, x):
         x_densed = self.encoder(x)
-        qy, _ = self.classifier(x_densed)
-        y = F.one_hot(torch.arange(self.num_classes), num_classes=self.num_classes)
-        y = y.to(x.device, dtype=x.dtype)
-        for i in range(self.num_classes):
-            qy_i = qy[:, i]
-            y_i = y[:, i].repeat(x.shape[0], 1)
-            z, z_mean, z_var = self.gaussian(torch.cat([x_densed, y_i], -1))
-            xt = self.decoder(torch.cat([z, y_i], -1))
+        y_logits = self.classifier(x)
+        z, z_mean, z_logvar = self.gaussian(torch.cat([x_densed, torch.exp(y_logits)], -1))
+        x_recon_logits = self.decoder(torch.cat([z, torch.exp(y_logits)], -1))
+        u = unlabeled_elbo(x, x_recon_logits, y_logits, z_mean, z_logvar)
+        return u
 
-            log_p_x = self.__bce(x, xt)
-            log_p_y = -np.log(1 / self.num_classes)
-            log_p_z = self.__kl_norm(z_mean, z_var)
-            log_q_y = torch.log(qy_i + 1e-8)
-            unlabeled_loss += (log_p_x + log_p_y + log_p_z + log_q_y) * qy_i
-        return unlabeled_loss
 
-    def __ce(self, y, target):
-        ce = F.cross_entropy(y, target)
-        return ce.unsqueeze(0)
+def M2(encoder="ResNet34", decoder="Decoder", z_dim=512, in_channels=3, num_classes=10):
+    encoder_callback = lambda n: getattr(nets, encoder)(in_channels=in_channels, num_classes=n)
+    decoder_callback = lambda n: getattr(nets, decoder)(in_channels=in_channels, num_classes=n)
 
-    def __bce(self, x, xt):
-        bce = F.binary_cross_entropy_with_logits(xt, x, reduction="sum")
-        return bce.unsqueeze(0)
+    model = M2_base(
+        encoder_callback,
+        decoder_callback,
+        z_dim=z_dim,
+        num_classes=num_classes,
+    )
 
-    def __kl_norm(self, mean, var):
-        kl = 0.5 * (torch.log(1.0 / var) + (var + torch.pow(mean, 2)) - 1).sum()
-        return kl.unsqueeze(0)
+    return model

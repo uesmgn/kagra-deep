@@ -119,8 +119,6 @@ def main(args):
     global use_apex
     use_apex = args.use_apex and use_apex
 
-    cfg = config_init(args)
-
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
@@ -145,11 +143,11 @@ def main(args):
     else:
         weights = 1.0
 
-    net = cfg.get_net(args.net)
-    model = cfg.get_model(args.model, net=net).to(device)
-    optim = cfg.get_optim(args.optim, params=model.parameters())
+    model = get_model(args.model).to(device)
+    optim = get_optim(args.optim, params=model.parameters())
     if use_apex:
         model, optim = amp.initialize(model, optim, opt_level=args.opt_level)
+
     train_set, eval_set = cfg.get_datasets(args.dataset)
     train_loader = cfg.get_loader(args.train, train_set)
     eval_loader = cfg.get_loader(args.eval, eval_set, train=False)

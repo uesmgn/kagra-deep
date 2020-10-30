@@ -1,0 +1,60 @@
+type: ss
+use_channels: [1,2,3]
+targets: [1080Lines, 1400Ripples, Air_Compressor, Blip,
+          Chirp, Extremely_Loud, Helix, Koi_Fish, Light_Modulation,
+          Low_Frequency_Burst, Low_Frequency_Lines, No_Glitch,
+          Power_Line, Repeating_Blips, Scattered_Light, Scratchy,
+          Tomte, Violin_Mode, Whistle, Other]
+use_other: True
+sample_expansion: 12800
+train_size: 0.7
+labeled_size: 0.1
+use_apex: True
+opt_level: O1
+num_epochs: 10000
+weights: [1., 50., 1.]
+eval_step: 5
+metrics_fn: [latent_space_metrics, multi_class_metrics]
+
+
+dataset:
+  root: /content/dataset_small.h5
+  mode: ss
+  train_size: 0.8
+  labeled_size: 0.8
+
+dataloader:
+  batch_size: 64
+  num_workers: 4
+  pin_memory: True
+
+wandb:
+  project: kagra-deep
+  name: vae_ssl
+  tags: [vae, ssl]
+  group: vae
+
+net:
+  name: resnet34
+  params:
+    in_channels: 3
+
+model:
+  name: m2
+  params:
+    z_dim: 512
+    num_classes: 20
+
+optim:
+  name: adam
+  params:
+    lr: 1e-3
+
+
+
+
+eval:
+  batch_size: 128
+  num_workers: 4
+  pin_memory: True
+  drop_last: False
