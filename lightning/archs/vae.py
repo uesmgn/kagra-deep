@@ -1,4 +1,5 @@
 import pytorch_lightning as pl
+from pytorch_lightning.metrics.functional import accuracy
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -117,8 +118,21 @@ class M2(pl.LightningModule):
         supervised_loss = self.__supervised_loss(lx, ly)
         unlabeled_loss = self.__unlabeled_loss(ux)
         loss = labeled_loss + supervised_loss + unlabeled_loss
-        self.log("train_loss", loss)
+        self.log("train_loss", loss, prog_bar=True)
         return loss
+
+    def validation_step(self, batch, batch_idx):
+        x, y = batch
+        y_onehot = F.one_hot(y, num_classes=self.num_classes).float()
+        loss, logits = self.__validation(x, y_onehot)
+        preds = torch.argmax(logits, dim=-1)
+        acc = accuracy(preds, y)
+        self.log("val_loss", loss, prog_bar=True)
+        self.log("val_acc", acc, prog_bar=True)
+        return loss
+
+    def test_step(self, batch, batch_idx):
+        return self.validation_step(batch, batch_idx)
 
     def __labeled_loss(self, x, y):
         x_densed = self.encoder(x)
@@ -141,6 +155,12 @@ class M2(pl.LightningModule):
         x_recon_logits = self.decoder(torch.cat([z, y_prob], -1))
         loss = unlabeled_elbo(x, x_recon_logits, y_prob, y_logits, z_mean, z_logvar)
         return loss
+
+    def __validation(self, x, y):
+        y_logits = self.classifier(x)
+        b, _ = y.shape
+        loss = (-y * F.log_softmax(y_logits, dim=-1)).sum() / b
+        return loss, y_logits
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
