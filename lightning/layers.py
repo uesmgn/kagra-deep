@@ -6,12 +6,11 @@ import numpy as np
 class Gaussian(nn.Module):
     def __init__(self, in_dim, out_dim):
         super().__init__()
-        mean = nn.Linear(in_dim, out_dim)
-        logvar = nn.Linear(in_dim, out_dim)
-        self.head = lambda x: (mean(x), logvar(x))
+        self.logits = nn.Linear(in_dim, out_dim * 2)
 
     def forward(self, x, reparameterize=True):
-        mean, logvar = self.head(x)
+        logits = self.logits(x)
+        mean, logvar = torch.split(logits, logits.shape[-1] // 2, -1)
         if reparameterize:
             x = self._reparameterize(mean, logvar)
         else:
