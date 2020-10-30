@@ -112,10 +112,7 @@ class M2(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         (lx, ly), (ux, _) = batch
-        print(lx.device)
-        print(ly.device)
-        print(ux.device)
-        ly = F.one_hot(ly, num_classes=self.num_classes)
+        ly = F.one_hot(ly, num_classes=self.num_classes).float()
         labeled_loss = self.__labeled_loss(lx, ly)
         supervised_loss = self.__supervised_loss(lx, ly)
         unlabeled_loss = self.__unlabeled_loss(ux)
