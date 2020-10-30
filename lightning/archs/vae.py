@@ -10,7 +10,7 @@ __all__ = ["M2"]
 
 
 def categorical_cross_entropy(x):
-    x_prior = F.softmax(torch.ones_like(x), dim=-1).detach()
+    x_prior = F.softmax(torch.ones_like(x).float(), dim=-1).detach()
     ce = -(x * torch.log(x_prior + 1e-8)).sum(-1)
     return ce
 
