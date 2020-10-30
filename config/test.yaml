@@ -29,6 +29,6 @@ dataloader:
   pin_memory: True
 
 model:
-  mid_dim: 512
-  z_dim: 512
+  mid_dim: 64
+  z_dim: 64
   num_classes: 20
