@@ -43,7 +43,7 @@ def main(args):
     model = archs.M2(**args.model)
 
     trainer = pl.Trainer(max_epochs=1000, gpus=-1, logger=wandb_logger)
-    trainer.fit(model, train_loader)
+    trainer.fit(model, train_loader, test_loader)
 
 
 if __name__ == "__main__":
