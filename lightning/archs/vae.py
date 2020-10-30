@@ -24,10 +24,10 @@ def labeled_elbo(x, x_recon_logits, y, z_mean, z_logvar):
     return l
 
 
-def unlabeled_elbo(x, x_recon_logits, y_prob, z_mean, z_logvar):
+def unlabeled_elbo(x, x_recon_logits, y_prob, y_logits, z_mean, z_logvar):
     b, d = z_mean.shape
     _, num_classes = y_prob.shape
-    h = -(y_prob * y_logits).sum() / b
+    h = -(y_prob * F.log_softmax(y_logits, -1)).sum() / b
 
     bce = (
         F.binary_cross_entropy_with_logits(x_recon_logits, x, reduction="none").view(b, -1).sum(-1)
@@ -137,7 +137,7 @@ class M2(pl.LightningModule):
         y_prob = F.softmax(y_logits, dim=-1)
         z, z_mean, z_logvar = self.gaussian(torch.cat([x_densed, y_prob], -1))
         x_recon_logits = self.decoder(torch.cat([z, y_prob], -1))
-        loss = unlabeled_elbo(x, x_recon_logits, y_prob, z_mean, z_logvar)
+        loss = unlabeled_elbo(x, x_recon_logits, y_prob, y_logits, z_mean, z_logvar)
         return loss
 
     def configure_optimizers(self):
