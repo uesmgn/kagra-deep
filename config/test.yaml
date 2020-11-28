@@ -6,7 +6,7 @@ targets: [1080Lines, 1400Ripples, Air_Compressor, Blip,
           Tomte, Violin_Mode, Whistle, Other]
 use_other: True
 num_classes: 20
-train_size: 0.8
+train_size: 0.7
 batch_size: 64
 num_workers: 4
 lr: 1e-4
