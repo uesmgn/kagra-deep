@@ -19,7 +19,7 @@ num_epochs: 10000
 weights: [1., 50., 1.]
 eval_step: 5
 metrics_fn: [latent_space_metrics, multi_class_metrics]
-dataset_root: /Users/gen/workspace/github/GravitySpy/processed/dataset_small.h5
+dataset_root: /home/gen.ueshima/gen/workspace/github/GravitySpy/processed/dataset_small.h5
 
 wandb:
   project: kagra-deep
