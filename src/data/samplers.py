@@ -4,7 +4,7 @@ import torchvision
 from collections import defaultdict
 import numbers
 
-__class__ = ["Balancer"]
+__class__ = ["Balancer", "Upsampler"]
 
 
 class Balancer(data.sampler.Sampler):
