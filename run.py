@@ -68,14 +68,16 @@ def main(args):
         torch.backends.cudnn.benchmark = True
     model = M2(dim_y=20, dim_z=64).to(device)
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
+    weights = args.weights
 
     for epoch in range(args.num_epochs):
+        print(f"----- training at epoch {epoch} -----")
         model.train()
         total = 0
         total_dict = defaultdict(lambda: 0)
-        for i, (x, _) in enumerate(train_loader):
+        for i, (x, _) in tqdm(enumerate(train_loader)):
             x = x.to(device)
-            loss = model(x, weights=None)
+            loss = model(x, weights=weights)
             optim.zero_grad()
             loss.backward()
             optim.step()
@@ -87,11 +89,12 @@ def main(args):
             print("loss_{}: {:.3f} at epoch: {}".format(k, v, epoch))
 
         if epoch % args.eval_interval == 0:
+            print(f"----- evaluating at epoch {epoch} -----")
             model.eval()
             params = defaultdict(lambda: torch.tensor([]))
 
             with torch.no_grad():
-                for i, (x, y) in enumerate(test_loader):
+                for i, (x, y) in tqdm(enumerate(test_loader)):
                     x = x.to(device)
                     z, pi = model.params(x)
                     y_pred = torch.argmax(pi, -1)
