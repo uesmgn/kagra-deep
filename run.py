@@ -2,7 +2,7 @@ import hydra
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from collections import abc
+from collections import abc, defaultdict
 import numbers
 from tqdm import tqdm
 
