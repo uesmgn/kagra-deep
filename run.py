@@ -43,7 +43,8 @@ def main(args):
 
     dataset = datasets.HDF5(args.dataset_root, transform_fn, target_transform_fn)
     train_set, test_set = dataset.split(train_size=args.train_size, stratify=dataset.targets)
-    train_sampler = samplers.Balancer(train_set, args.batch_size * args.train_steps)
+    train_set.transform = augment_fn
+    train_sampler = samplers.Balancer(train_set, args.batch_size * args.num_train_steps)
 
     train_loader = torch.utils.data.DataLoader(
         train_set,
@@ -65,7 +66,7 @@ def main(args):
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
     model = M2(dim_y=20, dim_z=2).to(device)
-    optim = torch.optim.Adam(model.parameters(), lr=1e-4)
+    optim = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     for epoch in range(args.num_epochs):
         model.train()
@@ -84,40 +85,41 @@ def main(args):
         for k, v in total_dict.items():
             print("loss_{}: {:.3f} at epoch: {}".format(k, v, epoch))
 
-        model.eval()
-        params = defaultdict(lambda: torch.tensor([]))
+        if epoch % args.eval_interval == 0:
+            model.eval()
+            params = defaultdict(lambda: torch.tensor([]))
 
-        with torch.no_grad():
-            for i, (x, y) in enumerate(test_loader):
-                x = x.to(device)
-                z, pi = model.params(x)
-                y_pred = torch.argmax(pi, -1)
+            with torch.no_grad():
+                for i, (x, y) in enumerate(test_loader):
+                    x = x.to(device)
+                    z, pi = model.params(x)
+                    y_pred = torch.argmax(pi, -1)
 
-                params["z"] = torch.cat([params["z"], z.cpu()])
-                params["y"] = torch.cat([params["y"], y])
-                params["y_pred"] = torch.cat([params["y_pred"], y_pred.cpu()])
+                    params["z"] = torch.cat([params["z"], z.cpu()])
+                    params["y"] = torch.cat([params["y"], y])
+                    params["y_pred"] = torch.cat([params["y_pred"], y_pred.cpu()])
 
-            z = params["z"].numpy()
-            y = params["y"].numpy().astype(int)
-            y_pred = params["y_pred"].numpy().astype(int)
+                z = params["z"].numpy()
+                y = params["y"].numpy().astype(int)
+                y_pred = params["y_pred"].numpy().astype(int)
 
-            plt.figure(figsize=(12, 12))
-            for i in np.unique(y):
-                idx = np.where(y == i)
-                plt.scatter(z[idx, 0], z[idx, 1], label=i)
-            plt.legend()
-            plt.title(f"z_true_{epoch}")
-            plt.savefig(f"z_true_{epoch}.png")
-            plt.close()
+                plt.figure(figsize=(12, 12))
+                for i in np.unique(y):
+                    idx = np.where(y == i)
+                    plt.scatter(z[idx, 0], z[idx, 1], label=i)
+                plt.legend()
+                plt.title(f"z_true_{epoch}")
+                plt.savefig(f"z_true_{epoch}.png")
+                plt.close()
 
-            plt.figure(figsize=(12, 12))
-            for i in np.unique(y_pred):
-                idx = np.where(y_pred == i)
-                plt.scatter(z[idx, 0], z[idx, 1], label=i)
-            plt.legend()
-            plt.title(f"z_pred_{epoch}")
-            plt.savefig(f"z_pred_{epoch}.png")
-            plt.close()
+                plt.figure(figsize=(12, 12))
+                for i in np.unique(y_pred):
+                    idx = np.where(y_pred == i)
+                    plt.scatter(z[idx, 0], z[idx, 1], label=i)
+                plt.legend()
+                plt.title(f"z_pred_{epoch}")
+                plt.savefig(f"z_pred_{epoch}.png")
+                plt.close()
 
     #
     # cfg_params = {
