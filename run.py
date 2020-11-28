@@ -6,6 +6,7 @@ import numpy as np
 from collections import abc, defaultdict
 import numbers
 from tqdm import tqdm
+from sklearn.manifold import TSNE
 
 from src.utils import transforms
 from src.data import datasets
@@ -65,7 +66,7 @@ def main(args):
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
-    model = M2(dim_y=20, dim_z=2).to(device)
+    model = M2(dim_y=20, dim_z=64).to(device)
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     for epoch in range(args.num_epochs):
@@ -100,6 +101,7 @@ def main(args):
                     params["y_pred"] = torch.cat([params["y_pred"], y_pred.cpu()])
 
                 z = params["z"].numpy()
+                z = TSNE(n_components=2).fit_transform(z)
                 y = params["y"].numpy().astype(int)
                 y_pred = params["y_pred"].numpy().astype(int)
 
