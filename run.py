@@ -12,7 +12,7 @@ from src.data import datasets
 from src.data import samplers
 from src import config
 
-from mnist import *
+from mnist import M2
 
 import matplotlib.pyplot as plt
 
