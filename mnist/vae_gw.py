@@ -14,7 +14,7 @@ class ResBlock(nn.Module):
                 in_channels, out_channels, stride=stride, kernel_size=3, padding=1, bias=False
             ),
             nn.BatchNorm2d(out_channels),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2, inplace=True),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(out_channels),
         )
@@ -24,7 +24,7 @@ class ResBlock(nn.Module):
                 nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride),
                 nn.BatchNorm2d(out_channels),
             )
-        self.activation = nn.LeakyReLU(0.2)
+        self.activation = nn.LeakyReLU(0.2, inplace=True)
 
     def forward(self, x):
         identity = x
@@ -40,7 +40,7 @@ class Encoder(nn.Module):
         self.head = nn.Sequential(
             nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False),
             nn.BatchNorm2d(64),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2, inplace=True),
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
         )
         blocks = []
@@ -100,21 +100,21 @@ class Decoder(nn.Module):
             nn.Linear(dim_z, 512 * 7 * 7),
             Reshape((512, 7, 7)),
             nn.BatchNorm2d(512),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2, inplace=True),
             nn.ConvTranspose2d(512, 512, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(512),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2, inplace=True),
             nn.Upsample(scale_factor=2),
             nn.ConvTranspose2d(512, 256, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(256),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2, inplace=True),
             nn.Upsample(scale_factor=2),
             nn.ConvTranspose2d(256, 128, kernel_size=4, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(128),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2, inplace=True),
             nn.ConvTranspose2d(128, 64, kernel_size=4, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(64),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2, inplace=True),
             nn.ConvTranspose2d(64, 3, kernel_size=4, stride=2, padding=1, bias=False),
         )
 
@@ -179,7 +179,7 @@ class Pz_y(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(dim_y, 1024),
             nn.BatchNorm1d(1024),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2, inplace=True),
         )
         self.gaussian = Gaussian(1024, dim_z)
 
