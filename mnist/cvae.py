@@ -205,7 +205,7 @@ class LossDict(dict):
         self.weights = weights
         if weights is not None:
             if isinstance(weights, abc.Iterable):
-                assert len(self) == len(weights)
+                pass
             else:
                 raise ValueError("weights must be NoneType or Iterable.")
         for k, v in kwargs.items():
