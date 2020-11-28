@@ -256,8 +256,8 @@ class M2(nn.Module):
     def forward(self, x, weights=None, tau=0.5):
         # vae
         qy, qy_pi = self.qy_x(x)
-        qz, qz_mean, qz_logvar = self.qz_xy(x, y)
-        pz, pz_mean, pz_logvar = self.pz_y(y)
+        qz, qz_mean, qz_logvar = self.qz_xy(x, qy)
+        pz, pz_mean, pz_logvar = self.pz_y(qy)
         px = self.px_z(z)
 
         b = x.shape[0]
@@ -271,7 +271,7 @@ class M2(nn.Module):
 
     def params(self, x):
         qy, qy_pi = self.qy_x(x)
-        qz, qz_mean, qz_logvar = self.qz_xy(x, y)
+        qz, qz_mean, qz_logvar = self.qz_xy(x, qy)
         return qz_mean, qy_pi
 
     def bce(self, x, x_recon):
