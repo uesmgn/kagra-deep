@@ -35,70 +35,39 @@ class ResBlock(nn.Module):
 
 
 class Encoder(nn.Module):
-    def __init__(self, dim_encoded=512):
+    def __init__(self, dim_out=512):
         super().__init__()
+        self.dim_out = dim_out
         self.head = nn.Sequential(
             nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False),
             nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2, inplace=True),
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
         )
-        blocks = []
-        blocks.append(ResBlock(64, 64))
-        blocks.append(ResBlock(64, 64))
-
-        blocks.append(ResBlock(64, 128, stride=2))
-        blocks.append(ResBlock(128, 128))
-
-        blocks.append(ResBlock(128, 256, stride=2))
-        blocks.append(ResBlock(256, 256))
-
-        blocks.append(ResBlock(256, 512, stride=2))
-        blocks.append(ResBlock(512, 512))
-        blocks.append(nn.Flatten()),
-        blocks.append(nn.Linear(25088, dim_encoded))
-
-        self.blocks = nn.Sequential(*blocks)
+        self.blocks = nn.Sequential(
+            ResBlock(64, 64),
+            ResBlock(64, 64),
+            ResBlock(64, 128, stride=2),
+            ResBlock(128, 128),
+            ResBlock(128, 256, stride=2),
+            ResBlock(256, 256),
+            ResBlock(256, 512, stride=2),
+            ResBlock(512, 512),
+            nn.Flatten(),
+            nn.Linear(25088, dim_out),
+        )
 
     def forward(self, x):
         x = self.head(x)
-        x = self.blocks(x)
-        return x
-
-
-class Reshape(nn.Module):
-    def __init__(self, outer_shape):
-        super().__init__()
-        self.outer_shape = outer_shape
-
-    def forward(self, x):
-        return x.view(x.size(0), *self.outer_shape)
-
-
-class Gaussian(nn.Module):
-    def __init__(self, in_dim, out_dim):
-        super().__init__()
-        self.logits = nn.Linear(in_dim, out_dim * 2)
-
-    def forward(self, x):
-        logits = self.logits(x)
-        mean, logvar = torch.split(logits, logits.shape[-1] // 2, -1)
-        x = self._reparameterize(mean, logvar)
-        return x, mean, logvar
-
-    def _reparameterize(self, mean, logvar):
-        std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(mean)
-        x = mean + eps * std
-        return x
+        return self.blocks(x)
 
 
 class Decoder(nn.Module):
-    def __init__(self, dim_z=512):
+    def __init__(self, dim_in=512):
         super().__init__()
+        self.dim_in = dim_in
+        self.head = nn.Linear(dim_in, 512 * 7 * 7)
         self.blocks = nn.Sequential(
-            nn.Linear(dim_z, 512 * 7 * 7),
-            Reshape((512, 7, 7)),
             nn.BatchNorm2d(512),
             nn.LeakyReLU(0.2, inplace=True),
             nn.ConvTranspose2d(512, 512, kernel_size=3, padding=1, bias=False),
@@ -116,77 +85,128 @@ class Decoder(nn.Module):
             nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2, inplace=True),
             nn.ConvTranspose2d(64, 3, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(3),
+            nn.Sigmoid(),
         )
 
     def forward(self, x):
+        x = self.head(x)
+        x = x.view(x.shape[0], 512, 7, 7)
         return self.blocks(x)
+
+
+class Gaussian(nn.Module):
+    def __init__(self, dim_in, dim_out):
+        super().__init__()
+        self.fc = nn.Linear(dim_in, dim_out * 2)
+
+    def forward(self, x):
+        logits = self.fc(x)
+        mean, logvar = torch.split(logits, logits.shape[-1] // 2, -1)
+        x = self.reparameterize(mean, logvar)
+        return x, mean, logvar
+
+    def reparameterize(self, mean, logvar):
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(mean)
+        x = mean + eps * std
+        return x
+
+
+# inference net of y from x
+class Qy_x(nn.Module):
+    def __init__(
+        self,
+        encoder,
+        dim_y,
+    ):
+        super().__init__()
+        self.encoder = encoder
+        self.logits = nn.Sequential(
+            nn.Linear(encoder.dim_out, 1024),
+            nn.BatchNorm1d(1024),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(1024, dim_y),
+        )
+
+    def forward(self, x, tau=0.5):
+        x_encoded = self.encoder(x)
+        logits = self.logits(x_encoded)
+        y, pi = self.categorical_sample(logits)
+        return y, pi
+
+    def categorical_sample(self, logits, tau=0.5):
+        y = F.gumbel_softmax(logits, tau=tau, hard=False, dim=-1)
+        pi = F.softmax(logits, -1)
+        return y, pi
 
 
 class Qz_xy(nn.Module):
     def __init__(
         self,
-        dim_x=64,
-        dim_y=10,
-        dim_z=2,
+        encoder,
+        dim_y,
+        dim_z,
     ):
         super().__init__()
-        self.encoder = Encoder(dim_encoded=1024)
-
-        self.fc_x = nn.Sequential(
-            nn.Linear(1024, dim_x),
-        )
-        self.fc_y = nn.Sequential(
+        self.encoder = encoder
+        self.logits = nn.Sequential(
+            nn.Linear(encoder.dim_out, 1024),
+            nn.BatchNorm1d(1024),
+            nn.LeakyReLU(0.2, inplace=True),
             nn.Linear(1024, dim_y),
         )
-        self.gaussian = Gaussian(dim_x + dim_y, dim_z)
+        self.gaussian = Gaussian(encoder.dim_out + dim_y, dim_z)
 
     def forward(self, x, y):
-        x = self.encoder(x)
-        qx_logits = self.fc_x(x)
-        qy_logits = self.fc_y(x)
-        z, mean, logvar = self.gaussian(torch.cat([qx_logits, qy_logits * y], dim=-1))
-        return z, mean, logvar
+        x_encoded = self.encoder(x)
+        logits = self.logits(x_encoded) * y
+        z, z_mean, z_logvar = self.gaussian(torch.cat((x_encoded, logits), -1))
+        return z, z_mean, z_logvar
 
 
-class Qy_x(nn.Module):
-    def __init__(
-        self,
-        dim_y=10,
-    ):
+class Qw_xz(nn.Module):
+    def __init__(self, encoder, dim_w, dim_z):
         super().__init__()
-        self.encoder = Encoder(dim_encoded=1024)
-
-        self.fc = nn.Sequential(
-            nn.Linear(1024, dim_y),
+        self.encoder = encoder
+        self.logits = nn.Sequential(
+            nn.Linear(encoder.dim_out + dim_z, 1024),
+            nn.BatchNorm1d(1024),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(1024, dim_w),
         )
 
-    def forward(self, x, tau=0.5):
-        x = self.encoder(x)
-        logits = self.fc(x)
-        qy = F.gumbel_softmax(logits, tau=tau, hard=False, dim=-1)
-        pi = F.softmax(logits, dim=-1)
-        return qy, pi
+    def forward(self, x, z):
+        x_encoded = self.encoder(x)
+        logits = self.logits(torch.cat((x_encoded, z), -1))
+        w, pi = self.categorical_sample(logits)
+        return w, pi
+
+    def categorical_sample(self, logits, tau=0.5):
+        y = F.gumbel_softmax(logits, tau=tau, hard=False, dim=-1)
+        pi = F.softmax(logits, -1)
+        return y, pi
 
 
-class Pz_y(nn.Module):
+class Pz_wy(nn.Module):
     def __init__(
         self,
-        dim_y=10,
-        dim_z=64,
+        dim_w,
+        dim_y,
+        dim_z,
     ):
         super().__init__()
-
-        self.fc = nn.Sequential(
-            nn.Linear(dim_y, 1024),
+        self.logits = nn.Sequential(
+            nn.Linear(dim_w + dim_y, 1024),
             nn.BatchNorm1d(1024),
             nn.LeakyReLU(0.2, inplace=True),
         )
         self.gaussian = Gaussian(1024, dim_z)
 
-    def forward(self, y):
-        y = self.fc(y)
-        z, mean, logvar = self.gaussian(y)
-        return z, mean, logvar
+    def forward(self, w, y):
+        logits = self.logits(torch.cat((x, z), -1))
+        z, z_mean, z_logvar = self.gaussian(logits)
+        return z, z_mean, z_logvar
 
 
 class Px_z(nn.Module):
@@ -207,19 +227,18 @@ def bce_with_logits(x, x_recon_logits):
     return F.binary_cross_entropy_with_logits(x_recon_logits, x, reduction="sum")
 
 
-def log_norm(x, mean, logvar):
-    var = torch.exp(logvar) + 1e-8
-    return -0.5 * (torch.log(2.0 * np.pi * var) + torch.pow(x - mean, 2) / var)
+def kl_cat(q, p, eps=1e-8):
+    return torch.sum(q * (torch.log(q + eps) - torch.log(p + eps)))
 
 
-def log_norm_kl(x, mean, var, mean_, var_):
-    log_p = log_norm(x, mean, var).sum(-1)
-    log_q = log_norm(x, mean_, var_).sum(-1)
-    return (log_p - log_q).sum()
-
-
-def categorical_ce(pi, pi_prior):
-    return -(pi * torch.log(pi_prior + 1e-8)).sum()
+def kl_gauss(mean_p, logvar_p, mean_q, logvar_q):
+    return -0.5 * torch.sum(
+        logvar_p
+        - logvar_q
+        + 1
+        - torch.pow(mean_p - mean_q, 2) / logvar_q.exp()
+        - logvar_p.exp() / logvar_q.exp()
+    )
 
 
 class LossDict(dict):
@@ -253,28 +272,21 @@ class M4(nn.Module):
         self,
         dim_x=64,
         dim_y=10,
-        dim_y_over=50,
+        dim_w=50,
         dim_z=64,
     ):
         super().__init__()
-        self.encoder = Encoder(dim_encoded=dim_x)
-        self.cluster_head = nn.Sequential(
-            nn.Linear(dim_x, dim_y),
-        )
-        self.cluster_head_over = nn.Sequential(
-            nn.Linear(dim_x, dim_y_over),
-        )
-        self.qz_xy = Qz_xy(dim_x, dim_y_over, dim_z)
-        self.pz_y = Pz_y(dim_y_over, dim_z)
-        self.px_z = Px_z(dim_z)
+
+        encoder = Encoder(dim_x)
+        decoder = Decoder(dim_z)
+
+        self.qy_x = Qy_x(encoder, dim_y)
+        self.qz_xy = Qz_xy(encoder, dim_x, dim_y)
+        self.qw_xz = Qw_xz(encoder, dim_w, dim_z)
+        self.pz_wy = Pz_wy(dim_w, dim_w, dim_y)
+        self.px_z = Px_z(decoder, dim_z)
 
         self.weight_init()
-
-    def cluster_iic(self, x):
-        x = self.encoder(x)
-        y_logits = self.cluster_head(x)
-        y_over_logits = self.cluster_head_over(x)
-        return y_logits, y_over_logits
 
     def gumbel_sample(self, logits, tau=0.5):
         return F.gumbel_softmax(logits, tau=tau, hard=False, dim=-1)
@@ -321,7 +333,8 @@ class M4(nn.Module):
         x_recon_logits = self.px_z(qz_xy)
 
         bce = bce_with_logits(x, x_recon_logits) / b
-        kld = log_norm_kl(qz_xy, qz_xy_mean, qz_xy_logvar, qz_y_mean, qz_y_logvar) / b
+        kl_gauss = kl_gauss(qz_xy_mean, qz_xy_logvar, qz_y_mean, qz_y_logvar) / b
+        kl_cat = kl_cat(qz_xy_mean, qz_xy_logvar, qz_y_mean, qz_y_logvar) / b
 
         return bce, kld
 
@@ -337,11 +350,10 @@ class M4(nn.Module):
         b, k = x.shape
         p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(dim=0)
         p = ((p + p.t()) / 2) / p.sum()
+        p[(p < eps).data] = eps
         pi = p.sum(dim=1).view(k, 1).expand(k, k)
         pj = p.sum(dim=0).view(1, k).expand(k, k)
-        return (
-            p * (alpha * torch.log(pi + eps) + alpha * torch.log(pj + eps) - torch.log(p + eps))
-        ).sum() / b
+        return (p * (alpha * torch.log(pi) + alpha * torch.log(pj) - torch.log(p))).sum() / b
 
 
 # class M4(nn.Module):
