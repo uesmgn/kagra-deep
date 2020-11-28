@@ -1,4 +1,4 @@
-type: ss
+type: co+ss
 use_channels: [1,2,3]
 targets: [1080Lines, 1400Ripples, Air_Compressor, Blip,
           Chirp, Extremely_Loud, Helix, Koi_Fish, Light_Modulation,
@@ -6,8 +6,12 @@ targets: [1080Lines, 1400Ripples, Air_Compressor, Blip,
           Power_Line, Repeating_Blips, Scattered_Light, Scratchy,
           Tomte, Violin_Mode, Whistle, Other]
 use_other: True
-sample_expansion: 12800
-train_size: 0.7
+num_classes: 20
+train_size: 0.8
+batch_size: 128
+num_workers: 4
+train_steps: 100
+
 labeled_size: 0.1
 use_apex: True
 opt_level: O1
@@ -15,20 +19,23 @@ num_epochs: 10000
 weights: [1., 50., 1.]
 eval_step: 5
 metrics_fn: [latent_space_metrics, multi_class_metrics]
+dataset_root: /Users/gen/workspace/github/GravitySpy/processed/dataset_small.h5
+
+wandb:
+  project: kagra-deep
+  name: test
+  tags: None
+  group: test
 
 
-dataset:
-  root: /content/dataset_small.h5
-  mode: ss
-  train_size: 0.8
-  labeled_size: 0.8
-
-dataloader:
+train:
   batch_size: 128
   num_workers: 4
   pin_memory: True
+  drop_last: True
 
-model:
-  mid_dim: 64
-  z_dim: 64
-  num_classes: 20
+eval:
+  batch_size: 128
+  num_workers: 4
+  pin_memory: True
+  drop_last: False

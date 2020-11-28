@@ -8,15 +8,12 @@ __class__ = ["Balancer"]
 
 
 class Balancer(data.sampler.Sampler):
-    def __init__(self, dataset, expansion=1.0, max_num_samples=100000):
+    def __init__(self, dataset, num_samples=10000, max_num_samples=100000):
         self.dataset = dataset
-        if isinstance(expansion, numbers.Integral):
-            self.num_samples = expansion
-        elif isinstance(expansion, numbers.Number):
-            self.num_samples = int(len(dataset) * expansion)
+        if isinstance(num_samples, numbers.Number):
+            self.num_samples = max(len(self.dataset), min(num_samples, max_num_samples))
         else:
             raise ValueError("Invalid argument.")
-        self.num_samples = max(len(self.dataset), min(self.num_samples, max_num_samples))
         self.indices = list(range(len(self.dataset)))
         targets = self.dataset.targets
         counter = defaultdict(lambda: 0)
