@@ -258,7 +258,7 @@ class M2(nn.Module):
         qy, qy_pi = self.qy_x(x)
         qz, qz_mean, qz_logvar = self.qz_xy(x, qy)
         pz, pz_mean, pz_logvar = self.pz_y(qy)
-        px = self.px_z(z)
+        px = self.px_z(pz)
 
         b = x.shape[0]
         bce = self.bce(x, px) / b
