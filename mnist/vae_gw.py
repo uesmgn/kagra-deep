@@ -333,14 +333,15 @@ class M4(nn.Module):
 
     def mutual_info(self, x, y, alpha=1.0):
         x, y = F.softmax(x, -1), F.softmax(y, -1)
-        eps = torch.finfo(x.dtype).eps
+        eps = 1e-8
         b, k = x.shape
         p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(dim=0)
         p = ((p + p.t()) / 2) / p.sum()
-        p[(p < eps).data] = eps
         pi = p.sum(dim=1).view(k, 1).expand(k, k)
         pj = p.sum(dim=0).view(1, k).expand(k, k)
-        return (p * (alpha * torch.log(pi) + alpha * torch.log(pj) - torch.log(p))).sum() / b
+        return (
+            p * (alpha * torch.log(pi + eps) + alpha * torch.log(pj + eps) - torch.log(p + eps))
+        ).sum() / b
 
 
 # class M4(nn.Module):
