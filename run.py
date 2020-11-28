@@ -45,7 +45,8 @@ def main(args):
     dataset = datasets.HDF5(args.dataset_root, transform_fn, target_transform_fn)
     train_set, test_set = dataset.split(train_size=args.train_size, stratify=dataset.targets)
     train_set.transform = augment_fn
-    train_sampler = samplers.Balancer(train_set, args.batch_size * args.num_train_steps)
+    # train_sampler = samplers.Balancer(train_set, args.batch_size * args.num_train_steps)
+    train_sampler = samplers.Upsampler(train_set, args.batch_size * args.num_train_steps)
 
     train_loader = torch.utils.data.DataLoader(
         train_set,
