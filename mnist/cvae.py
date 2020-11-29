@@ -168,13 +168,10 @@ class Qz_xy(nn.Module):
     def __init__(self, encoder, dim_y, dim_z):
         super().__init__()
         self.encoder = encoder
-        self.y_logits = nn.Sequential(
-            nn.Linear(encoder.dim_out, dim_y),
-            nn.BatchNorm1d(dim_y),
-            nn.LeakyReLU(0.2, inplace=True),
-        )
+        self.x_logits = nn.Linear(encoder.dim_out, 64)
+        self.y_logits = nn.Linear(encoder.dim_out, dim_y)
         self.fc = nn.Sequential(
-            nn.Linear(dim_y, 1024),
+            nn.Linear(64 + dim_y, 1024),
             nn.BatchNorm1d(1024),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Linear(1024, dim_z * 2),
@@ -182,8 +179,8 @@ class Qz_xy(nn.Module):
         self.gaussian = Gaussian()
 
     def forward(self, x, y):
-        x_encoded = self.encoder(x)
-        logits = self.fc(self.y_logits(x_encoded) * y)
+        x = self.encoder(x)
+        logits = self.fc(torch.cat([self.x_logits(x), self.y_logits(x) * y], -1))
         z_mean, z_logvar = torch.split(logits, logits.shape[-1] // 2, -1)
         z, z_mean, z_logvar = self.gaussian(z_mean, z_logvar)
         return z, z_mean, z_logvar
@@ -192,7 +189,7 @@ class Qz_xy(nn.Module):
 class Pz_y(nn.Module):
     def __init__(self, dim_y, dim_z):
         super().__init__()
-        self.logits = nn.Sequential(
+        self.fc = nn.Sequential(
             nn.Linear(dim_y, 1024),
             nn.BatchNorm1d(1024),
             nn.LeakyReLU(0.2, inplace=True),
@@ -201,7 +198,7 @@ class Pz_y(nn.Module):
         self.gaussian = Gaussian()
 
     def forward(self, y):
-        logits = self.logits(y)
+        logits = self.fc(y)
         z_mean, z_logvar = torch.split(logits, logits.shape[-1] // 2, -1)
         z, z_mean, z_logvar = self.gaussian(z_mean, z_logvar)
         return z, z_mean, z_logvar
@@ -467,26 +464,26 @@ class IAE2(nn.Module):
         qz, qz_mean, qz_logvar = self.qz_xy(x, qy)
         pz, pz_mean, pz_logvar = self.pz_y(qy)
         px = self.px_z(pz)
-
-        qw_pi = self.cluster_head(qz)
-        pw_pi = self.cluster_head(pz)
+        #
+        # qw_pi = self.cluster_head(qz)
+        # pw_pi = self.cluster_head(pz)
 
         b = x.shape[0]
         bce = self.bce(x, px) / b
         klc = self.kl_cat(qy_pi, torch.ones_like(qy_pi) / qy_pi.shape[-1]) / b
         klg = self.kl_gauss(qz_mean, qz_logvar, pz_mean, pz_logvar) / b
-        mi = self.mutual_info(qw_pi, pw_pi) / b
+        # mi = self.mutual_info(qw_pi, pw_pi) / b
 
         try:
-            return bce * weights[0] + klc * weights[1] + klg * weights[2] + mi * weights[3]
+            return bce * weights[0] + klc * weights[1] + klg * weights[2]
         except:
-            return bce + klc + klg + mi
+            return bce + klc + klg
 
     def params(self, x):
-        qy, qy_pi = self.qy_x(x, hard=True)
-        _, qz_mean, _ = self.qz_xy(x, qy)
-        qw_pi = self.cluster_head(qz_mean)
-        return qz_mean, qy_pi, qw_pi
+        _, qy_pi = self.qy_x(x)
+        _, qz_mean, _ = self.qz_xy(x, qy_pi)
+        # qw_pi = self.cluster_head(qz_mean)
+        return qz_mean, qy_pi
 
     def bce(self, x, x_recon):
         return F.binary_cross_entropy(x_recon, x, reduction="sum")
@@ -503,11 +500,11 @@ class IAE2(nn.Module):
             - logvar_p.exp() / logvar_q.exp()
         )
 
-    def mutual_info(self, x, y, alpha=2.0, eps=1e-8):
-        p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(dim=0)
-        p = ((p + p.t()) / 2) / p.sum()
-        _, k = x.shape
-        p[(p < eps).data] = eps
-        pi = p.sum(dim=1).view(k, 1).expand(k, k)
-        pj = p.sum(dim=0).view(1, k).expand(k, k)
-        return (p * (alpha * torch.log(pi) + alpha * torch.log(pj) - torch.log(p))).sum()
+    # def mutual_info(self, x, y, alpha=2.0, eps=1e-8):
+    #     p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(dim=0)
+    #     p = ((p + p.t()) / 2) / p.sum()
+    #     _, k = x.shape
+    #     p[(p < eps).data] = eps
+    #     pi = p.sum(dim=1).view(k, 1).expand(k, k)
+    #     pj = p.sum(dim=0).view(1, k).expand(k, k)
+    #     return (p * (alpha * torch.log(pi) + alpha * torch.log(pj) - torch.log(p))).sum()
