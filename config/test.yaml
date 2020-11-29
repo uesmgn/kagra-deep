@@ -10,7 +10,7 @@ num_classes: 22
 dim_w: 50
 dim_z: 64
 train_size: 0.7
-batch_size: 96
+batch_size: 64
 num_workers: 4
 lr: 1e-3
 num_train_steps: 100
