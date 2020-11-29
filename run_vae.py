@@ -73,16 +73,18 @@ def main(args):
         total_dict = defaultdict(lambda: 0)
         for i, (x, _) in tqdm(enumerate(train_loader)):
             x = x.to(device)
-            loss = model(x, weights=weights)
+            bce, kl_gauss, kl_cat = model(x)
+            loss = bce + kl_gauss + kl_cat
             optim.zero_grad()
             loss.backward()
             optim.step()
             total += loss.total.item()
-            for key, loss_i in loss.items():
-                total_dict[key] += loss_i.item()
+            total_dict["bce"] += bce.item()
+            total_dict["kl_gauss"] += kl_gauss.item()
+            total_dict["kl_cat"] += kl_cat.item()
         print("loss: {:.3f} at epoch: {}".format(total, epoch))
-        for key, loss_i in total_dict.items():
-            print("loss_{}: {:.3f} at epoch: {}".format(key, loss_i, epoch))
+        for key, value in total_dict.items():
+            print("loss_{}: {:.3f} at epoch: {}".format(key, value, epoch))
 
         scheduler.step()
 
