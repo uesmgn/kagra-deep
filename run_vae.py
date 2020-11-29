@@ -103,9 +103,11 @@ def main(args):
                     params["y_pred"] = torch.cat([params["y_pred"], y_pred.cpu()])
 
                 for i in range(args.num_classes):
-                    y_i = F.one_hot(torch.full((100,), i).long(), num_classes=args.num_classes)
+                    y_i = F.one_hot(torch.full((1000,), i).long(), num_classes=args.num_classes)
                     pz, _, _ = model.pz_y(y_i.float().to(device))
                     params["pz"] = torch.cat([params["pz"], pz.cpu()])
+                yy = torch.tensor(list(range(args.num_classes)))
+                yy = yy.unsqueeze(1).repeat(1, 1000).flatten()
 
                 qz = params["qz"].numpy()
                 pz = params["pz"].numpy()
@@ -132,9 +134,6 @@ def main(args):
                 plt.title(f"qz_pred_{epoch}")
                 plt.savefig(f"qz_pred_{epoch}.png")
                 plt.close()
-
-                yy = torch.tensor(list(range(args.num_classes))).unsqueeze(1)
-                yy = yy.repeat(1, 100).flatten()
 
                 plt.figure(figsize=(12, 12))
                 for i in range(args.num_classes):
