@@ -93,15 +93,13 @@ def main(args):
                 for i, (x, y) in tqdm(enumerate(test_loader)):
                     x = x.to(device)
 
-                    qz, qy_pi, qw_pi = model.params(x)
+                    qz, qy_pi = model.params(x)
 
                     y_pred = torch.argmax(qy_pi, -1)
-                    w_pred = torch.argmax(qw_pi, -1)
 
                     params["qz"] = torch.cat([params["qz"], qz.cpu()])
                     params["y"] = torch.cat([params["y"], y])
                     params["y_pred"] = torch.cat([params["y_pred"], y_pred.cpu()])
-                    params["w_pred"] = torch.cat([params["w_pred"], w_pred.cpu()])
 
                 for i in range(args.num_classes):
                     y_i = F.one_hot(torch.full((100,), i).long(), num_classes=args.num_classes)
@@ -115,7 +113,6 @@ def main(args):
 
                 y = params["y"].numpy().astype(int)
                 y_pred = params["y_pred"].numpy().astype(int)
-                w_pred = params["w_pred"].numpy().astype(int)
 
                 plt.figure(figsize=(12, 12))
                 for i in np.unique(y):
@@ -142,12 +139,12 @@ def main(args):
                 plt.savefig(f"cm_y_{epoch}.png")
                 plt.close()
 
-                plt.figure(figsize=(20, 12))
-                cm = confusion_matrix(y, w_pred)
-                sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False)
-                plt.title(f"confusion matrix y / w' at epoch {epoch}")
-                plt.savefig(f"cm_w_{epoch}.png")
-                plt.close()
+                # plt.figure(figsize=(20, 12))
+                # cm = confusion_matrix(y, w_pred)
+                # sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False)
+                # plt.title(f"confusion matrix y / w' at epoch {epoch}")
+                # plt.savefig(f"cm_w_{epoch}.png")
+                # plt.close()
 
                 yy = torch.tensor(list(range(args.num_classes))).unsqueeze(1)
                 yy = yy.repeat(1, 100).flatten()
