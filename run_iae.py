@@ -16,6 +16,8 @@ from src import config
 from mnist import IAE
 
 import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
 
 
 @hydra.main(config_path="config", config_name="test")
@@ -130,6 +132,13 @@ def main(args):
                 plt.legend()
                 plt.title(f"qz_pred_{epoch}")
                 plt.savefig(f"qz_pred_{epoch}.png")
+                plt.close()
+
+                plt.figure(figsize=(20, 12))
+                cm = confusion_matrix(y, y_pred)
+                sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False)
+                plt.title(f"confusion matrix y / y' at epoch {epoch}")
+                plt.savefig(f"cm_y_{epoch}.png")
                 plt.close()
 
                 # yy = torch.tensor(list(range(args.num_classes))).unsqueeze(1)
