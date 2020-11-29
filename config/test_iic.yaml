@@ -11,7 +11,7 @@ dim_w: 50
 train_size: 0.7
 batch_size: 96
 num_workers: 4
-lr: 1e-4
+lr: 1e-3
 num_train_steps: 100
 eval_interval: 5
 num_epochs: 10000
