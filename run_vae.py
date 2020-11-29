@@ -20,7 +20,6 @@ import matplotlib.pyplot as plt
 
 @hydra.main(config_path="config", config_name="test_vae")
 def main(args):
-    # wandb_init(args.wandb)
 
     transform_fn = transforms.Compose(
         [
@@ -95,8 +94,6 @@ def main(args):
                     qy, qy_pi = model.qy_x(x, hard=True)
                     _, qz, _ = model.qz_xy(x, qy)
                     y_pred = torch.argmax(qy_pi, -1)
-                    # y_onehot = F.one_hot(y, num_classes=args.num_classes).float().to(device)
-                    # pz, _, _ = model.pz_y(y_onehot.float().to(device))
 
                     params["qz"] = torch.cat([params["qz"], qz.cpu()])
                     params["y"] = torch.cat([params["y"], y])

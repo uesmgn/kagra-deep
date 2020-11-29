@@ -305,7 +305,7 @@ class IIC(nn.Module):
                 nn.init.xavier_normal_(m.weight)
                 nn.init.zeros_(m.bias)
 
-    def forward(self, x, v, weights=None, tau=0.5):
+    def forward(self, x, v, weights=None):
         # iic
         y_x, w_x = self.clustering(x)
         y_v, w_v = self.clustering(v)

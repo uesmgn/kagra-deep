@@ -22,7 +22,6 @@ import seaborn as sns
 
 @hydra.main(config_path="config", config_name="test_iic")
 def main(args):
-    # wandb_init(args.wandb)
 
     transform_fn = transforms.Compose(
         [
