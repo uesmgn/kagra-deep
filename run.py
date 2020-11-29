@@ -67,7 +67,7 @@ def main(args):
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
-    model = M2(dim_y=20, dim_z=64).to(device)
+    model = M2(dim_y=args.num_classes, dim_z=args.z_dim).to(device)
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
     weights = args.weights
 
@@ -97,34 +97,58 @@ def main(args):
             with torch.no_grad():
                 for i, (x, y) in tqdm(enumerate(test_loader)):
                     x = x.to(device)
-                    z, pi = model.params(x)
-                    y_pred = torch.argmax(pi, -1)
+                    qy, qy_pi = model.qy_x(x)
+                    _, qz, _ = model.qz_xy(x, qy)
+                    y_pred = torch.argmax(qy_pi, -1)
 
-                    params["z"] = torch.cat([params["z"], z.cpu()])
+                    params["qz"] = torch.cat([params["qz"], qz.cpu()])
                     params["y"] = torch.cat([params["y"], y])
                     params["y_pred"] = torch.cat([params["y_pred"], y_pred.cpu()])
 
-                z = params["z"].numpy()
-                z = TSNE(n_components=2).fit_transform(z)
+                for i in range(args.num_classes):
+                    y_i = F.one_hot(torch.full((100,), i).long(), num_classes=args.num_classes)
+                    pz, _, _ = model.pz_y(y_i.to(device))
+                    params["pz"] = torch.cat([params["pz"], pz.cpu()])
+
+                qz = params["qz"].numpy()
+                pz = params["pz"].numpy()
+                tsne = TSNE(n_components=2).fit(pz)
+
+                qz = tsne.transform(qz)
+                pz = tsne.transform(pz)
+
                 y = params["y"].numpy().astype(int)
                 y_pred = params["y_pred"].numpy().astype(int)
 
                 plt.figure(figsize=(12, 12))
                 for i in np.unique(y):
                     idx = np.where(y == i)
-                    plt.scatter(z[idx, 0], z[idx, 1], label=i)
+                    plt.scatter(qz[idx, 0], qz[idx, 1], label=i)
                 plt.legend()
-                plt.title(f"z_true_{epoch}")
-                plt.savefig(f"z_true_{epoch}.png")
+                plt.title(f"qz_true_{epoch}")
+                plt.savefig(f"qz_true_{epoch}.png")
                 plt.close()
 
                 plt.figure(figsize=(12, 12))
                 for i in np.unique(y_pred):
                     idx = np.where(y_pred == i)
-                    plt.scatter(z[idx, 0], z[idx, 1], label=i)
+                    plt.scatter(qz[idx, 0], qz[idx, 1], label=i)
                 plt.legend()
-                plt.title(f"z_pred_{epoch}")
-                plt.savefig(f"z_pred_{epoch}.png")
+                plt.title(f"qz_pred_{epoch}")
+                plt.savefig(f"qz_pred_{epoch}.png")
+                plt.close()
+
+                yy = torch.tensor(list(range(args.num_classes))).unsqueeze(1)
+                yy = yy.repeat(1, 100).flatten()
+                print(yy.shape)
+                print(pz.shape)
+                plt.figure(figsize=(12, 12))
+                for i in range(args.num_classes):
+                    idx = np.where(yy == i)
+                    plt.scatter(pz[idx, 0], pz[idx, 1], label=i)
+                plt.legend()
+                plt.title(f"pz_{epoch}")
+                plt.savefig(f"pz_{epoch}.png")
                 plt.close()
 
     #
