@@ -40,7 +40,7 @@ def main(args):
 
     dataset = datasets.HDF5(args.dataset_root, transform_fn, target_transform_fn)
     train_set, test_set = dataset.split(train_size=args.train_size, stratify=dataset.targets)
-    train_set = datasets.co(train_set, augment_fn)
+    train_set.transform = augment_fn
     # train_sampler = samplers.Balancer(train_set, args.batch_size * args.num_train_steps)
     train_sampler = samplers.Upsampler(train_set, args.batch_size * args.num_train_steps)
 
@@ -72,13 +72,9 @@ def main(args):
         model.train()
         total = 0
         total_dict = defaultdict(lambda: 0)
-        for i, (data, _) in tqdm(enumerate(train_loader)):
-            x, v = data
+        for i, (x, _) in tqdm(enumerate(train_loader)):
             x = x.to(device)
-            v = v.to(device)
-            loss_x, qy_x, qw_x = model(x)
-            loss_v, qy_v, qw_v = model(v)
-            loss = loss_x + loss_v + model.mi(qy_x, qy_v) + model.mi(qw_x, qw_v)
+            loss = model(x)
             optim.zero_grad()
             loss.backward()
             optim.step()
@@ -95,13 +91,16 @@ def main(args):
             with torch.no_grad():
                 for i, (x, y) in tqdm(enumerate(test_loader)):
                     x = x.to(device)
-                    qy, qy_pi = model.qy_x(x, hard=True)
-                    _, qz, _ = model.qz_xy(x, qy)
+
+                    qz, qy_pi, qw_pi = model.params(x)
+
                     y_pred = torch.argmax(qy_pi, -1)
+                    w_pred = torch.argmax(qw_pi, -1)
 
                     params["qz"] = torch.cat([params["qz"], qz.cpu()])
                     params["y"] = torch.cat([params["y"], y])
                     params["y_pred"] = torch.cat([params["y_pred"], y_pred.cpu()])
+                    params["w_pred"] = torch.cat([params["w_pred"], w_pred.cpu()])
                 #
                 # for i in range(args.num_classes):
                 #     y_i = F.one_hot(torch.full((100,), i).long(), num_classes=args.num_classes)
@@ -115,6 +114,7 @@ def main(args):
 
                 y = params["y"].numpy().astype(int)
                 y_pred = params["y_pred"].numpy().astype(int)
+                w_pred = params["w_pred"].numpy().astype(int)
 
                 plt.figure(figsize=(12, 12))
                 for i in np.unique(y):
@@ -139,6 +139,13 @@ def main(args):
                 sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False)
                 plt.title(f"confusion matrix y / y' at epoch {epoch}")
                 plt.savefig(f"cm_y_{epoch}.png")
+                plt.close()
+
+                plt.figure(figsize=(20, 12))
+                cm = confusion_matrix(y, w_pred)
+                sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False)
+                plt.title(f"confusion matrix y / w' at epoch {epoch}")
+                plt.savefig(f"cm_w_{epoch}.png")
                 plt.close()
 
                 # yy = torch.tensor(list(range(args.num_classes))).unsqueeze(1)
