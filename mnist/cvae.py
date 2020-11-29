@@ -40,7 +40,11 @@ class Encoder(nn.Module):
             Block(256, 512, stride=2),
             nn.Flatten(),
         )
-        self.fc = nn.Linear(25088, dim_out)
+        self.fc = nn.Sequential(
+            nn.Linear(25088, dim_out),
+            nn.BatchNorm2d(dim_out),
+            nn.LeakyReLU(0.2, inplace=True),
+        )
 
     def forward(self, x):
         x = self.head(x)
