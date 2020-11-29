@@ -94,14 +94,17 @@ class Decoder(nn.Module):
 
 
 class Gaussian(nn.Module):
-    def __init__(self):
+    def __init__(self, in_dim, out_dim):
         super().__init__()
+        self.logits = nn.Linear(in_dim, out_dim * 2)
 
-    def forward(self, mean, logvar):
-        x = self.reparameterize(mean, logvar)
+    def forward(self, x):
+        logits = self.logits(x)
+        mean, logvar = torch.split(logits, logits.shape[-1] // 2, -1)
+        x = self._reparameterize(mean, logvar)
         return x, mean, logvar
 
-    def reparameterize(self, mean, logvar):
+    def _reparameterize(self, mean, logvar):
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(mean)
         x = mean + eps * std
@@ -109,11 +112,7 @@ class Gaussian(nn.Module):
 
 
 class Qz_xy(nn.Module):
-    def __init__(
-        self,
-        dim_y,
-        dim_z,
-    ):
+    def __init__(self, dim_y, dim_z):
         super().__init__()
         self.encoder = Encoder(1024)
 
@@ -134,10 +133,7 @@ class Qz_xy(nn.Module):
 
 
 class Qy_x(nn.Module):
-    def __init__(
-        self,
-        dim_y,
-    ):
+    def __init__(self, dim_y):
         super().__init__()
         self.encoder = Encoder(1024)
 
@@ -154,11 +150,7 @@ class Qy_x(nn.Module):
 
 
 class Pz_y(nn.Module):
-    def __init__(
-        self,
-        dim_y,
-        dim_z,
-    ):
+    def __init__(self, dim_y, dim_z):
         super().__init__()
 
         self.fc = nn.Sequential(
@@ -175,10 +167,7 @@ class Pz_y(nn.Module):
 
 
 class Px_z(nn.Module):
-    def __init__(
-        self,
-        dim_z,
-    ):
+    def __init__(self, dim_z):
         super().__init__()
 
         self.decoder = Decoder(dim_z)
