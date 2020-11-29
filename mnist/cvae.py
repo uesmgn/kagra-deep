@@ -435,7 +435,7 @@ class IAE(nn.Module):
 
 
 class IAE2(nn.Module):
-    def __init__(self, dim_y, dim_z):
+    def __init__(self, dim_w, dim_y, dim_z):
         super().__init__()
 
         encoder = Encoder(1024)
