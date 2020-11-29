@@ -17,7 +17,7 @@ num_train_steps: 100
 eval_interval: 5
 num_epochs: 10000
 dataset_root: /home/gen.ueshima/gen/workspace/github/GravitySpy/processed/dataset_small.h5
-weights: [1., 1., 1., 1.]
+weights: [1., 1., 10., 1.]
 
 wandb:
   project: kagra-deep
