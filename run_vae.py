@@ -78,11 +78,11 @@ def main(args):
             loss.backward()
             optim.step()
             total += loss.total.item()
-            for k, v in loss.items():
-                total_dict[k] += v.item()
+            for key, loss_i in loss.items():
+                total_dict[key] += loss_i.item()
         print("loss: {:.3f} at epoch: {}".format(total, epoch))
-        for k, v in total_dict.items():
-            print("loss_{}: {:.3f} at epoch: {}".format(k, v, epoch))
+        for key, loss_i in total_dict.items():
+            print("loss_{}: {:.3f} at epoch: {}".format(key, loss_i, epoch))
 
         if epoch % args.eval_interval == 0:
             print(f"----- evaluating at epoch {epoch} -----")
