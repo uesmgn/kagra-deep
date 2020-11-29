@@ -139,7 +139,7 @@ class Qy_x(nn.Module):
             nn.Linear(1024, dim_y),
         )
 
-    def forward(self, x, hard=False, tau=0.5):
+    def forward(self, x, tau=0.5, hard=False):
         x_encoded = self.encoder(x)
         logits = self.logits(x_encoded)
         pi = F.softmax(logits, -1)
@@ -232,6 +232,22 @@ class Px_z(nn.Module):
     def forward(self, z):
         x = self.decoder(z)
         return x
+
+
+class ClusterHead(nn.Module):
+    def __init__(self, dim_in, dim_out):
+        super().__init__()
+        self.fc = nn.Sequential(
+            nn.Linear(dim_in, 1024),
+            nn.BatchNorm1d(1024),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(1024, dim_out),
+        )
+
+    def forward(self, x):
+        logits = self.fc(x)
+        pi = F.softmax(logits, -1)
+        return pi
 
 
 class TensorDict(dict):
@@ -416,3 +432,78 @@ class IAE(nn.Module):
         pi = p.sum(dim=1).view(k, 1).expand(k, k)
         pj = p.sum(dim=0).view(1, k).expand(k, k)
         return (p * (alpha * torch.log(pi) + alpha * torch.log(pj) - torch.log(p))).sum() / b
+
+
+class IAE2(nn.Module):
+    def __init__(self, dim_y, dim_z):
+        super().__init__()
+
+        encoder = Encoder(1024)
+        decoder = Decoder(dim_z)
+        self.qy_x = Qy_x(encoder, dim_y)
+        self.qz_xy = Qz_xy(encoder, dim_y, dim_z)
+        self.pz_y = Pz_y(dim_y, dim_z)
+        self.px_z = Px_z(decoder)
+
+        self.cluster_head = ClusterHead(dim_z, dim_w)
+
+        self.weight_init()
+
+    def weight_init(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.xavier_normal_(m.weight)
+            elif isinstance(m, (nn.BatchNorm1d, nn.BatchNorm2d)):
+                nn.init.normal_(m.weight, mean=1, std=0.02)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.xavier_normal_(m.weight)
+                nn.init.zeros_(m.bias)
+
+    def forward(self, x, weights=None, tau=0.5):
+        # vae
+        qy, qy_pi = self.qy_x(x, tau=tau)
+        qz, qz_mean, qz_logvar = self.qz_xy(x, qy)
+        pz, pz_mean, pz_logvar = self.pz_y(qy)
+        px = self.px_z(pz)
+
+        qw_pi = self.cluster_head(qz)
+        pw_pi = self.cluster_head(pz)
+
+        b = x.shape[0]
+        bce = self.bce(x, px) / b
+        klc = self.kl_cat(qy_pi, torch.ones_like(qy_pi) / qy_pi.shape[-1]) / b
+        klg = self.kl_gauss(qz_mean, qz_logvar, pz_mean, pz_logvar) / b
+        mi = self.mutual_info(qw_pi, pw_pi) / b
+
+        return bce + klc + klg + mi
+
+    def params(self, x):
+        _, qy_pi = self.qy_x(x)
+        _, qz_mean, _ = self.qz_xy(x, qy_pi)
+        qw_pi = self.cluster_head(qz_mean)
+        return qz_mean, qy_pi, qw_pi
+
+    def bce(self, x, x_recon):
+        return F.binary_cross_entropy(x_recon, x, reduction="sum")
+
+    def kl_cat(self, q, p, eps=1e-8):
+        return torch.sum(q * (torch.log(q + eps) - torch.log(p + eps)))
+
+    def kl_gauss(self, mean_p, logvar_p, mean_q, logvar_q):
+        return -0.5 * torch.sum(
+            logvar_p
+            - logvar_q
+            + 1
+            - torch.pow(mean_p - mean_q, 2) / logvar_q.exp()
+            - logvar_p.exp() / logvar_q.exp()
+        )
+
+    def mutual_info(self, x, y, alpha=2.0, eps=1e-8):
+        p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(dim=0)
+        p = ((p + p.t()) / 2) / p.sum()
+        _, k = x.shape
+        p[(p < eps).data] = eps
+        pi = p.sum(dim=1).view(k, 1).expand(k, k)
+        pj = p.sum(dim=0).view(1, k).expand(k, k)
+        return (p * (alpha * torch.log(pi) + alpha * torch.log(pj) - torch.log(p))).sum()
