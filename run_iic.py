@@ -19,11 +19,6 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
 
-# def wandb_init(args):
-#     wandb.init(project=args.project, tags=args.tags, group=args.group)
-#     wandb.run.name = args.name + "_" + wandb.run.id
-#
-
 
 @hydra.main(config_path="config", config_name="test_iic")
 def main(args):

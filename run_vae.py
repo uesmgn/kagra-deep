@@ -17,13 +17,8 @@ from mnist import M2
 
 import matplotlib.pyplot as plt
 
-# def wandb_init(args):
-#     wandb.init(project=args.project, tags=args.tags, group=args.group)
-#     wandb.run.name = args.name + "_" + wandb.run.id
-#
 
-
-@hydra.main(config_path="config", config_name="test")
+@hydra.main(config_path="config", config_name="test_vae")
 def main(args):
     # wandb_init(args.wandb)
 
