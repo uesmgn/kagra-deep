@@ -324,7 +324,6 @@ class IIC(nn.Module):
         return y_pi, w_pi
 
     def mutual_info(self, x, y, alpha=1.0, eps=1e-8):
-        x, y = F.softmax(x, -1), F.softmax(y, -1)
         p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(dim=0)
         p = ((p + p.t()) / 2) / p.sum()
         _, k = x.shape
