@@ -38,7 +38,7 @@ def main(args):
 
     dataset = datasets.HDF5(args.dataset_root, transform_fn, target_transform_fn)
     train_set, test_set = dataset.split(train_size=args.train_size, stratify=dataset.targets)
-    train_set.transform = augment_fn
+    train_set = datasets.co(train_set, augment_fn)
     # train_sampler = samplers.Balancer(train_set, args.batch_size * args.num_train_steps)
     train_sampler = samplers.Upsampler(train_set, args.batch_size * args.num_train_steps)
 
@@ -70,19 +70,16 @@ def main(args):
         model.train()
         total = 0
         total_dict = defaultdict(lambda: 0)
-        for i, (x, _) in tqdm(enumerate(train_loader)):
+        for i, (x, v, _) in tqdm(enumerate(train_loader)):
             x = x.to(device)
-            losses = model(x)
-            loss = sum(losses)
+            loss_x, qy_x, qw_x = model(x)
+            loss_v, qy_v, qw_v = model(v)
+            loss = loss_x + loss_v + model.mi(qy_x, qy_v) + model.mi(qw_x, qw_v)
             optim.zero_grad()
             loss.backward()
             optim.step()
             total += loss.item()
-            for k, v in enumerate(losses):
-                total_dict[k] += v.item()
         print("loss: {:.3f} at epoch: {}".format(total, epoch))
-        for k, v in total_dict.items():
-            print("loss_{}: {:.3f} at epoch: {}".format(k, v, epoch))
 
         scheduler.step()
 
