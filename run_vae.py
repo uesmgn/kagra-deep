@@ -97,14 +97,13 @@ def main(args):
             with torch.no_grad():
                 for i, (x, y) in tqdm(enumerate(test_loader)):
                     x = x.to(device)
-                    qy, qy_pi = model.qy_x(x)
+                    qy, qy_pi = model.qy_x(x, hard=True)
                     _, qz, _ = model.qz_xy(x, qy)
                     y_pred = torch.argmax(qy_pi, -1)
                     # y_onehot = F.one_hot(y, num_classes=args.num_classes).float().to(device)
                     # pz, _, _ = model.pz_y(y_onehot.float().to(device))
 
                     params["qz"] = torch.cat([params["qz"], qz.cpu()])
-                    params["pz"] = torch.cat([params["pz"], pz.cpu()])
                     params["y"] = torch.cat([params["y"], y])
                     params["y_pred"] = torch.cat([params["y_pred"], y_pred.cpu()])
 
@@ -150,53 +149,6 @@ def main(args):
                 plt.title(f"pz_{epoch}")
                 plt.savefig(f"pz_{epoch}.png")
                 plt.close()
-
-    #
-    # cfg_params = {
-    #     "type": args.type,
-    #     "transform": transform_fn,
-    #     "augment_transform": augment_fn,
-    #     "target_transform": target_transform_fn,
-    #     "sampler_callback": sampler_callback,
-    #     "train_size": args.train_size,
-    #     "labeled_size": args.labeled_size,
-    # }
-    #
-    # cfg = config.Config(**cfg_params)
-    #
-    # device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    # if torch.cuda.is_available():
-    #     torch.backends.cudnn.benchmark = True
-    #
-    # num_epochs = args.num_epochs
-    #
-    # model = M4(transform_fn, augment_fn, dim_x=64, dim_y=20, dim_y_over=30, dim_z=2).to(device)
-    # optim = torch.optim.Adam(model.parameters(), lr=1e-4)
-    # scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=2, T_mult=2)
-    #
-    # train_set, eval_set = cfg.get_datasets(args.dataset)
-    # train_loader = cfg.get_loader(args.train, train_set)
-    # eval_loader = cfg.get_loader(args.eval, eval_set, train=False)
-    #
-    # for epoch in range(args.num_epochs):
-    #     model.train()
-    #     total = 0
-    #     for (ux, uxt, _), (lx, _, target) in train_loader:
-    #         ux = ux.to(device)
-    #         uxt = uxt.to(device)
-    #         lx = lx.to(device)
-    #         target = target.to(device)
-    #         y = F.one_hot(target, num_classes=args.num_classes)
-    #
-    #         loss = model(ux, xt=uxt) + model(lx, y=y)
-    #
-    #         optim.zero_grad()
-    #         loss.backward()
-    #         optim.step()
-    #
-    #         total += loss.item()
-    #     print("loss: {:.3f} at epoch: {}".format(total, epoch))
-    #     scheduler.step()
 
 
 if __name__ == "__main__":

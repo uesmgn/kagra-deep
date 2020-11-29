@@ -127,15 +127,11 @@ class Qy_x(nn.Module):
             nn.Linear(1024, dim_y),
         )
 
-    def forward(self, x, tau=0.5):
+    def forward(self, x, hard=False, tau=0.5):
         x_encoded = self.encoder(x)
         logits = self.logits(x_encoded)
-        y, pi = self.categorical_sample(logits)
-        return y, pi
-
-    def categorical_sample(self, logits, tau=0.5):
-        y = F.gumbel_softmax(logits, tau=tau, hard=False, dim=-1)
         pi = F.softmax(logits, -1)
+        y = F.gumbel_softmax(logits, tau=tau, hard=hard, dim=-1)
         return y, pi
 
 
@@ -283,3 +279,55 @@ class M2(nn.Module):
             - torch.pow(mean_p - mean_q, 2) / logvar_q.exp()
             - logvar_p.exp() / logvar_q.exp()
         )
+
+
+class IIC(nn.Module):
+    def __init__(
+        self,
+        dim_y,
+        dim_w,
+    ):
+        super().__init__()
+
+        encoder = Encoder(1024)
+        self.qy_x = Qy_x(encoder, dim_y)
+        self.qw_x = Qy_x(encoder, dim_w)
+        self.weight_init()
+
+    def weight_init(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.xavier_normal_(m.weight)
+            elif isinstance(m, (nn.BatchNorm1d, nn.BatchNorm2d)):
+                nn.init.normal_(m.weight, mean=1, std=0.02)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.xavier_normal_(m.weight)
+                nn.init.zeros_(m.bias)
+
+    def forward(self, x, v, weights=None, tau=0.5):
+        # iic
+        y_x, w_x = self.clustering(x)
+        y_v, w_v = self.clustering(v)
+
+        b = x.shape[0]
+        mi_y = self.mutual_info(y_x, y_v) / b
+        mi_w = self.mutual_info(w_x, w_v) / b
+
+        params = dict(mi_y=mi_y, mi_w=mi_w)
+        loss = LossDict(**params, weights=weights)
+        return loss
+
+    def clustering(self, x):
+        _, y_pi = self.qy_x(x)
+        _, w_pi = self.qw_x(x)
+        return y_pi, w_pi
+
+    def mutual_info(self, x, y, alpha=1.0, eps=1e-8):
+        x, y = F.softmax(x, -1), F.softmax(y, -1)
+        p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(dim=0)
+        p = ((p + p.t()) / 2) / p.sum()
+        p[(p < eps).data] = eps
+        pi = p.sum(dim=1).view(k, 1).expand(k, k)
+        pj = p.sum(dim=0).view(1, k).expand(k, k)
+        return (p * (alpha * torch.log(pi) + alpha * torch.log(pj) - torch.log(p))).sum()
