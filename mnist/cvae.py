@@ -34,6 +34,24 @@ class ResBlock(nn.Module):
         return self.activation(x)
 
 
+class Block(nn.Module):
+    def __init__(self, in_channels, out_channels, stride=1):
+        super().__init__()
+        self.block = nn.Sequential(
+            nn.Conv2d(
+                in_channels, out_channels, stride=stride, kernel_size=3, padding=1, bias=False
+            ),
+            nn.BatchNorm2d(out_channels),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(out_channels),
+            nn.LeakyReLU(0.2, inplace=True),
+        )
+
+    def forward(self, x):
+        return self.block(x)
+
+
 class Encoder(nn.Module):
     def __init__(self, dim_out=512):
         super().__init__()
@@ -45,14 +63,12 @@ class Encoder(nn.Module):
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
         )
         self.blocks = nn.Sequential(
-            ResBlock(64, 64),
-            ResBlock(64, 64),
-            ResBlock(64, 128, stride=2),
-            ResBlock(128, 128),
-            ResBlock(128, 256, stride=2),
-            ResBlock(256, 256),
-            ResBlock(256, 512, stride=2),
-            ResBlock(512, 512),
+            Block(64, 128, stride=2),
+            Block(128, 128),
+            Block(128, 256, stride=2),
+            Block(256, 256),
+            Block(256, 512, stride=2),
+            Block(512, 512),
             nn.Flatten(),
             nn.Linear(25088, dim_out),
             nn.BatchNorm1d(dim_out),
