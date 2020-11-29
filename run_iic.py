@@ -73,18 +73,20 @@ def main(args):
         model.train()
         total = 0
         total_dict = defaultdict(lambda: 0)
-        for i, (x, v, _) in tqdm(enumerate(train_loader)):
+        for i, (data, _) in tqdm(enumerate(train_loader)):
+            x, v = data
             x = x.to(device)
+            v = v.to(device)
             loss = model(x, v, weights=weights)
             optim.zero_grad()
             loss.backward()
             optim.step()
             total += loss.total.item()
-            for k, v in loss.items():
-                total_dict[k] += v.item()
+            for key, loss_i in loss.items():
+                total_dict[key] += loss_i.item()
         print("loss: {:.3f} at epoch: {}".format(total, epoch))
-        for k, v in total_dict.items():
-            print("loss_{}: {:.3f} at epoch: {}".format(k, v, epoch))
+        for key, loss_i in total_dict.items():
+            print("loss_{}: {:.3f} at epoch: {}".format(key, loss_i, epoch))
 
         if epoch % args.eval_interval == 0:
             print(f"----- evaluating at epoch {epoch} -----")
