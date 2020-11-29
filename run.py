@@ -67,7 +67,7 @@ def main(args):
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
-    model = M2(dim_y=args.num_classes, dim_z=2).to(device)
+    model = M2(dim_y=args.num_classes, dim_z=args.dim_z).to(device)
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
     weights = args.weights
 
@@ -100,23 +100,23 @@ def main(args):
                     qy, qy_pi = model.qy_x(x)
                     _, qz, _ = model.qz_xy(x, qy)
                     y_pred = torch.argmax(qy_pi, -1)
-                    y = F.one_hot(y, num_classes=args.num_classes).float().to(device)
-                    pz, _, _ = model.pz_y(y_i.float().to(device))
+                    # y_onehot = F.one_hot(y, num_classes=args.num_classes).float().to(device)
+                    # pz, _, _ = model.pz_y(y_onehot.float().to(device))
 
                     params["qz"] = torch.cat([params["qz"], qz.cpu()])
                     params["pz"] = torch.cat([params["pz"], pz.cpu()])
                     params["y"] = torch.cat([params["y"], y])
                     params["y_pred"] = torch.cat([params["y_pred"], y_pred.cpu()])
 
-                # for i in range(args.num_classes):
-                #     y_i = F.one_hot(torch.full((100,), i).long(), num_classes=args.num_classes)
-                #     pz, _, _ = model.pz_y(y_i.float().to(device))
-                #     params["pz"] = torch.cat([params["pz"], pz.cpu()])
+                for i in range(args.num_classes):
+                    y_i = F.one_hot(torch.full((100,), i).long(), num_classes=args.num_classes)
+                    pz, _, _ = model.pz_y(y_i.float().to(device))
+                    params["pz"] = torch.cat([params["pz"], pz.cpu()])
 
                 qz = params["qz"].numpy()
                 pz = params["pz"].numpy()
-                # qz = TSNE(n_components=2).fit_transform(qz)
-                # pz = TSNE(n_components=2).fit_transform(pz)
+                qz = TSNE(n_components=2).fit_transform(qz)
+                pz = TSNE(n_components=2).fit_transform(pz)
 
                 y = params["y"].numpy().astype(int)
                 y_pred = params["y_pred"].numpy().astype(int)
@@ -139,26 +139,16 @@ def main(args):
                 plt.savefig(f"qz_pred_{epoch}.png")
                 plt.close()
 
-                # yy = torch.tensor(list(range(args.num_classes))).unsqueeze(1)
-                # yy = yy.repeat(1, 100).flatten()
-                # print(yy.shape)
-                # print(pz.shape)
-                plt.figure(figsize=(12, 12))
-                for i in np.unique(y):
-                    idx = np.where(y == i)
-                    plt.scatter(pz[idx, 0], pz[idx, 1], label=i)
-                plt.legend()
-                plt.title(f"pz_true_{epoch}")
-                plt.savefig(f"pz_true_{epoch}.png")
-                plt.close()
+                yy = torch.tensor(list(range(args.num_classes))).unsqueeze(1)
+                yy = yy.repeat(1, 100).flatten()
 
                 plt.figure(figsize=(12, 12))
-                for i in np.unique(y_pred):
-                    idx = np.where(y_pred == i)
+                for i in range(args.num_classes):
+                    idx = np.where(yy == i)
                     plt.scatter(pz[idx, 0], pz[idx, 1], label=i)
                 plt.legend()
-                plt.title(f"pz_pred_{epoch}")
-                plt.savefig(f"pz_pred_{epoch}.png")
+                plt.title(f"pz_{epoch}")
+                plt.savefig(f"pz_{epoch}.png")
                 plt.close()
 
     #
