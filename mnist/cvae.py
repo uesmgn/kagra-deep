@@ -269,11 +269,6 @@ class M2(nn.Module):
         loss = LossDict(**params, weights=weights)
         return loss
 
-    def params(self, x):
-        qy, qy_pi = self.qy_x(x)
-        qz, qz_mean, qz_logvar = self.qz_xy(x, qy)
-        return qz_mean, qy_pi
-
     def bce(self, x, x_recon):
         return F.binary_cross_entropy(x_recon, x, reduction="sum")
 
