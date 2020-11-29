@@ -63,7 +63,7 @@ def main(args):
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
-    model = IIC(dim_y=args.num_classes, dim_w=30).to(device)
+    model = IIC(dim_y=args.num_classes, dim_w=args.dim_w).to(device)
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
     weights = args.weights
 
