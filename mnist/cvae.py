@@ -167,14 +167,14 @@ class Qw_z(nn.Module):
 class Qz_xy(nn.Module):
     def __init__(self, encoder, dim_y, dim_z):
         super().__init__()
-        self.encoder_x = encoder
-        self.encoder_y = nn.Sequential(
-            nn.Linear(dim_y, encoder.dim_out),
-            nn.BatchNorm1d(encoder.dim_out),
+        self.encoder = encoder
+        self.y_logits = nn.Sequential(
+            nn.Linear(encoder.dim_out, dim_y),
+            nn.BatchNorm1d(dim_y),
             nn.LeakyReLU(0.2, inplace=True),
         )
         self.fc = nn.Sequential(
-            nn.Linear(encoder.dim_out * 2, 1024),
+            nn.Linear(dim_y, 1024),
             nn.BatchNorm1d(1024),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Linear(1024, dim_z * 2),
@@ -182,7 +182,8 @@ class Qz_xy(nn.Module):
         self.gaussian = Gaussian()
 
     def forward(self, x, y):
-        logits = self.fc(torch.cat((self.encoder_x(x), self.encoder_y(y)), -1))
+        x_encoded = self.encoder(x)
+        logits = self.fc(self.y_logits(x_encoded) * y)
         z_mean, z_logvar = torch.split(logits, logits.shape[-1] // 2, -1)
         z, z_mean, z_logvar = self.gaussian(z_mean, z_logvar)
         return z, z_mean, z_logvar
@@ -479,8 +480,8 @@ class IAE2(nn.Module):
         return bce + klc + klg + mi
 
     def params(self, x):
-        _, qy_pi = self.qy_x(x)
-        _, qz_mean, _ = self.qz_xy(x, qy_pi)
+        qy, qy_pi = self.qy_x(x, hard=True)
+        _, qz_mean, _ = self.qz_xy(x, qy)
         qw_pi = self.cluster_head(qz_mean)
         return qz_mean, qy_pi, qw_pi
 
