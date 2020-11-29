@@ -323,7 +323,7 @@ class IIC(nn.Module):
         _, w_pi = self.qw_x(x)
         return y_pi, w_pi
 
-    def mutual_info(self, x, y, alpha=1.0, eps=1e-8):
+    def mutual_info(self, x, y, alpha=2.0, eps=1e-8):
         p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(dim=0)
         p = ((p + p.t()) / 2) / p.sum()
         _, k = x.shape
