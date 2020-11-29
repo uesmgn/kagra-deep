@@ -66,6 +66,7 @@ def main(args):
     model = IAE2(dim_w=args.dim_w, dim_y=args.num_classes, dim_z=args.dim_z).to(device)
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=2, T_mult=2)
+    weights = args.weights
 
     for epoch in range(args.num_epochs):
         print(f"----- training at epoch {epoch} -----")
@@ -74,7 +75,7 @@ def main(args):
         total_dict = defaultdict(lambda: 0)
         for i, (x, _) in tqdm(enumerate(train_loader)):
             x = x.to(device)
-            loss = model(x)
+            loss = model(x, weights=weights)
             optim.zero_grad()
             loss.backward()
             optim.step()
