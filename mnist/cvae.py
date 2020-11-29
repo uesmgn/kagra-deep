@@ -122,9 +122,13 @@ class Qz_xy(nn.Module):
 
         self.fc_x = nn.Sequential(
             nn.Linear(1024, 512),
+            nn.BatchNorm1d(512),
+            nn.LeakyReLU(0.2, inplace=True),
         )
         self.fc_y = nn.Sequential(
             nn.Linear(1024, dim_y),
+            nn.BatchNorm1d(dim_y),
+            nn.LeakyReLU(0.2, inplace=True),
         )
         self.gaussian = Gaussian(512 + dim_y, dim_z)
 
