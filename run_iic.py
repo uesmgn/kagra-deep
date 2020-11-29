@@ -107,14 +107,14 @@ def main(args):
                 y_pred = params["y_pred"].numpy().astype(int)
                 w_pred = params["w_pred"].numpy().astype(int)
 
-                plt.figure(figsize=(12, 8))
+                plt.figure(figsize=(20, 12))
                 cm = confusion_matrix(y, y_pred)
                 sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False)
                 plt.title(f"confusion matrix y / y' at epoch {epoch}")
                 plt.savefig(f"cm_y_{epoch}.png")
                 plt.close()
 
-                plt.figure(figsize=(12, 8))
+                plt.figure(figsize=(20, 12))
                 cm = confusion_matrix(y, w_pred)
                 sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False)
                 plt.title(f"confusion matrix y / w' at epoch {epoch}")
