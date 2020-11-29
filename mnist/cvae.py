@@ -42,7 +42,7 @@ class Encoder(nn.Module):
         )
         self.fc = nn.Sequential(
             nn.Linear(25088, dim_out),
-            nn.BatchNorm2d(dim_out),
+            nn.BatchNorm1d(dim_out),
             nn.LeakyReLU(0.2, inplace=True),
         )
 
