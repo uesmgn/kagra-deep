@@ -65,6 +65,7 @@ def main(args):
         torch.backends.cudnn.benchmark = True
     model = IIC(dim_y=args.num_classes, dim_w=args.dim_w).to(device)
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=2, T_mult=2)
     weights = args.weights
 
     for epoch in range(args.num_epochs):
@@ -86,6 +87,8 @@ def main(args):
         print("loss: {:.3f} at epoch: {}".format(total, epoch))
         for key, loss_i in total_dict.items():
             print("loss_{}: {:.3f} at epoch: {}".format(key, loss_i, epoch))
+
+        scheduler.step()
 
         if epoch % args.eval_interval == 0:
             print(f"----- evaluating at epoch {epoch} -----")
