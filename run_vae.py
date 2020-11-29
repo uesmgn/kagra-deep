@@ -63,7 +63,7 @@ def main(args):
         torch.backends.cudnn.benchmark = True
     model = M2(dim_y=args.num_classes, dim_z=args.dim_z).to(device)
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=2, T_mult=2)
+    # scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=2, T_mult=2)
     weights = args.weights
 
     for epoch in range(args.num_epochs):
@@ -74,7 +74,7 @@ def main(args):
         for i, (x, _) in tqdm(enumerate(train_loader)):
             x = x.to(device)
             bce, kl_gauss, kl_cat = model(x)
-            loss = bce + kl_gauss + kl_cat
+            loss = bce + 10.0 * kl_gauss + kl_cat
             optim.zero_grad()
             loss.backward()
             optim.step()
@@ -86,7 +86,7 @@ def main(args):
         for key, value in total_dict.items():
             print("loss_{}: {:.3f} at epoch: {}".format(key, value, epoch))
 
-        scheduler.step()
+        # scheduler.step()
 
         if epoch % args.eval_interval == 0:
             print(f"----- evaluating at epoch {epoch} -----")
@@ -105,11 +105,11 @@ def main(args):
                     params["y_pred"] = torch.cat([params["y_pred"], y_pred.cpu()])
 
                 for i in range(args.num_classes):
-                    y_i = F.one_hot(torch.full((1000,), i).long(), num_classes=args.num_classes)
+                    y_i = F.one_hot(torch.full((100,), i).long(), num_classes=args.num_classes)
                     pz, _, _ = model.pz_y(y_i.float().to(device))
                     params["pz"] = torch.cat([params["pz"], pz.cpu()])
                 yy = torch.tensor(list(range(args.num_classes)))
-                yy = yy.unsqueeze(1).repeat(1, 1000).flatten()
+                yy = yy.unsqueeze(1).repeat(1, 100).flatten()
 
                 qz = params["qz"].numpy()
                 pz = params["pz"].numpy()
