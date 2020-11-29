@@ -7,7 +7,7 @@ targets: [1080Lines, 1400Ripples, Air_Compressor, Blip,
           Wandering_Line, Whistle]
 use_other: False
 num_classes: 22
-z_dim: 64
+dim_z: 64
 train_size: 0.7
 batch_size: 96
 num_workers: 4
