@@ -16,6 +16,8 @@ from src import config
 from mnist import M2
 
 import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
 
 
 @hydra.main(config_path="config", config_name="test")
@@ -63,7 +65,7 @@ def main(args):
         torch.backends.cudnn.benchmark = True
     model = M2(dim_y=args.num_classes, dim_z=args.dim_z).to(device)
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
-    # scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=2, T_mult=2)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=2, T_mult=2)
     weights = args.weights
 
     for epoch in range(args.num_epochs):
@@ -74,7 +76,7 @@ def main(args):
         for i, (x, _) in tqdm(enumerate(train_loader)):
             x = x.to(device)
             bce, kl_gauss, kl_cat = model(x)
-            loss = bce + 10.0 * kl_gauss + kl_cat
+            loss = bce + 5.0 * kl_gauss + kl_cat
             optim.zero_grad()
             loss.backward()
             optim.step()
@@ -86,7 +88,7 @@ def main(args):
         for key, value in total_dict.items():
             print("loss_{}: {:.3f} at epoch: {}".format(key, value, epoch))
 
-        # scheduler.step()
+        scheduler.step()
 
         if epoch % args.eval_interval == 0:
             print(f"----- evaluating at epoch {epoch} -----")
@@ -144,6 +146,13 @@ def main(args):
                 plt.legend()
                 plt.title(f"pz_{epoch}")
                 plt.savefig(f"pz_{epoch}.png")
+                plt.close()
+
+                plt.figure(figsize=(20, 12))
+                cm = confusion_matrix(y, y_pred)
+                sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False)
+                plt.title(f"confusion matrix y / y' at epoch {epoch}")
+                plt.savefig(f"cm_y_{epoch}.png")
                 plt.close()
 
 
