@@ -63,7 +63,7 @@ def main(args):
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
-    model = IAE(dim_w=args.dim_w, dim_y=args.num_classes, dim_z=args.dim_z).to(device)
+    model = IAE2(dim_w=args.dim_w, dim_y=args.num_classes, dim_z=args.dim_z).to(device)
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=2, T_mult=2)
 
