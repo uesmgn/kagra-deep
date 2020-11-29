@@ -13,7 +13,7 @@ from src.data import datasets
 from src.data import samplers
 from src import config
 
-from mnist import IAE
+from mnist import *
 
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
