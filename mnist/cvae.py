@@ -113,11 +113,7 @@ class Gaussian(nn.Module):
 
 
 class Qy_x(nn.Module):
-    def __init__(
-        self,
-        encoder,
-        dim_y,
-    ):
+    def __init__(self, encoder, dim_y):
         super().__init__()
         self.encoder = encoder
         self.logits = nn.Sequential(
@@ -135,13 +131,25 @@ class Qy_x(nn.Module):
         return y, pi
 
 
+class Qw_z(nn.Module):
+    def __init__(self, dim_w, dim_z):
+        super().__init__()
+        self.logits = nn.Sequential(
+            nn.Linear(dim_z, 1024),
+            nn.BatchNorm1d(1024),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(1024, dim_w),
+        )
+
+    def forward(self, z, hard=False, tau=0.5):
+        logits = self.logits(z)
+        pi = F.softmax(logits, -1)
+        w = F.gumbel_softmax(logits, tau=tau, hard=hard, dim=-1)
+        return w, pi
+
+
 class Qz_xy(nn.Module):
-    def __init__(
-        self,
-        encoder,
-        dim_y,
-        dim_z,
-    ):
+    def __init__(self, encoder, dim_y, dim_z):
         super().__init__()
         self.encoder_x = encoder
         self.encoder_y = nn.Sequential(
@@ -165,11 +173,7 @@ class Qz_xy(nn.Module):
 
 
 class Pz_y(nn.Module):
-    def __init__(
-        self,
-        dim_y,
-        dim_z,
-    ):
+    def __init__(self, dim_y, dim_z):
         super().__init__()
         self.logits = nn.Sequential(
             nn.Linear(dim_y, 1024),
@@ -186,6 +190,24 @@ class Pz_y(nn.Module):
         return z, z_mean, z_logvar
 
 
+class Pz_wy(nn.Module):
+    def __init__(self, dim_w, dim_y, dim_z):
+        super().__init__()
+        self.logits = nn.Sequential(
+            nn.Linear(dim_w + dim_y, 1024),
+            nn.BatchNorm1d(1024),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(1024, dim_z * 2),
+        )
+        self.gaussian = Gaussian()
+
+    def forward(self, y, w):
+        logits = self.logits(torch.cat([w, y], -1))
+        z_mean, z_logvar = torch.split(logits, logits.shape[-1] // 2, -1)
+        z, z_mean, z_logvar = self.gaussian(z_mean, z_logvar)
+        return z, z_mean, z_logvar
+
+
 class Px_z(nn.Module):
     def __init__(self, decoder):
         super().__init__()
@@ -196,14 +218,8 @@ class Px_z(nn.Module):
         return x
 
 
-class LossDict(dict):
-    def __init__(self, weights=None, **kwargs):
-        self.weights = weights
-        if weights is not None:
-            if isinstance(weights, abc.Iterable):
-                pass
-            else:
-                raise ValueError("weights must be NoneType or Iterable.")
+class TensorDict(dict):
+    def __init__(self, **kwargs):
         for k, v in kwargs.items():
             assert torch.is_tensor(v)
             self[k] = v
@@ -211,23 +227,16 @@ class LossDict(dict):
     @property
     def total(self):
         tmp = 0
-        for i, (k, v) in enumerate(self.items()):
-            try:
-                tmp += v * self.weights[i]
-            except:
-                tmp += v
+        for k, v in self.items():
+            tmp += v
         return tmp
 
     def backward(self):
         self.total.backward()
 
 
-class M2(nn.Module):
-    def __init__(
-        self,
-        dim_y,
-        dim_z,
-    ):
+class VAE(nn.Module):
+    def __init__(self, dim_y, dim_z):
         super().__init__()
 
         encoder = Encoder(1024)
@@ -251,7 +260,7 @@ class M2(nn.Module):
 
     def forward(self, x, weights=None, tau=0.5):
         # vae
-        qy, qy_pi = self.qy_x(x)
+        qy, qy_pi = self.qy_x(x, tau=tau)
         qz, qz_mean, qz_logvar = self.qz_xy(x, qy)
         pz, pz_mean, pz_logvar = self.pz_y(qy)
         px = self.px_z(pz)
@@ -261,9 +270,7 @@ class M2(nn.Module):
         klc = self.kl_cat(qy_pi, torch.ones_like(qy_pi) / qy_pi.shape[-1]) / b
         klg = self.kl_gauss(qz_mean, qz_logvar, pz_mean, pz_logvar) / b
 
-        params = dict(bce=bce, klc=klc, klg=klg)
-        loss = LossDict(**params, weights=weights)
-        return loss
+        return bce, klc, klg
 
     def bce(self, x, x_recon):
         return F.binary_cross_entropy(x_recon, x, reduction="sum")
@@ -282,11 +289,7 @@ class M2(nn.Module):
 
 
 class IIC(nn.Module):
-    def __init__(
-        self,
-        dim_y,
-        dim_w,
-    ):
+    def __init__(self, dim_y, dim_w):
         super().__init__()
 
         encoder = Encoder(1024)
@@ -314,14 +317,80 @@ class IIC(nn.Module):
         mi_y = self.mutual_info(y_x, y_v) / b
         mi_w = self.mutual_info(w_x, w_v) / b
 
-        params = dict(mi_y=mi_y, mi_w=mi_w)
-        loss = LossDict(**params, weights=weights)
-        return loss
+        return mi_y, mi_w
 
     def clustering(self, x):
         _, y_pi = self.qy_x(x)
         _, w_pi = self.qw_x(x)
         return y_pi, w_pi
+
+    def mutual_info(self, x, y, alpha=2.0, eps=1e-8):
+        p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(dim=0)
+        p = ((p + p.t()) / 2) / p.sum()
+        _, k = x.shape
+        p[(p < eps).data] = eps
+        pi = p.sum(dim=1).view(k, 1).expand(k, k)
+        pj = p.sum(dim=0).view(1, k).expand(k, k)
+        return (p * (alpha * torch.log(pi) + alpha * torch.log(pj) - torch.log(p))).sum()
+
+
+class IAE(nn.Module):
+    def __init__(self, dim_w, dim_y, dim_z):
+        super().__init__()
+
+        encoder = Encoder(1024)
+        decoder = Decoder(dim_z)
+
+        self.qy_x = Qy_x(encoder, dim_y)
+        self.qz_xy = Qz_xy(encoder, dim_y, dim_z)
+        self.qw_z = Qw_z(dim_w, dim_z)
+
+        self.pz_wy = Pz_wy(dim_w, dim_y, dim_z)
+        self.px_z = Px_z(decoder)
+
+        self.weight_init()
+
+    def weight_init(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.xavier_normal_(m.weight)
+            elif isinstance(m, (nn.BatchNorm1d, nn.BatchNorm2d)):
+                nn.init.normal_(m.weight, mean=1, std=0.02)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.xavier_normal_(m.weight)
+                nn.init.zeros_(m.bias)
+
+    def forward(self, x, tau=0.5):
+        # vae
+        qy, qy_pi = self.qy_x(x, tau=tau)
+        qz, qz_mean, qz_logvar = self.qz_xy(x, qy)
+        qw, qw_pi = self.qw_z(qz)
+        pz, pz_mean, pz_logvar = self.pz_wy(qw, qy)
+        px = self.px_z(pz)
+
+        b = x.shape[0]
+        bce = self.bce(x, px) / b
+        kly = self.kl_cat(qy_pi, torch.ones_like(qy_pi) / qy_pi.shape[-1]) / b
+        klw = self.kl_cat(qw_pi, torch.ones_like(qw_pi) / qw_pi.shape[-1]) / b
+        klg = self.kl_gauss(qz_mean, qz_logvar, pz_mean, pz_logvar) / b
+
+        return bce, kly, klw, klg
+
+    def bce(self, x, x_recon):
+        return F.binary_cross_entropy(x_recon, x, reduction="sum")
+
+    def kl_cat(self, q, p, eps=1e-8):
+        return torch.sum(q * (torch.log(q + eps) - torch.log(p + eps)))
+
+    def kl_gauss(self, mean_p, logvar_p, mean_q, logvar_q):
+        return -0.5 * torch.sum(
+            logvar_p
+            - logvar_q
+            + 1
+            - torch.pow(mean_p - mean_q, 2) / logvar_q.exp()
+            - logvar_p.exp() / logvar_q.exp()
+        )
 
     def mutual_info(self, x, y, alpha=2.0, eps=1e-8):
         p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(dim=0)
