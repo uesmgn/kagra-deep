@@ -477,7 +477,10 @@ class IAE2(nn.Module):
         klg = self.kl_gauss(qz_mean, qz_logvar, pz_mean, pz_logvar) / b
         mi = self.mutual_info(qw_pi, pw_pi) / b
 
-        return bce + klc + klg + mi
+        try:
+            return bce * weights[0] + klc * weights[1] + klg * weights[2] + mi * weights[3]
+        except:
+            return bce + klc + klg + mi
 
     def params(self, x):
         qy, qy_pi = self.qy_x(x, hard=True)
