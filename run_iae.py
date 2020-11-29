@@ -70,8 +70,10 @@ def main(args):
         model.train()
         total = 0
         total_dict = defaultdict(lambda: 0)
-        for i, (x, v, _) in tqdm(enumerate(train_loader)):
+        for i, (data, _) in tqdm(enumerate(train_loader)):
+            x, v = data
             x = x.to(device)
+            v = v.to(device)
             loss_x, qy_x, qw_x = model(x)
             loss_v, qy_v, qw_v = model(v)
             loss = loss_x + loss_v + model.mi(qy_x, qy_v) + model.mi(qw_x, qw_v)
