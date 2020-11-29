@@ -18,7 +18,7 @@ from mnist import M2
 import matplotlib.pyplot as plt
 
 
-@hydra.main(config_path="config", config_name="test_vae")
+@hydra.main(config_path="config", config_name="test")
 def main(args):
 
     transform_fn = transforms.Compose(
@@ -78,7 +78,7 @@ def main(args):
             optim.zero_grad()
             loss.backward()
             optim.step()
-            total += loss.total.item()
+            total += loss.item()
             total_dict["bce"] += bce.item()
             total_dict["kl_gauss"] += kl_gauss.item()
             total_dict["kl_cat"] += kl_cat.item()
