@@ -375,7 +375,7 @@ class IAE(nn.Module):
         klw = self.kl_cat(qw_pi, torch.ones_like(qw_pi) / qw_pi.shape[-1]) / b
         klg = self.kl_gauss(qz_mean, qz_logvar, pz_mean, pz_logvar) / b
 
-        return bce, kly, klw, klg
+        return bce + kly + klw + klg, qy_pi, qw_pi
 
     def bce(self, x, x_recon):
         return F.binary_cross_entropy(x_recon, x, reduction="sum")
@@ -392,11 +392,11 @@ class IAE(nn.Module):
             - logvar_p.exp() / logvar_q.exp()
         )
 
-    def mutual_info(self, x, y, alpha=2.0, eps=1e-8):
+    def mi(self, x, y, alpha=2.0, eps=1e-8):
         p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(dim=0)
         p = ((p + p.t()) / 2) / p.sum()
-        _, k = x.shape
+        b, k = x.shape
         p[(p < eps).data] = eps
         pi = p.sum(dim=1).view(k, 1).expand(k, k)
         pj = p.sum(dim=0).view(1, k).expand(k, k)
-        return (p * (alpha * torch.log(pi) + alpha * torch.log(pj) - torch.log(p))).sum()
+        return (p * (alpha * torch.log(pi) + alpha * torch.log(pj) - torch.log(p))).sum() / b
