@@ -327,6 +327,7 @@ class IIC(nn.Module):
         x, y = F.softmax(x, -1), F.softmax(y, -1)
         p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(dim=0)
         p = ((p + p.t()) / 2) / p.sum()
+        _, k = x.shape
         p[(p < eps).data] = eps
         pi = p.sum(dim=1).view(k, 1).expand(k, k)
         pj = p.sum(dim=0).view(1, k).expand(k, k)
