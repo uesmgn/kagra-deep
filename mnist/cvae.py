@@ -178,7 +178,7 @@ class Pz_y(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(dim_y, 1024),
             nn.BatchNorm1d(1024),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2, inplace=True),
         )
         self.gaussian = Gaussian(1024, dim_z)
 
@@ -346,13 +346,13 @@ class ClusterHeads(nn.Module):
         self.fc1 = nn.Sequential(
             nn.Linear(dim_in, 1024),
             nn.BatchNorm1d(1024),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2, inplace=True),
             nn.Linear(1024, dim_y),
         )
         self.fc2 = nn.Sequential(
             nn.Linear(dim_in, 1024),
             nn.BatchNorm1d(1024),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2, inplace=True),
             nn.Linear(1024, dim_w),
         )
 
