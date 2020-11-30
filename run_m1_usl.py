@@ -6,15 +6,16 @@ import numpy as np
 from collections import abc, defaultdict
 import numbers
 from tqdm import tqdm
-from sklearn.manifold import TSNE
+import umap
+from itertools import cycle
 
-from src.utils.functional import acronym
+from src.utils.functional import acronym, darken, colormap
 from src.utils import transforms
 from src.data import datasets
 from src.data import samplers
 from src import config
 
-from mnist import IIC
+from mnist import M1
 
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
@@ -43,15 +44,16 @@ def main(args):
 
     dataset = datasets.HDF5(args.dataset_root, transform_fn, target_transform_fn)
     train_set, test_set = dataset.split(train_size=args.train_size, stratify=dataset.targets)
-    train_set = datasets.co(train_set, augment_fn)
-    # train_sampler = samplers.Balancer(train_set, args.batch_size * args.num_train_steps)
-    train_sampler = samplers.Upsampler(train_set, args.batch_size * args.num_train_steps)
+    train_set.transform = augment_fn
+
+    def sampler_callback(ds, batch_size):
+        return samplers.Upsampler(ds, batch_size * args.num_train_steps)
 
     train_loader = torch.utils.data.DataLoader(
         train_set,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
-        sampler=train_sampler,
+        sampler=sampler_callback(train_set, args.batch_size),
         pin_memory=True,
         drop_last=True,
     )
@@ -66,9 +68,11 @@ def main(args):
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
-    model = IIC(ch_in=args.ch_in, dim_y=args.num_classes, dim_w=args.dim_w).to(device)
+    model = M1(ch_in=args.ch_in, dim_z=args.dim_z).to(device)
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=2, T_mult=2)
+    weights = args.weights
+
     stats = defaultdict(lambda: [])
 
     for epoch in range(args.num_epochs):
@@ -76,19 +80,17 @@ def main(args):
         model.train()
         total = 0
         total_dict = defaultdict(lambda: 0)
-        for i, (data, _) in tqdm(enumerate(train_loader)):
-            x, v = data
+        for x, _ in tqdm(train_loader):
             x = x.to(device)
-            v = v.to(device)
-            mi_x, mi_v = model(x, v)
-            loss = mi_x + mi_v
+            bce, kl_gauss = model(x)
+            loss = bce + 10.0 * kl_gauss
             optim.zero_grad()
             loss.backward()
             optim.step()
             total += loss.item()
             total_dict["total"] += loss.item()
-            total_dict["mi_x"] += mi_x.item()
-            total_dict["mi_v"] += mi_v.item()
+            total_dict["bce"] += bce.item()
+            total_dict["kl_gauss"] += kl_gauss.item()
         for key, value in total_dict.items():
             print("loss_{}: {:.3f} at epoch: {}".format(key, value, epoch))
             stats[key].append(value)
@@ -103,32 +105,25 @@ def main(args):
             with torch.no_grad():
                 for i, (x, y) in tqdm(enumerate(test_loader)):
                     x = x.to(device)
-                    y_pi, w_pi = model.clustering(x)
-                    y_pred = torch.argmax(y_pi, -1)
-                    w_pred = torch.argmax(w_pi, -1)
+                    _, qz, _ = model.qz_x(x)
 
+                    params["qz"] = torch.cat([params["qz"], qz.cpu()])
                     params["y"] = torch.cat([params["y"], y])
-                    params["y_pred"] = torch.cat([params["y_pred"], y_pred.cpu()])
-                    params["w_pred"] = torch.cat([params["w_pred"], w_pred.cpu()])
+
+                qz = params["qz"].numpy()
+                umapper = umap.UMAP(min_dist=0.5, random_state=123).fit(qz)
+                qz = umapper.embedding_
 
                 y = params["y"].numpy().astype(int)
-                y_pred = params["y_pred"].numpy().astype(int)
-                w_pred = params["w_pred"].numpy().astype(int)
 
-                plt.figure(figsize=(20, 12))
-                cm = confusion_matrix(y, y_pred)[: args.num_classes, :]
-                sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
-                plt.yticks(rotation=45)
-                plt.title(f"confusion matrix y / y' at epoch {epoch}")
-                plt.savefig(f"cm_y_{epoch}.png")
-                plt.close()
-
-                plt.figure(figsize=(20, 12))
-                cm = confusion_matrix(y, w_pred)[: args.num_classes, :]
-                sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
-                plt.yticks(rotation=45)
-                plt.title(f"confusion matrix y / w' at epoch {epoch}")
-                plt.savefig(f"cm_w_{epoch}.png")
+                plt.figure(figsize=(12, 12))
+                for i in np.unique(y):
+                    idx = np.where(y == i)
+                    c = colormap(i)
+                    plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
+                plt.legend(loc="upper right")
+                plt.title(f"qz_true at epoch {epoch}")
+                plt.savefig(f"qz_true_{epoch}.png")
                 plt.close()
 
                 if epoch > 0:

@@ -115,6 +115,24 @@ class Gaussian(nn.Module):
         return x
 
 
+class Qz_x(nn.Module):
+    def __init__(self, ch_in, dim_z):
+        super().__init__()
+        self.encoder = Encoder(ch_in, 1024)
+        self.fc = nn.Sequential(
+            nn.Linear(1024, 512),
+            nn.BatchNorm1d(512),
+            nn.LeakyReLU(0.2, inplace=True),
+        )
+        self.gaussian = Gaussian(512, dim_z)
+
+    def forward(self, x, y):
+        x = self.encoder(x)
+        logits = self.fc(x)
+        z, mean, logvar = self.gaussian(logits)
+        return z, mean, logvar
+
+
 class Qz_xy(nn.Module):
     def __init__(self, ch_in, dim_y, dim_z):
         super().__init__()
@@ -183,6 +201,50 @@ class Px_z(nn.Module):
     def forward(self, z):
         x = self.decoder(z)
         return x
+
+
+class M1(nn.Module):
+    def __init__(
+        self,
+        ch_in=3,
+        dim_z=64,
+    ):
+        super().__init__()
+        self.qz_x = Qz_x(ch_in, dim_z)
+        self.px_z = Px_z(ch_in, dim_z)
+        self.weight_init()
+
+    def weight_init(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.xavier_normal_(m.weight)
+            elif isinstance(m, (nn.BatchNorm1d, nn.BatchNorm2d)):
+                nn.init.normal_(m.weight, mean=1, std=0.02)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.xavier_normal_(m.weight)
+                nn.init.zeros_(m.bias)
+
+    def forward(self, x):
+        b = x.shape[0]
+        z, mean, logvar = self.qz_x(x)
+        x_recon = self.px_z(qz_x)
+
+        bce = self.bce(x, x_recon) / b
+        kl_gauss = self.kl_gauss(mean, logvar, torch.zeros_like(mean), torch.ones_like(logvar)) / b
+        return bce, kl_gauss
+
+    def bce(self, x, x_recon):
+        return F.binary_cross_entropy(x_recon, x, reduction="sum")
+
+    def kl_gauss(self, mean_p, logvar_p, mean_q, logvar_q):
+        return -0.5 * torch.sum(
+            logvar_p
+            - logvar_q
+            + 1
+            - torch.pow(mean_p - mean_q, 2) / logvar_q.exp()
+            - logvar_p.exp() / logvar_q.exp()
+        )
 
 
 class M2(nn.Module):
