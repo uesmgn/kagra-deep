@@ -111,16 +111,22 @@ def main(args):
             with torch.no_grad():
                 for i, (x, y) in tqdm(enumerate(test_loader)):
                     x = x.to(device)
-                    _, qz, _ = model.qz_x(x)
+                    qz, qy, qw = model.params(x)
+                    y_pred = torch.argmax(qy, -1)
+                    w_pred = torch.argmax(qw, -1)
 
                     params["qz"] = torch.cat([params["qz"], qz.cpu()])
                     params["y"] = torch.cat([params["y"], y])
+                    params["y_pred"] = torch.cat([params["y_pred"], y_pred.cpu()])
+                    params["w_pred"] = torch.cat([params["w_pred"], w_pred.cpu()])
 
                 qz = params["qz"].numpy()
                 umapper = umap.UMAP(min_dist=0.5, random_state=123).fit(qz)
                 qz = umapper.embedding_
 
                 y = params["y"].numpy().astype(int)
+                y_pred = params["y_pred"].numpy().astype(int)
+                w_pred = params["w_pred"].numpy().astype(int)
 
                 plt.figure(figsize=(12, 12))
                 for i in np.unique(y):
@@ -130,6 +136,22 @@ def main(args):
                 plt.legend(loc="upper right")
                 plt.title(f"qz_true at epoch {epoch}")
                 plt.savefig(f"qz_true_{epoch}.png")
+                plt.close()
+
+                plt.figure(figsize=(20, 12))
+                cm = confusion_matrix(y, y_pred)[: args.num_classes, :]
+                sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
+                plt.yticks(rotation=45)
+                plt.title(f"confusion matrix y / y' at epoch {epoch}")
+                plt.savefig(f"cm_y_{epoch}.png")
+                plt.close()
+
+                plt.figure(figsize=(20, 12))
+                cm = confusion_matrix(y, w_pred)[: args.num_classes, :]
+                sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
+                plt.yticks(rotation=45)
+                plt.title(f"confusion matrix y / w' at epoch {epoch}")
+                plt.savefig(f"cm_w_{epoch}.png")
                 plt.close()
 
                 if epoch > 0:
