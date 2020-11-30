@@ -68,6 +68,8 @@ def main(args):
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=2, T_mult=2)
     weights = args.weights
 
+    stats = defaultdict(lambda: [])
+
     for epoch in range(args.num_epochs):
         print(f"----- training at epoch {epoch} -----")
         model.train()
@@ -85,8 +87,10 @@ def main(args):
             total_dict["kl_gauss"] += kl_gauss.item()
             total_dict["kl_cat"] += kl_cat.item()
         print("loss: {:.3f} at epoch: {}".format(total, epoch))
+        stats["total"].append(total)
         for key, value in total_dict.items():
             print("loss_{}: {:.3f} at epoch: {}".format(key, value, epoch))
+            stats[key].append(value)
 
         scheduler.step()
 
@@ -154,6 +158,13 @@ def main(args):
                 plt.title(f"confusion matrix y / y' at epoch {epoch}")
                 plt.savefig(f"cm_y_{epoch}.png")
                 plt.close()
+
+                for key, value in stats.items():
+                    plt.plot(value)
+                    plt.ylabel(key)
+                    plt.xlabel("epoch")
+                    plt.savefig(f"loss_{key}_{epoch}.png")
+                    plt.close()
 
 
 if __name__ == "__main__":
