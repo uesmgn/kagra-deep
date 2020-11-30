@@ -10,9 +10,7 @@ class Block(nn.Module):
     def __init__(self, in_channels, out_channels, stride=1):
         super().__init__()
         self.block = nn.Sequential(
-            nn.Conv2d(
-                in_channels, out_channels, stride=stride, kernel_size=3, padding=1, bias=False
-            ),
+            nn.Conv2d(in_channels, out_channels, stride=stride, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(out_channels),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
@@ -56,9 +54,7 @@ class TransposeBlock(nn.Module):
     def __init__(self, in_channels, out_channels, stride=1, activation=None):
         super().__init__()
         self.block = nn.Sequential(
-            nn.ConvTranspose2d(
-                in_channels, in_channels, stride=stride, kernel_size=4, padding=1, bias=False
-            ),
+            nn.ConvTranspose2d(in_channels, in_channels, stride=stride, kernel_size=4, padding=1, bias=False),
             nn.BatchNorm2d(in_channels),
             nn.LeakyReLU(0.2, inplace=True),
             nn.ConvTranspose2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
@@ -239,11 +235,7 @@ class M1(nn.Module):
 
     def kl_gauss(self, mean_p, logvar_p, mean_q, logvar_q):
         return -0.5 * torch.sum(
-            logvar_p
-            - logvar_q
-            + 1
-            - torch.pow(mean_p - mean_q, 2) / logvar_q.exp()
-            - logvar_p.exp() / logvar_q.exp()
+            logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp()
         )
 
 
@@ -300,11 +292,7 @@ class M2(nn.Module):
 
     def kl_gauss(self, mean_p, logvar_p, mean_q, logvar_q):
         return -0.5 * torch.sum(
-            logvar_p
-            - logvar_q
-            + 1
-            - torch.pow(mean_p - mean_q, 2) / logvar_q.exp()
-            - logvar_p.exp() / logvar_q.exp()
+            logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp()
         )
 
 
@@ -399,16 +387,8 @@ class M3(nn.Module):
                 nn.init.xavier_normal_(m.weight)
                 nn.init.zeros_(m.bias)
 
-    def forward(self, x, v, mode="vae"):
-        if mode == "vae":
-            bce, kl_gauss = self.vae(x)
-            bce_, kl_gauss_ = self.vae(v)
-            bce += bce_
-            kl_gauss += kl_gauss_
-            return bce, kl_gauss
-        elif mode == "iic":
-            mi_y, mi_w = self.iic(x, v)
-            return mi_y, mi_w
+    def forward(self, x):
+        return self.vae(x)
 
     def cluster(self, x):
         _, z_x, _ = self.qz_x(x)
@@ -439,11 +419,7 @@ class M3(nn.Module):
 
     def kl_gauss(self, mean_p, logvar_p, mean_q, logvar_q):
         return -0.5 * torch.sum(
-            logvar_p
-            - logvar_q
-            + 1
-            - torch.pow(mean_p - mean_q, 2) / logvar_q.exp()
-            - logvar_p.exp() / logvar_q.exp()
+            logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp()
         )
 
     def mutual_info(self, x, y, alpha=2.0, eps=1e-8):
