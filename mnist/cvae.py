@@ -223,11 +223,11 @@ class M2(nn.Module):
         if y is None:
             # unlabeled learning
             kl_gauss = self.kl_gauss(qz_xy_mean, qz_xy_logvar, qz_y_mean, qz_y_logvar) / b
-            kl_cat = self.kl_cat(qy_pi, F.softmax(torch.ones_like(qy_pi), dim=-1)) / b
+            kl_cat = self.kl_cat(qy_pi, F.softmax(torch.ones_like(qy_pi), dim=-1))
             return bce, kl_gauss, kl_cat
         else:
             # labeled learning
-            ce = F.cross_entropy(qy_pi, y, reduction="sum") / b
+            ce = F.cross_entropy(qy_pi, y, reduction="sum")
             return bce, ce
 
     def bce(self, x, x_recon):
@@ -270,9 +270,8 @@ class IIC(nn.Module):
         y_x, w_x = self.clustering(x)
         y_v, w_v = self.clustering(v)
 
-        b = x.shape[0]
-        mi_y = self.mutual_info(y_x, y_v) / b
-        mi_w = self.mutual_info(w_x, w_v) / b
+        mi_y = self.mutual_info(y_x, y_v)
+        mi_w = self.mutual_info(w_x, w_v)
 
         return mi_y, mi_w
 
