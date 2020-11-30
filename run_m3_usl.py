@@ -142,7 +142,7 @@ def main(args):
                 for i in np.unique(y_pred):
                     idx = np.where(y_pred == i)
                     c = colormap(i)
-                    plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
+                    plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=i, edgecolors=darken(c))
                 plt.legend(loc="upper right")
                 plt.title(f"qz_y at epoch {epoch}")
                 plt.savefig(f"qz_y_{epoch}.png")
@@ -152,7 +152,7 @@ def main(args):
                 for i in np.unique(w_pred):
                     idx = np.where(w_pred == i)
                     c = colormap(i)
-                    plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
+                    plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=i, edgecolors=darken(c))
                 plt.legend(loc="upper right")
                 plt.title(f"qz_w at epoch {epoch}")
                 plt.savefig(f"qz_w_{epoch}.png")
