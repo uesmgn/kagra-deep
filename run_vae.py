@@ -146,7 +146,7 @@ def main(args):
                 y = params["y"].numpy().astype(int)
                 y_pred = params["y_pred"].numpy().astype(int)
 
-                plt.figure(figsize=(18, 18))
+                plt.figure(figsize=(12, 12))
                 for i in np.unique(y):
                     idx = np.where(y == i)
                     plt.scatter(qz[idx, 0], qz[idx, 1], label=targets[i])
@@ -155,7 +155,7 @@ def main(args):
                 plt.savefig(f"qz_true_{epoch}.png")
                 plt.close()
 
-                plt.figure(figsize=(18, 18))
+                plt.figure(figsize=(12, 12))
                 for i in np.unique(y_pred):
                     idx = np.where(y_pred == i)
                     plt.scatter(qz[idx, 0], qz[idx, 1], label=targets[i])
@@ -164,7 +164,7 @@ def main(args):
                 plt.savefig(f"qz_pred_{epoch}.png")
                 plt.close()
 
-                plt.figure(figsize=(18, 18))
+                plt.figure(figsize=(12, 12))
                 for i in range(args.num_classes):
                     idx = np.where(yy == i)
                     label = acronym(targets[i])
