@@ -350,3 +350,107 @@ class IIC(nn.Module):
         pi = p.sum(dim=1).view(k, 1).expand(k, k)
         pj = p.sum(dim=0).view(1, k).expand(k, k)
         return (p * (alpha * torch.log(pi) + alpha * torch.log(pj) - torch.log(p))).sum()
+
+
+class ClusterHeads(nn.Module):
+    def __init__(self, dim_in, dim_y, dim_w):
+        super().__init__()
+        self.fc1 = nn.Sequential(
+            nn.Linear(dim_in, 1024),
+            nn.BatchNorm1d(1024),
+            nn.LeakyReLU(0.2),
+            nn.Linear(1024, dim_y),
+        )
+        self.fc2 = nn.Sequential(
+            nn.Linear(dim_in, 1024),
+            nn.BatchNorm1d(1024),
+            nn.LeakyReLU(0.2),
+            nn.Linear(1024, dim_w),
+        )
+
+    def forward(self, x):
+        y = F.softmax(self.fc1(x), -1)
+        w = F.softmax(self.fc2(x), -1)
+        return y, w
+
+
+class M3(nn.Module):
+    def __init__(
+        self,
+        ch_in=3,
+        dim_y=10,
+        dim_w=50,
+        dim_z=64,
+    ):
+        super().__init__()
+        self.qz_x = Qz_x(ch_in, dim_z)
+        self.px_z = Px_z(ch_in, dim_z)
+        self.cluster_heads = ClusterHeads(dim_z, dim_y, dim_w)
+        self.weight_init()
+
+    def weight_init(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.xavier_normal_(m.weight)
+            elif isinstance(m, (nn.BatchNorm1d, nn.BatchNorm2d)):
+                nn.init.normal_(m.weight, mean=1, std=0.02)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.xavier_normal_(m.weight)
+                nn.init.zeros_(m.bias)
+
+    def forward(self, x, v, mode="vae"):
+        if mode == "vae":
+            bce, kl_gauss = self.vae(x)
+            bce_, kl_gauss_ = self.vae(v)
+            bce += bce_
+            kl_gauss += kl_gauss_
+            return bce, kl_gauss
+        elif mode == "iic":
+            mi_y, mi_w = self.iic(x, v)
+            return mi_y, mi_w
+
+    def cluster(self, x):
+        _, z_x, _ = self.qz_x(x)
+        y_x, w_x = self.cluster_heads(z_x)
+        return y_x, w_x
+
+    def vae(self, x):
+        b = x.shape[0]
+        qz, qz_mean, qz_logvar = self.qz_x(x)
+        pz_mean, pz_logvar = torch.zeros_like(qz_mean), torch.ones_like(qz_logvar)
+        x_recon = self.px_z(qz)
+        bce = self.bce(x, x_recon) / b
+        kl_gauss = self.kl_gauss(qz_mean, qz_logvar, pz_mean, pz_logvar) / b
+        return bce, kl_gauss
+
+    def iic(self, x, v):
+        b = x.shape[0]
+        _, z_x, _ = self.qz_x(x)
+        y_x, w_x = self.cluster_heads(z_x.detach())
+        _, z_v, _ = self.qz_x(x)
+        y_v, w_v = self.cluster_heads(z_v.detach())
+        mi_y = self.mutual_info(y_x, y_v) / b
+        mi_w = self.mutual_info(w_x, w_v) / b
+        return mi_y, mi_w
+
+    def bce(self, x, x_recon):
+        return F.binary_cross_entropy(x_recon, x, reduction="sum")
+
+    def kl_gauss(self, mean_p, logvar_p, mean_q, logvar_q):
+        return -0.5 * torch.sum(
+            logvar_p
+            - logvar_q
+            + 1
+            - torch.pow(mean_p - mean_q, 2) / logvar_q.exp()
+            - logvar_p.exp() / logvar_q.exp()
+        )
+
+    def mutual_info(self, x, y, alpha=2.0, eps=1e-8):
+        p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(dim=0)
+        p = ((p + p.t()) / 2) / p.sum()
+        _, k = x.shape
+        p[(p < eps).data] = eps
+        pi = p.sum(dim=1).view(k, 1).expand(k, k)
+        pj = p.sum(dim=0).view(1, k).expand(k, k)
+        return (p * (alpha * torch.log(pi) + alpha * torch.log(pj) - torch.log(p))).sum()
