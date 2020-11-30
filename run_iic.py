@@ -20,7 +20,7 @@ from sklearn.metrics import confusion_matrix
 import seaborn as sns
 
 
-@hydra.main(config_path="config", config_name="test_iic")
+@hydra.main(config_path="config", config_name="test")
 def main(args):
 
     transform_fn = transforms.Compose(
@@ -66,7 +66,7 @@ def main(args):
     model = IIC(dim_y=args.num_classes, dim_w=args.dim_w).to(device)
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=2, T_mult=2)
-    weights = args.weights
+    stats = defaultdict(lambda: [])
 
     for epoch in range(args.num_epochs):
         print(f"----- training at epoch {epoch} -----")
@@ -77,16 +77,18 @@ def main(args):
             x, v = data
             x = x.to(device)
             v = v.to(device)
-            loss = model(x, v, weights=weights)
+            mi_x, mi_v = model(x, v)
+            loss = mi_x + mi_v
             optim.zero_grad()
             loss.backward()
             optim.step()
-            total += loss.total.item()
-            for key, loss_i in loss.items():
-                total_dict[key] += loss_i.item()
-        print("loss: {:.3f} at epoch: {}".format(total, epoch))
-        for key, loss_i in total_dict.items():
-            print("loss_{}: {:.3f} at epoch: {}".format(key, loss_i, epoch))
+            total += loss.item()
+            total_dict["total"] += loss.item()
+            total_dict["mi_x"] += mi_x.item()
+            total_dict["mi_v"] += mi_v.item()
+        for key, value in total_dict.items():
+            print("loss_{}: {:.3f} at epoch: {}".format(key, value, epoch))
+            stats[key].append(value)
 
         scheduler.step()
 
@@ -123,6 +125,13 @@ def main(args):
                 plt.title(f"confusion matrix y / w' at epoch {epoch}")
                 plt.savefig(f"cm_w_{epoch}.png")
                 plt.close()
+
+                for key, value in stats.items():
+                    plt.plot(value)
+                    plt.ylabel(key)
+                    plt.xlabel("epoch")
+                    plt.savefig(f"loss_{key}_{epoch}.png")
+                    plt.close()
 
 
 if __name__ == "__main__":
