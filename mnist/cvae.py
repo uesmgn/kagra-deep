@@ -25,11 +25,11 @@ class Block(nn.Module):
 
 
 class Encoder(nn.Module):
-    def __init__(self, dim_out=512):
+    def __init__(self, ch_in=3, dim_out=512):
         super().__init__()
         self.dim_out = dim_out
         self.head = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False),
+            nn.Conv2d(ch_in, 64, kernel_size=7, stride=2, padding=3, bias=False),
             nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2, inplace=True),
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
@@ -75,7 +75,7 @@ class TransposeBlock(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, dim_in=512):
+    def __init__(self, ch_out=3, dim_in=512):
         super().__init__()
         self.dim_in = dim_in
         self.head = nn.Sequential(
@@ -88,7 +88,7 @@ class Decoder(nn.Module):
             TransposeBlock(512, 256, stride=2),
             TransposeBlock(256, 128, stride=2),
             TransposeBlock(128, 64, stride=2),
-            TransposeBlock(64, 3, stride=2, activation=nn.Sigmoid()),
+            TransposeBlock(64, ch_out, stride=2, activation=nn.Sigmoid()),
         )
 
     def forward(self, x):
@@ -116,9 +116,9 @@ class Gaussian(nn.Module):
 
 
 class Qz_xy(nn.Module):
-    def __init__(self, dim_y, dim_z):
+    def __init__(self, ch_in, dim_y, dim_z):
         super().__init__()
-        self.encoder = Encoder(1024)
+        self.encoder = Encoder(ch_in, 1024)
 
         self.fc_x = nn.Sequential(
             nn.Linear(1024, 512),
@@ -141,9 +141,9 @@ class Qz_xy(nn.Module):
 
 
 class Qy_x(nn.Module):
-    def __init__(self, dim_y):
+    def __init__(self, ch_in, dim_y):
         super().__init__()
-        self.encoder = Encoder(1024)
+        self.encoder = Encoder(ch_in, 1024)
 
         self.fc = nn.Sequential(
             nn.Linear(1024, dim_y),
@@ -175,10 +175,10 @@ class Pz_y(nn.Module):
 
 
 class Px_z(nn.Module):
-    def __init__(self, dim_z):
+    def __init__(self, ch_out, dim_z):
         super().__init__()
 
-        self.decoder = Decoder(dim_z)
+        self.decoder = Decoder(ch_out, dim_z)
 
     def forward(self, z):
         x = self.decoder(z)
@@ -188,15 +188,16 @@ class Px_z(nn.Module):
 class M2(nn.Module):
     def __init__(
         self,
+        ch_in=3,
         dim_y=10,
         dim_z=64,
     ):
         super().__init__()
         self.dim_y = dim_y
-        self.qy_x = Qy_x(dim_y)
-        self.qz_xy = Qz_xy(dim_y, dim_z)
+        self.qy_x = Qy_x(ch_in, dim_y)
+        self.qz_xy = Qz_xy(ch_in, dim_y, dim_z)
         self.pz_y = Pz_y(dim_y, dim_z)
-        self.px_z = Px_z(dim_z)
+        self.px_z = Px_z(ch_in, dim_z)
         self.weight_init()
 
     def weight_init(self):
@@ -246,11 +247,11 @@ class M2(nn.Module):
 
 
 class IIC(nn.Module):
-    def __init__(self, dim_y, dim_w):
+    def __init__(self, ch_in, dim_y, dim_w):
         super().__init__()
 
-        self.qy_x = Qy_x(dim_y)
-        self.qw_x = Qy_x(dim_w)
+        self.qy_x = Qy_x(ch_in, dim_y)
+        self.qw_x = Qy_x(ch_in, dim_w)
         self.weight_init()
 
     def weight_init(self):
