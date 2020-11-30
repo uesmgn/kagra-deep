@@ -44,7 +44,7 @@ def main(args):
 
     dataset = datasets.HDF5(args.dataset_root, transform_fn, target_transform_fn)
     train_set, test_set = dataset.split(train_size=args.train_size, stratify=dataset.targets)
-    train_set = dataset.co(train_set, augment_fn)
+    train_set = datasets.co(train_set, augment_fn)
 
     def sampler_callback(ds, batch_size):
         return samplers.Upsampler(ds, batch_size * args.num_train_steps)
@@ -83,8 +83,12 @@ def main(args):
             x, v = data
             x = x.to(device)
             v = v.to(device)
-            bce, kl_gauss = model(x, v, mode="vae")
-            loss = bce + 10.0 * kl_gauss
+            bce, kl_gauss = model.vae(x)
+            bce_, kl_gauss_ = model.vae(v)
+            bce += bce_
+            kl_gauss += kl_gauss_
+            mi_y, mi_w = model.iic(x, v)
+            loss = bce + 10.0 * kl_gauss + mi_y + mi_w
             optim.zero_grad()
             loss.backward()
             optim.step()
@@ -92,10 +96,11 @@ def main(args):
             total_dict["total"] += loss.item()
             total_dict["bce"] += bce.item()
             total_dict["kl_gauss"] += kl_gauss.item()
+            total_dict["mi_y"] += mi_y.item()
+            total_dict["mi_w"] += mi_w.item()
         for key, value in total_dict.items():
             print("loss_{}: {:.3f} at epoch: {}".format(key, value, epoch))
             stats[key].append(value)
-
         scheduler.step()
 
         if epoch % args.eval_interval == 0:
