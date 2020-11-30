@@ -126,7 +126,7 @@ class Qz_x(nn.Module):
         )
         self.gaussian = Gaussian(512, dim_z)
 
-    def forward(self, x, y):
+    def forward(self, x):
         x = self.encoder(x)
         logits = self.fc(x)
         z, mean, logvar = self.gaussian(logits)
