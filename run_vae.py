@@ -83,11 +83,10 @@ def main(args):
             loss.backward()
             optim.step()
             total += loss.item()
+            total_dict["total"] += loss.item()
             total_dict["bce"] += bce.item()
             total_dict["kl_gauss"] += kl_gauss.item()
             total_dict["kl_cat"] += kl_cat.item()
-        print("loss: {:.3f} at epoch: {}".format(total, epoch))
-        stats["total"].append(total)
         for key, value in total_dict.items():
             print("loss_{}: {:.3f} at epoch: {}".format(key, value, epoch))
             stats[key].append(value)
