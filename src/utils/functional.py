@@ -48,7 +48,7 @@ def colormap(i):
         "#3B00FB",
     ]
 
-    i = len(colors) % i
+    i = i % len(colors)
     return colors[i]
 
 
