@@ -98,7 +98,7 @@ def main(args):
             bce, kl_gauss, kl_cat = model(ux)
             bce_, ce = model(lx, y)
             bce += bce_
-            loss = bce + 10.0 * kl_gauss + kl_cat + 1000.0 * ce
+            loss = bce + 10.0 * kl_gauss + 1000.0 * kl_cat + 1000.0 * ce
             optim.zero_grad()
             loss.backward()
             optim.step()
