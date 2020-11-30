@@ -42,7 +42,7 @@ def main(args):
     dataset = datasets.HDF5(args.dataset_root, transform_fn, target_transform_fn)
     train_set, test_set = dataset.split(train_size=args.train_size, stratify=dataset.targets)
     labeled_set, unlabeled_set = train_set.split(
-        train_size=args.labeled_size, stratify=dataset.targets
+        train_size=args.labeled_size, stratify=train_set.targets
     )
     labeled_set.transform, unlabeled_set.transform = augment_fn, augment_fn
 
