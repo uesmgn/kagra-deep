@@ -390,10 +390,10 @@ class M3(nn.Module):
     def forward(self, x):
         return self.vae(x)
 
-    def cluster(self, x):
+    def params(self, x):
         _, z_x, _ = self.qz_x(x)
         y_x, w_x = self.cluster_heads(z_x)
-        return y_x, w_x
+        return z_x, y_x, w_x
 
     def vae(self, x):
         b = x.shape[0]
