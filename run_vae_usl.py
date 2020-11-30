@@ -82,7 +82,7 @@ def main(args):
         total_dict = defaultdict(lambda: 0)
         for x, _ in tqdm(train_loader):
             x = x.to(device)
-            bce, kl_gauss, kl_cat = model(ux)
+            bce, kl_gauss, kl_cat = model(x)
             loss = bce + 10.0 * kl_gauss + kl_cat
             optim.zero_grad()
             loss.backward()
