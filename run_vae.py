@@ -110,17 +110,17 @@ def main(args):
                     params["y_pred"] = torch.cat([params["y_pred"], y_pred.cpu()])
 
                 for i in range(args.num_classes):
-                    y_i = F.one_hot(torch.full((100,), i).long(), num_classes=args.num_classes)
+                    y_i = F.one_hot(torch.full((1000,), i).long(), num_classes=args.num_classes)
                     pz, _, _ = model.pz_y(y_i.float().to(device))
                     params["pz"] = torch.cat([params["pz"], pz.cpu()])
                 yy = torch.tensor(list(range(args.num_classes)))
-                yy = yy.unsqueeze(1).repeat(1, 100).flatten()
+                yy = yy.unsqueeze(1).repeat(1, 1000).flatten()
 
                 pz = params["pz"].numpy()
                 qz = params["qz"].numpy()
-                mapper = umap.UMAP(n_components=2, random_state=123).fit(pz)
-                pz = mapper.embedding_
-                qz = mapper.transform(qz)
+                umapper = umap.UMAP(n_components=2, random_state=123).fit(pz)
+                pz = umapper.embedding_
+                qz = umapper.transform(qz)
 
                 y = params["y"].numpy().astype(int)
                 y_pred = params["y_pred"].numpy().astype(int)
