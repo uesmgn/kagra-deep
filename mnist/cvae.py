@@ -228,7 +228,7 @@ class M1(nn.Module):
     def forward(self, x):
         b = x.shape[0]
         z, mean, logvar = self.qz_x(x)
-        x_recon = self.px_z(qz_x)
+        x_recon = self.px_z(z)
 
         bce = self.bce(x, x_recon) / b
         kl_gauss = self.kl_gauss(mean, logvar, torch.zeros_like(mean), torch.ones_like(logvar)) / b
