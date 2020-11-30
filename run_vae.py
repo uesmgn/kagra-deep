@@ -6,7 +6,7 @@ import numpy as np
 from collections import abc, defaultdict
 import numbers
 from tqdm import tqdm
-from sklearn.manifold import TSNE
+import umap
 
 from src.utils import transforms
 from src.data import datasets
@@ -116,10 +116,11 @@ def main(args):
                 yy = torch.tensor(list(range(args.num_classes)))
                 yy = yy.unsqueeze(1).repeat(1, 100).flatten()
 
-                qz = params["qz"].numpy()
                 pz = params["pz"].numpy()
-                qz = TSNE(n_components=2).fit_transform(qz)
-                pz = TSNE(n_components=2).fit_transform(pz)
+                qz = params["qz"].numpy()
+                mapper = umap.UMAP(n_components=2, random_state=123).fit(pz)
+                pz = mapper.embedding_
+                qz = mapper.transform(qz)
 
                 y = params["y"].numpy().astype(int)
                 y_pred = params["y_pred"].numpy().astype(int)
