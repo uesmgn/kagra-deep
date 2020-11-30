@@ -134,11 +134,11 @@ def main(args):
                 yy = torch.tensor(list(range(args.num_classes)))
                 yy = yy.unsqueeze(1).repeat(1, 1000).flatten()
 
-                pz = params["pz"].numpy()
                 qz = params["qz"].numpy()
-                umapper = umap.UMAP(n_components=2, random_state=123).fit(pz)
-                pz = umapper.embedding_
-                qz = umapper.transform(qz)
+                pz = params["pz"].numpy()
+                umapper = umap.UMAP(n_components=2, random_state=123).fit(qz)
+                qz = umapper.embedding_
+                pz = umapper.transform(pz)
 
                 y = params["y"].numpy().astype(int)
                 y_pred = params["y_pred"].numpy().astype(int)
@@ -146,7 +146,7 @@ def main(args):
                 plt.figure(figsize=(12, 12))
                 for i in np.unique(y):
                     idx = np.where(y == i)
-                    plt.scatter(qz[idx, 0], qz[idx, 1], label=i)
+                    plt.scatter(qz[idx, 0], qz[idx, 1], s=2.0, label=i)
                 plt.legend()
                 plt.title(f"qz_true_{epoch}")
                 plt.savefig(f"qz_true_{epoch}.png")
@@ -155,7 +155,7 @@ def main(args):
                 plt.figure(figsize=(12, 12))
                 for i in np.unique(y_pred):
                     idx = np.where(y_pred == i)
-                    plt.scatter(qz[idx, 0], qz[idx, 1], label=i)
+                    plt.scatter(qz[idx, 0], qz[idx, 1], s=2.0, label=i)
                 plt.legend()
                 plt.title(f"qz_pred_{epoch}")
                 plt.savefig(f"qz_pred_{epoch}.png")
@@ -164,7 +164,7 @@ def main(args):
                 plt.figure(figsize=(12, 12))
                 for i in range(args.num_classes):
                     idx = np.where(yy == i)
-                    plt.scatter(pz[idx, 0], pz[idx, 1], label=i)
+                    plt.scatter(pz[idx, 0], pz[idx, 1], s=2.0, label=i)
                 plt.legend()
                 plt.title(f"pz_{epoch}")
                 plt.savefig(f"pz_{epoch}.png")
