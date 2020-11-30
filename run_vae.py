@@ -7,6 +7,7 @@ from collections import abc, defaultdict
 import numbers
 from tqdm import tqdm
 import umap
+from itertools import cycle
 
 from src.utils import transforms
 from src.data import datasets
@@ -40,15 +41,27 @@ def main(args):
 
     dataset = datasets.HDF5(args.dataset_root, transform_fn, target_transform_fn)
     train_set, test_set = dataset.split(train_size=args.train_size, stratify=dataset.targets)
-    train_set.transform = augment_fn
-    # train_sampler = samplers.Balancer(train_set, args.batch_size * args.num_train_steps)
-    train_sampler = samplers.Upsampler(train_set, args.batch_size * args.num_train_steps)
+    labeled_set, unlabeled_set = train_set.split(
+        train_size=args.labeled_size, stratify=dataset.targets
+    )
+    labeled_set.transform, unlabeled_set.transform = augment_fn, augment_fn
 
-    train_loader = torch.utils.data.DataLoader(
-        train_set,
-        batch_size=args.batch_size,
+    def sampler_callback(ds, batch_size):
+        return samplers.Upsampler(ds, batch_size * args.num_train_steps)
+
+    labeled_loader = torch.utils.data.DataLoader(
+        labeled_set,
+        batch_size=16,
         num_workers=args.num_workers,
-        sampler=train_sampler,
+        sampler=sampler_callback(labeled_set, 16),
+        pin_memory=True,
+        drop_last=True,
+    )
+    unlabeled_loader = torch.utils.data.DataLoader(
+        unlabeled_set,
+        batch_size=args.batch_size - 16,
+        num_workers=args.num_workers,
+        sampler=sampler_callback(unlabeled_set, args.batch_size - 16),
         pin_memory=True,
         drop_last=True,
     )
@@ -75,10 +88,13 @@ def main(args):
         model.train()
         total = 0
         total_dict = defaultdict(lambda: 0)
-        for i, (x, _) in tqdm(enumerate(train_loader)):
-            x = x.to(device)
-            bce, kl_gauss, kl_cat = model(x)
-            loss = bce + 5.0 * kl_gauss + kl_cat
+        for (ux, _), (lx, y) in tqdm(zip(unlabeled_loader, cycle(labeled_loader))):
+            ux = ux.to(device)
+            lx = lx.to(device)
+            y = y.to(device)
+            bce, kl_gauss, kl_cat = model(ux)
+            bce_, ce = model(lx, y)
+            loss = bce + 10.0 * kl_gauss + kl_cat + bce_ + 1000.0 * ce
             optim.zero_grad()
             loss.backward()
             optim.step()
@@ -87,6 +103,8 @@ def main(args):
             total_dict["bce"] += bce.item()
             total_dict["kl_gauss"] += kl_gauss.item()
             total_dict["kl_cat"] += kl_cat.item()
+            total_dict["bce_"] += bce_.item()
+            total_dict["ce"] += ce.item()
         for key, value in total_dict.items():
             print("loss_{}: {:.3f} at epoch: {}".format(key, value, epoch))
             stats[key].append(value)
