@@ -9,7 +9,7 @@ from tqdm import tqdm
 import umap
 from itertools import cycle
 
-from src.utils.functional import acronym
+from src.utils.functional import acronym, darken, colormap
 from src.utils import transforms
 from src.data import datasets
 from src.data import samplers
@@ -149,7 +149,8 @@ def main(args):
                 plt.figure(figsize=(12, 12))
                 for i in np.unique(y):
                     idx = np.where(y == i)
-                    plt.scatter(qz[idx, 0], qz[idx, 1], label=targets[i])
+                    c = colormap(i)
+                    plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
                 plt.legend(loc="upper right")
                 plt.title(f"qz_true_{epoch}")
                 plt.savefig(f"qz_true_{epoch}.png")
@@ -158,17 +159,18 @@ def main(args):
                 plt.figure(figsize=(12, 12))
                 for i in np.unique(y_pred):
                     idx = np.where(y_pred == i)
-                    plt.scatter(qz[idx, 0], qz[idx, 1], label=targets[i])
+                    c = colormap(i)
+                    plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
                 plt.legend(loc="upper right")
                 plt.title(f"qz_pred_{epoch}")
                 plt.savefig(f"qz_pred_{epoch}.png")
                 plt.close()
 
                 plt.figure(figsize=(12, 12))
-                for i in range(args.num_classes):
+                for i in np.unique(yy):
                     idx = np.where(yy == i)
-                    label = acronym(targets[i])
-                    plt.scatter(pz[idx, 0], pz[idx, 1], label=targets[i])
+                    c = colormap(i)
+                    plt.scatter(pz[idx, 0], pz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
                 plt.legend(loc="upper right")
                 plt.title(f"pz_{epoch}")
                 plt.savefig(f"pz_{epoch}.png")
