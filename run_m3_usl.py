@@ -107,13 +107,13 @@ def main(args):
             print(f"----- evaluating at epoch {epoch} -----")
             model.eval()
             params = defaultdict(lambda: torch.tensor([]))
-
+            indices = torch.tensor([]).long()
             with torch.no_grad():
                 n = 0
                 for i, (x, y) in tqdm(enumerate(test_loader)):
                     x = x.to(device)
                     qz, qy, qw = model.params(x)
-                    indices = (qy > thres).nonzero().squeeze() + n
+                    idx = torch.nonzero(qy > thres).squeeze() + n
                     y_pred = torch.argmax(qy, -1)
                     w_pred = torch.argmax(qw, -1)
 
@@ -121,7 +121,7 @@ def main(args):
                     params["y"] = torch.cat([params["y"], y])
                     params["y_pred"] = torch.cat([params["y_pred"], y_pred.cpu()])
                     params["w_pred"] = torch.cat([params["w_pred"], w_pred.cpu()])
-                    params["indices"] = torch.cat([params["indices"], indices.cpu()])
+                    indices = torch.cat([indices, idx.cpu()])
                     n += x.shape[0]
 
                 qz = params["qz"].numpy()
@@ -131,7 +131,7 @@ def main(args):
                 y = params["y"].numpy().astype(int)
                 y_pred = params["y_pred"].numpy().astype(int)
                 w_pred = params["w_pred"].numpy().astype(int)
-                indices = params["indices"].numpy().astype(int)
+                indices = indices.numpy().astype(int)
 
                 plt.figure(figsize=(12, 12))
                 for i in np.unique(y):
@@ -154,10 +154,13 @@ def main(args):
                 plt.close()
 
                 plt.figure(figsize=(12, 12))
-                for i in np.unique(y_pred[indices]):
+                for i in np.unique(y_pred):
                     idx = np.where(y_pred[indices] == i)
                     c = colormap(i)
-                    plt.scatter(qz[indices][idx, 0], qz[indices][idx, 1], c=c, label=i, edgecolors=darken(c))
+                    try:
+                        plt.scatter(qz[indices][idx, 0], qz[indices][idx, 1], c=c, label=i, edgecolors=darken(c))
+                    except:
+                        pass
                 plt.legend(loc="upper right")
                 plt.title(f"qz_y filtered at epoch {epoch}")
                 plt.savefig(f"qz_y_filtered_{epoch}.png")
