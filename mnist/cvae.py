@@ -27,19 +27,19 @@ class Encoder(nn.Module):
         super().__init__()
         self.dim_out = dim_out
         self.head = nn.Sequential(
-            nn.Conv2d(ch_in, 64, kernel_size=7, stride=2, padding=3, bias=False),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(ch_in, 32, kernel_size=7, stride=2, padding=3, bias=False),
+            nn.BatchNorm2d(32),
             nn.LeakyReLU(0.2, inplace=True),
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
         )
         self.blocks = nn.Sequential(
+            Block(32, 64, stride=2),
             Block(64, 128, stride=2),
             Block(128, 256, stride=2),
-            Block(256, 512, stride=2),
             nn.Flatten(),
         )
         self.fc = nn.Sequential(
-            nn.Linear(25088, dim_out),
+            nn.Linear(12544, dim_out),
             nn.BatchNorm1d(dim_out),
             nn.LeakyReLU(0.2, inplace=True),
         )
@@ -75,21 +75,21 @@ class Decoder(nn.Module):
         super().__init__()
         self.dim_in = dim_in
         self.head = nn.Sequential(
-            nn.Linear(dim_in, 512 * 7 * 7),
-            nn.BatchNorm1d(512 * 7 * 7),
+            nn.Linear(dim_in, 256 * 7 * 7),
+            nn.BatchNorm1d(256 * 7 * 7),
             nn.LeakyReLU(0.2, inplace=True),
         )
         self.blocks = nn.Sequential(
             nn.Upsample(scale_factor=2),
-            TransposeBlock(512, 256, stride=2),
             TransposeBlock(256, 128, stride=2),
             TransposeBlock(128, 64, stride=2),
-            TransposeBlock(64, ch_out, stride=2, activation=nn.Sigmoid()),
+            TransposeBlock(64, 32, stride=2),
+            TransposeBlock(32, ch_out, stride=2, activation=nn.Sigmoid()),
         )
 
     def forward(self, x):
         x = self.head(x)
-        x = x.view(x.shape[0], 512, 7, 7)
+        x = x.view(x.shape[0], 256, 7, 7)
         return self.blocks(x)
 
 
