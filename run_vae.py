@@ -97,7 +97,8 @@ def main(args):
             y = y.to(device)
             bce, kl_gauss, kl_cat = model(ux)
             bce_, ce = model(lx, y)
-            loss = bce + 10.0 * kl_gauss + kl_cat + bce_ + 1000.0 * ce
+            bce += bce_
+            loss = bce + 10.0 * kl_gauss + kl_cat + 1000.0 * ce
             optim.zero_grad()
             loss.backward()
             optim.step()
@@ -106,7 +107,6 @@ def main(args):
             total_dict["bce"] += bce.item()
             total_dict["kl_gauss"] += kl_gauss.item()
             total_dict["kl_cat"] += kl_cat.item()
-            total_dict["bce_"] += bce_.item()
             total_dict["ce"] += ce.item()
         for key, value in total_dict.items():
             print("loss_{}: {:.3f} at epoch: {}".format(key, value, epoch))
