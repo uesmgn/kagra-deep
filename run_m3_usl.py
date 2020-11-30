@@ -71,7 +71,7 @@ def main(args):
     model = M3(ch_in=args.ch_in, dim_y=args.num_classes, dim_w=args.dim_w, dim_z=args.dim_z).to(device)
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=2, T_mult=2)
-
+    thres = 0.8
     stats = defaultdict(lambda: [])
 
     for epoch in range(args.num_epochs):
@@ -109,9 +109,11 @@ def main(args):
             params = defaultdict(lambda: torch.tensor([]))
 
             with torch.no_grad():
+                n = 0
                 for i, (x, y) in tqdm(enumerate(test_loader)):
                     x = x.to(device)
                     qz, qy, qw = model.params(x)
+                    indices = (qy > thres).nonzero().squeeze() + n
                     y_pred = torch.argmax(qy, -1)
                     w_pred = torch.argmax(qw, -1)
 
@@ -119,6 +121,8 @@ def main(args):
                     params["y"] = torch.cat([params["y"], y])
                     params["y_pred"] = torch.cat([params["y_pred"], y_pred.cpu()])
                     params["w_pred"] = torch.cat([params["w_pred"], w_pred.cpu()])
+                    params["indices"] = torch.cat([params["indices"], indices.cpu()])
+                    n += x.shape[0]
 
                 qz = params["qz"].numpy()
                 umapper = umap.UMAP(min_dist=0.5, random_state=123).fit(qz)
@@ -127,6 +131,7 @@ def main(args):
                 y = params["y"].numpy().astype(int)
                 y_pred = params["y_pred"].numpy().astype(int)
                 w_pred = params["w_pred"].numpy().astype(int)
+                indices = params["indices"].numpy().astype(int)
 
                 plt.figure(figsize=(12, 12))
                 for i in np.unique(y):
@@ -146,6 +151,16 @@ def main(args):
                 plt.legend(loc="upper right")
                 plt.title(f"qz_y at epoch {epoch}")
                 plt.savefig(f"qz_y_{epoch}.png")
+                plt.close()
+
+                plt.figure(figsize=(12, 12))
+                for i in np.unique(y_pred[indices]):
+                    idx = np.where(y_pred[indices] == i)
+                    c = colormap(i)
+                    plt.scatter(qz[indices][idx, 0], qz[indices][idx, 1], c=c, label=i, edgecolors=darken(c))
+                plt.legend(loc="upper right")
+                plt.title(f"qz_y filtered at epoch {epoch}")
+                plt.savefig(f"qz_y_filtered_{epoch}.png")
                 plt.close()
 
                 plt.figure(figsize=(12, 12))
