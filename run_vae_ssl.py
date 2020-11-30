@@ -1,167 +1,198 @@
-import wandb
 import hydra
-import logging
 import torch
-from collections import abc
+import torch.nn as nn
+import torch.nn.functional as F
+import numpy as np
+from collections import abc, defaultdict
 import numbers
 from tqdm import tqdm
+import umap
+from itertools import cycle
 
-try:
-    from apex import amp
-
-    use_apex = True
-except ImportError:
-    use_apex = False
-
-from src import config
+from src.utils.functional import acronym, darken, colormap
 from src.utils import transforms
-from src.utils import stats
-from src.utils import metrics
-from src.utils.functional import to_device, flatten, tensordict
+from src.data import datasets
 from src.data import samplers
+from src import config
+
+from mnist import M2
+
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
 
 
-logger = logging.getLogger(__name__)
+@hydra.main(config_path="config", config_name="test")
+def main(args):
 
-
-def wandb_init(args):
-    wandb.init(project=args.project, tags=args.tags, group=args.group)
-    wandb.run.name = args.name + "_" + wandb.run.id
-
-
-def config_init(args):
-    transform = transforms.Compose(
+    transform_fn = transforms.Compose(
         [
             transforms.SelectIndices(args.use_channels, 0),
             transforms.CenterMaximizedResizeCrop(224),
         ]
     )
-    augment_transform = transforms.Compose(
+    augment_fn = transforms.Compose(
         [
             transforms.SelectIndices(args.use_channels, 0),
             transforms.RandomMaximizedResizeCrop(224),
         ]
     )
     alt = -1 if args.use_other else None
-    target_transform = transforms.ToIndex(args.targets, alt=alt)
+    target_transform_fn = transforms.ToIndex(args.targets, alt=alt)
 
-    def sampler_callback(ds):
-        return samplers.Balancer(ds, args.sample_expansion)
+    targets = [acronym(target) for target in args.targets]
 
-    params = {
-        "type": args.type,
-        "transform": transform,
-        "augment_transform": augment_transform,
-        "target_transform": target_transform,
-        "sampler_callback": sampler_callback,
-        "train_size": args.train_size,
-        "labeled_size": args.labeled_size,
-    }
+    dataset = datasets.HDF5(args.dataset_root, transform_fn, target_transform_fn)
+    train_set, test_set = dataset.split(train_size=args.train_size, stratify=dataset.targets)
+    labeled_set, unlabeled_set = train_set.split(
+        train_size=args.labeled_size, stratify=train_set.targets
+    )
+    labeled_set.transform, unlabeled_set.transform = augment_fn, augment_fn
 
-    return config.Config(**params)
+    def sampler_callback(ds, batch_size):
+        return samplers.Upsampler(ds, batch_size * args.num_train_steps)
 
-
-def train(model, optim, loader, device, epoch, weights=1.0, use_apex=False):
-    # training loss for each items e.g. BCE, KL, CE
-    res = tensordict({"epoch": epoch})
-
-    model.train()
-    for data in tqdm(loader):
-        data = to_device(device, *data)
-        loss = model(*data)
-
-        loss_step = (loss * weights).sum()
-        optim.zero_grad()
-        if use_apex:
-            with amp.scale_loss(loss_step, optim) as loss_scaled:
-                loss_scaled.backward()
-        else:
-            loss_step.backward()
-        optim.step()
-
-        res.stack({"train_loss": loss})
-
-    res.mean("train_loss", keep_dim=-1).flatten("train_loss")
-    return res
-
-
-def eval(model, loader, device, epoch, metrics_callback=None):
-    # loss for each element
-    res = tensordict({"epoch": epoch})
-    params = tensordict()
-
-    model.eval()
-    with torch.no_grad():
-        for data in tqdm(loader):
-            data = to_device(device, *data)
-            loss, param = model(*data)
-
-            res.stack({"eval_loss": loss})
-            params.cat(param)
-
-    res.mean("eval_loss", keep_dim=-1).flatten("eval_loss")
-
-    if callable(metrics_callback):
-        res.update(metrics_callback(**params))
-    elif isinstance(metrics_callback, abc.Sequence):
-        for fn in metrics_callback:
-            if callable(fn):
-                res.update(fn(**params))
-
-    return res
-
-
-@hydra.main(config_path="config", config_name="vae_ssl")
-def main(args):
-    wandb_init(args.wandb)
-    wandb.config.update(flatten(args))
-
-    global use_apex
-    use_apex = args.use_apex and use_apex
+    labeled_loader = torch.utils.data.DataLoader(
+        labeled_set,
+        batch_size=16,
+        num_workers=args.num_workers,
+        sampler=sampler_callback(labeled_set, 16),
+        pin_memory=True,
+        drop_last=True,
+    )
+    unlabeled_loader = torch.utils.data.DataLoader(
+        unlabeled_set,
+        batch_size=args.batch_size - 16,
+        num_workers=args.num_workers,
+        sampler=sampler_callback(unlabeled_set, args.batch_size - 16),
+        pin_memory=True,
+        drop_last=True,
+    )
+    test_loader = torch.utils.data.DataLoader(
+        test_set,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+        pin_memory=True,
+        drop_last=False,
+    )
 
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
+    model = M2(ch_in=args.ch_in, dim_y=args.num_classes, dim_z=args.dim_z).to(device)
+    optim = torch.optim.Adam(model.parameters(), lr=args.lr)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=2, T_mult=2)
+    weights = args.weights
 
-    num_epochs = args.num_epochs
+    stats = defaultdict(lambda: [])
 
-    metrics_fn = None
-    try:
-        if isinstance(args.metrics_fn, str):
-            metrics_fn = getattr(metrics, args.metrics_fn)
-        elif isinstance(args.metrics_fn, abc.Sequence):
-            metrics_fn = [getattr(metrics, fn) for fn in args.metrics_fn]
-        else:
-            raise
-    except:
-        raise ValueError(f"Invalid arguments. {args.metrics_fn}")
+    for epoch in range(args.num_epochs):
+        print(f"----- training at epoch {epoch} -----")
+        model.train()
+        total = 0
+        total_dict = defaultdict(lambda: 0)
+        for (ux, _), (lx, y) in tqdm(zip(unlabeled_loader, cycle(labeled_loader))):
+            ux = ux.to(device)
+            lx = lx.to(device)
+            y = y.to(device)
+            bce, kl_gauss, kl_cat = model(ux)
+            bce_, ce = model(lx, y)
+            bce += bce_
+            loss = bce + 10.0 * kl_gauss + kl_cat + 1000.0 * ce
+            optim.zero_grad()
+            loss.backward()
+            optim.step()
+            total += loss.item()
+            total_dict["total"] += loss.item()
+            total_dict["bce"] += bce.item()
+            total_dict["kl_gauss"] += kl_gauss.item()
+            total_dict["kl_cat"] += kl_cat.item()
+            total_dict["ce"] += ce.item()
+        for key, value in total_dict.items():
+            print("loss_{}: {:.3f} at epoch: {}".format(key, value, epoch))
+            stats[key].append(value)
 
-    if isinstance(args.weights, abc.Sequence):
-        weights = torch.tensor(args.weights).to(device)
-    elif isinstance(args.weights, numbers.Number):
-        weights = float(args.weights)
-    else:
-        weights = 1.0
+        scheduler.step()
 
-    model = get_model(args.model).to(device)
-    optim = get_optim(args.optim, params=model.parameters())
-    if use_apex:
-        model, optim = amp.initialize(model, optim, opt_level=args.opt_level)
+        if epoch % args.eval_interval == 0:
+            print(f"----- evaluating at epoch {epoch} -----")
+            model.eval()
+            params = defaultdict(lambda: torch.tensor([]))
 
-    train_set, eval_set = cfg.get_datasets(args.dataset)
-    train_loader = cfg.get_loader(args.train, train_set)
-    eval_loader = cfg.get_loader(args.eval, eval_set, train=False)
+            with torch.no_grad():
+                for i, (x, y) in tqdm(enumerate(test_loader)):
+                    x = x.to(device)
+                    qy, qy_pi = model.qy_x(x, hard=True)
+                    _, qz, _ = model.qz_xy(x, qy)
+                    y_pred = torch.argmax(qy_pi, -1)
 
-    for epoch in range(num_epochs):
-        logger.info(f"--- training at epoch {epoch} ---")
-        train_res = train(
-            model, optim, train_loader, device, epoch, weights=weights, use_apex=use_apex
-        )
-        wandb.log(train_res)
-        if epoch % args.eval_step == 0:
-            logger.info(f"--- evaluating at epoch {epoch} ---")
-            eval_res = eval(model, eval_loader, device, epoch, metrics_fn)
-            wandb.log(eval_res)
+                    params["qz"] = torch.cat([params["qz"], qz.cpu()])
+                    params["y"] = torch.cat([params["y"], y])
+                    params["y_pred"] = torch.cat([params["y_pred"], y_pred.cpu()])
+
+                for i in range(args.num_classes):
+                    y_i = F.one_hot(torch.full((1000,), i).long(), num_classes=args.num_classes)
+                    pz, _, _ = model.pz_y(y_i.float().to(device))
+                    params["pz"] = torch.cat([params["pz"], pz.cpu()])
+                yy = torch.tensor(list(range(args.num_classes)))
+                yy = yy.unsqueeze(1).repeat(1, 1000).flatten()
+
+                qz = params["qz"].numpy()
+                pz = params["pz"].numpy()
+                umapper = umap.UMAP(min_dist=0.5, random_state=123).fit(qz)
+                qz = umapper.embedding_
+                pz = umapper.transform(pz)
+
+                y = params["y"].numpy().astype(int)
+                y_pred = params["y_pred"].numpy().astype(int)
+
+                plt.figure(figsize=(12, 12))
+                for i in np.unique(y):
+                    idx = np.where(y == i)
+                    c = colormap(i)
+                    plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
+                plt.legend(loc="upper right")
+                plt.title(f"qz_true at epoch {epoch}")
+                plt.savefig(f"qz_true_{epoch}.png")
+                plt.close()
+
+                plt.figure(figsize=(12, 12))
+                for i in np.unique(y_pred):
+                    idx = np.where(y_pred == i)
+                    c = colormap(i)
+                    plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
+                plt.legend(loc="upper right")
+                plt.title(f"qz_pred at epoch {epoch}")
+                plt.savefig(f"qz_pred_{epoch}.png")
+                plt.close()
+
+                plt.figure(figsize=(12, 12))
+                for i in np.unique(yy):
+                    idx = np.where(yy == i)
+                    c = colormap(i)
+                    plt.scatter(pz[idx, 0], pz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
+                plt.legend(loc="upper right")
+                plt.title(f"pz at epoch {epoch}")
+                plt.savefig(f"pz_{epoch}.png")
+                plt.close()
+
+                plt.figure(figsize=(20, 12))
+                cm = confusion_matrix(y, y_pred)[: args.num_classes, :]
+                sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
+                plt.yticks(rotation=45)
+                plt.title(f"confusion matrix y / y' at epoch {epoch}")
+                plt.savefig(f"cm_y_{epoch}.png")
+                plt.close()
+
+                if epoch > 0:
+                    for key, value in stats.items():
+                        plt.plot(value)
+                        plt.ylabel(key)
+                        plt.xlabel("epoch")
+                        plt.title(key)
+                        plt.xlim((0, len(value) - 1))
+                        plt.savefig(f"loss_{key}_{epoch}.png")
+                        plt.close()
 
 
 if __name__ == "__main__":
