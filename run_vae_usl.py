@@ -121,11 +121,11 @@ def main(args):
                 yy = torch.tensor(list(range(args.num_classes)))
                 yy = yy.unsqueeze(1).repeat(1, 100).flatten()
 
-                pz = params["pz"].numpy()
                 qz = params["qz"].numpy()
-                umapper = umap.UMAP(min_dist=0.5, random_state=123).fit(pz)
-                pz = umapper.embedding_
-                qz = umapper.transform(qz)
+                pz = params["pz"].numpy()
+                umapper = umap.UMAP(min_dist=0.5, random_state=123).fit(qz)
+                qz = umapper.embedding_
+                pz = umapper.transform(pz)
 
                 y = params["y"].numpy().astype(int)
                 y_pred = params["y_pred"].numpy().astype(int)
