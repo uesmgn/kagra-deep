@@ -88,7 +88,7 @@ def main(args):
             bce += bce_
             kl_gauss += kl_gauss_
             mi_y, mi_w = model.iic(x, v)
-            loss = bce + 10.0 * kl_gauss + mi_y + mi_w
+            loss = bce + 10.0 * kl_gauss + 100.0 * mi_y + 100.0 * mi_w
             optim.zero_grad()
             loss.backward()
             optim.step()
@@ -136,6 +136,26 @@ def main(args):
                 plt.legend(loc="upper right")
                 plt.title(f"qz_true at epoch {epoch}")
                 plt.savefig(f"qz_true_{epoch}.png")
+                plt.close()
+
+                plt.figure(figsize=(12, 12))
+                for i in np.unique(y_pred):
+                    idx = np.where(y_pred == i)
+                    c = colormap(i)
+                    plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
+                plt.legend(loc="upper right")
+                plt.title(f"qz_y at epoch {epoch}")
+                plt.savefig(f"qz_y_{epoch}.png")
+                plt.close()
+
+                plt.figure(figsize=(12, 12))
+                for i in np.unique(w_pred):
+                    idx = np.where(w_pred == i)
+                    c = colormap(i)
+                    plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
+                plt.legend(loc="upper right")
+                plt.title(f"qz_w at epoch {epoch}")
+                plt.savefig(f"qz_w_{epoch}.png")
                 plt.close()
 
                 plt.figure(figsize=(20, 12))
