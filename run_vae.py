@@ -184,14 +184,15 @@ def main(args):
                 plt.savefig(f"cm_y_{epoch}.png")
                 plt.close()
 
-                for key, value in stats.items():
-                    plt.plot(value)
-                    plt.ylabel(key)
-                    plt.xlabel("epoch")
-                    plt.title(key)
-                    plt.xlim((0, len(value) - 1))
-                    plt.savefig(f"loss_{key}_{epoch}.png")
-                    plt.close()
+                if epoch > 0:
+                    for key, value in stats.items():
+                        plt.plot(value)
+                        plt.ylabel(key)
+                        plt.xlabel("epoch")
+                        plt.title(key)
+                        plt.xlim((0, len(value) - 1))
+                        plt.savefig(f"loss_{key}_{epoch}.png")
+                        plt.close()
 
 
 if __name__ == "__main__":
