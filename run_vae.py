@@ -152,7 +152,7 @@ def main(args):
                     c = colormap(i)
                     plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
                 plt.legend(loc="upper right")
-                plt.title(f"qz_true_{epoch}")
+                plt.title(f"qz_true at epoch {epoch}")
                 plt.savefig(f"qz_true_{epoch}.png")
                 plt.close()
 
@@ -162,7 +162,7 @@ def main(args):
                     c = colormap(i)
                     plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
                 plt.legend(loc="upper right")
-                plt.title(f"qz_pred_{epoch}")
+                plt.title(f"qz_pred at epoch {epoch}")
                 plt.savefig(f"qz_pred_{epoch}.png")
                 plt.close()
 
@@ -172,7 +172,7 @@ def main(args):
                     c = colormap(i)
                     plt.scatter(pz[idx, 0], pz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
                 plt.legend(loc="upper right")
-                plt.title(f"pz_{epoch}")
+                plt.title(f"pz at epoch {epoch}")
                 plt.savefig(f"pz_{epoch}.png")
                 plt.close()
 
@@ -188,6 +188,8 @@ def main(args):
                     plt.plot(value)
                     plt.ylabel(key)
                     plt.xlabel("epoch")
+                    plt.title(key)
+                    plt.xlim((0, len(value) - 1))
                     plt.savefig(f"loss_{key}_{epoch}.png")
                     plt.close()
 
