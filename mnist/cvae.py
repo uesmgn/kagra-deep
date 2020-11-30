@@ -404,12 +404,14 @@ class M3(nn.Module):
         kl_gauss = self.kl_gauss(qz_mean, qz_logvar, pz_mean, pz_logvar) / b
         return bce, kl_gauss
 
-    def iic(self, x, v):
+    def iic(self, x, v, detach=False):
         b = x.shape[0]
         _, z_x, _ = self.qz_x(x)
-        y_x, w_x = self.cluster_heads(z_x.detach())
-        _, z_v, _ = self.qz_x(x)
-        y_v, w_v = self.cluster_heads(z_v.detach())
+        _, z_v, _ = self.qz_x(v)
+        if detach:
+            z_x, z_v = z_x.detach(), z_v.detach()
+        y_x, w_x = self.cluster_heads(z_x)
+        y_v, w_v = self.cluster_heads(z_v)
         mi_y = self.mutual_info(y_x, y_v) / b
         mi_w = self.mutual_info(w_x, w_v) / b
         return mi_y, mi_w
