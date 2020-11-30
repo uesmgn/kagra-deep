@@ -9,6 +9,7 @@ from tqdm import tqdm
 import umap
 from itertools import cycle
 
+from src.utils.functional import acronym
 from src.utils import transforms
 from src.data import datasets
 from src.data import samplers
@@ -38,6 +39,8 @@ def main(args):
     )
     alt = -1 if args.use_other else None
     target_transform_fn = transforms.ToIndex(args.targets, alt=alt)
+
+    targets = [acronym(target) for target in args.targets]
 
     dataset = datasets.HDF5(args.dataset_root, transform_fn, target_transform_fn)
     train_set, test_set = dataset.split(train_size=args.train_size, stratify=dataset.targets)
@@ -136,43 +139,45 @@ def main(args):
 
                 qz = params["qz"].numpy()
                 pz = params["pz"].numpy()
-                umapper = umap.UMAP(n_components=2, random_state=123).fit(qz)
+                umapper = umap.UMAP(min_dist=1.0, random_state=123).fit(qz)
                 qz = umapper.embedding_
                 pz = umapper.transform(pz)
 
                 y = params["y"].numpy().astype(int)
                 y_pred = params["y_pred"].numpy().astype(int)
 
-                plt.figure(figsize=(12, 12))
+                plt.figure(figsize=(18, 18))
                 for i in np.unique(y):
                     idx = np.where(y == i)
-                    plt.scatter(qz[idx, 0], qz[idx, 1], s=2.0, label=i)
-                plt.legend()
+                    plt.scatter(qz[idx, 0], qz[idx, 1], label=targets[i])
+                plt.legend(loc="upper right")
                 plt.title(f"qz_true_{epoch}")
                 plt.savefig(f"qz_true_{epoch}.png")
                 plt.close()
 
-                plt.figure(figsize=(12, 12))
+                plt.figure(figsize=(18, 18))
                 for i in np.unique(y_pred):
                     idx = np.where(y_pred == i)
-                    plt.scatter(qz[idx, 0], qz[idx, 1], s=2.0, label=i)
-                plt.legend()
+                    plt.scatter(qz[idx, 0], qz[idx, 1], label=targets[i])
+                plt.legend(loc="upper right")
                 plt.title(f"qz_pred_{epoch}")
                 plt.savefig(f"qz_pred_{epoch}.png")
                 plt.close()
 
-                plt.figure(figsize=(12, 12))
+                plt.figure(figsize=(18, 18))
                 for i in range(args.num_classes):
                     idx = np.where(yy == i)
-                    plt.scatter(pz[idx, 0], pz[idx, 1], s=2.0, label=i)
-                plt.legend()
+                    label = acronym(targets[i])
+                    plt.scatter(pz[idx, 0], pz[idx, 1], label=targets[i])
+                plt.legend(loc="upper right")
                 plt.title(f"pz_{epoch}")
                 plt.savefig(f"pz_{epoch}.png")
                 plt.close()
 
                 plt.figure(figsize=(20, 12))
-                cm = confusion_matrix(y, y_pred)
-                sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False)
+                cm = confusion_matrix(y, y_pred)[: args.num_classes, :]
+                sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
+                plt.yticks(rotation=45)
                 plt.title(f"confusion matrix y / y' at epoch {epoch}")
                 plt.savefig(f"cm_y_{epoch}.png")
                 plt.close()

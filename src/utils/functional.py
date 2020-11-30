@@ -1,9 +1,20 @@
 import torch
 from collections import abc
+import re
 import warnings
 
 
-__all__ = ["to_device", "flatten", "tensordict"]
+__all__ = ["acronym", "to_device", "flatten", "tensordict"]
+
+
+def acronym(name):
+    name = re.sub(
+        r"(^[0-9a-zA-Z]{5,}(?=_))|((?<=_)[0-9a-zA-Z]*)",
+        lambda m: str(m.group(1) or "")[:3] + str(m.group(2) or "")[:1],
+        name,
+    )
+    name = name.replace("_", ".")
+    return name
 
 
 def getattr(d, name):
