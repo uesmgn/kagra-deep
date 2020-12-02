@@ -69,6 +69,8 @@ def main(args):
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
     model = M1(ch_in=args.ch_in, dim_z=args.dim_z).to(device)
+    if args.load_state_dict:
+        model.load_state_dict_part(torch.load(args.model_path))
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=2, T_mult=2)
     weights = args.weights

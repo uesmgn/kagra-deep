@@ -284,7 +284,7 @@ class M1(nn.Module):
         for name, param in state_dict.items():
             if name not in own_state:
                 continue
-            print(f"load state dict of {name}")
+            print(f"load state dict: {name}")
             own_state[name].copy_(param)
 
     def weight_init(self):
@@ -338,7 +338,7 @@ class M2(nn.Module):
         for name, param in state_dict.items():
             if name not in own_state:
                 continue
-            print(f"load state dict of {name}")
+            print(f"load state dict: {name}")
             own_state[name].copy_(param)
 
     def weight_init(self):
@@ -396,7 +396,7 @@ class IIC(nn.Module):
         for name, param in state_dict.items():
             if name not in own_state:
                 continue
-            print(f"load state dict of {name}")
+            print(f"load state dict: {name}")
             own_state[name].copy_(param)
 
     def weight_init(self):
@@ -476,7 +476,7 @@ class M3(nn.Module):
         for name, param in state_dict.items():
             if name not in own_state:
                 continue
-            print(f"load state dict of {name}")
+            print(f"load state dict: {name}")
             own_state[name].copy_(param)
 
     def weight_init(self):
