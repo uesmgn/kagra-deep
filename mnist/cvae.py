@@ -89,7 +89,7 @@ class TransposeResBlock(nn.Module):
     def __init__(self, in_channels, out_channels, stride=1, activation=None):
         super().__init__()
         self.block = nn.Sequential(
-            nn.ConvTranspose2d(in_channels, in_channels, stride=stride, kernel_size=4, padding=1, bias=False),
+            nn.ConvTranspose2d(in_channels, in_channels, stride=stride, kernel_size=stride + 2, padding=1, bias=False),
             nn.BatchNorm2d(in_channels),
             nn.LeakyReLU(0.2, inplace=True),
             nn.ConvTranspose2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
