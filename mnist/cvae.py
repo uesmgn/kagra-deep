@@ -7,7 +7,7 @@ from collections import abc
 
 
 class ResBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, stride=1):
+    def __init__(self, in_channels, out_channels, stride=1, activation=None):
         super().__init__()
         self.block = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, stride=stride, kernel_size=3, padding=1, bias=False),
@@ -22,7 +22,10 @@ class ResBlock(nn.Module):
                 nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride),
                 nn.BatchNorm2d(out_channels),
             )
-        self.activation = nn.LeakyReLU(0.2, inplace=True)
+        if activation is None:
+            self.activation = nn.LeakyReLU(0.2, inplace=True)
+        else:
+            self.activation = activation
 
     def forward(self, x):
         identity = x
@@ -33,7 +36,7 @@ class ResBlock(nn.Module):
 
 
 class Block(nn.Module):
-    def __init__(self, in_channels, out_channels, stride=1):
+    def __init__(self, in_channels, out_channels, stride=1, activation=None):
         super().__init__()
         self.block = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, stride=stride, kernel_size=3, padding=1, bias=False),
@@ -41,8 +44,11 @@ class Block(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(out_channels),
-            nn.LeakyReLU(0.2, inplace=True),
         )
+        if activation is None:
+            self.activation = nn.LeakyReLU(0.2, inplace=True)
+        else:
+            self.activation = activation
 
     def forward(self, x):
         return self.block(x)
@@ -77,7 +83,7 @@ class Encoder(nn.Module):
 
 
 class TransposeResBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, stride=1):
+    def __init__(self, in_channels, out_channels, stride=1, activation=None):
         super().__init__()
         self.block = nn.Sequential(
             nn.ConvTranspose2d(in_channels, in_channels, stride=stride, kernel_size=4, padding=1, bias=False),
@@ -92,7 +98,10 @@ class TransposeResBlock(nn.Module):
                 nn.ConvTranspose2d(in_channels, out_channels, kernel_size=1, stride=stride),
                 nn.BatchNorm2d(out_channels),
             )
-        self.activation = nn.LeakyReLU(0.2, inplace=True)
+        if activation is None:
+            self.activation = nn.LeakyReLU(0.2, inplace=True)
+        else:
+            self.activation = activation
 
     def forward(self, x):
         identity = x
@@ -102,7 +111,7 @@ class TransposeResBlock(nn.Module):
         return self.activation(x)
 
 
-class Block(nn.Module):
+class TransposeBlock(nn.Module):
     def __init__(self, in_channels, out_channels, stride=1, activation=None):
         super().__init__()
         self.block = nn.Sequential(
