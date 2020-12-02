@@ -101,21 +101,26 @@ def main(args):
             print(f"----- evaluating at epoch {epoch} -----")
             model.eval()
             params = defaultdict(lambda: torch.tensor([]))
-
+            indices = torch.tensor([]).long()
             with torch.no_grad():
+                n = 0
                 for i, (x, y) in tqdm(enumerate(test_loader)):
                     x = x.to(device)
                     y_pi, w_pi = model.clustering(x)
+                    idx = torch.nonzero(y_pi > args.thres).squeeze() + n
                     y_pred = torch.argmax(y_pi, -1)
                     w_pred = torch.argmax(w_pi, -1)
 
                     params["y"] = torch.cat([params["y"], y])
                     params["y_pred"] = torch.cat([params["y_pred"], y_pred.cpu()])
                     params["w_pred"] = torch.cat([params["w_pred"], w_pred.cpu()])
+                    indices = torch.cat([indices, idx.cpu()])
+                    n += x.shape[0]
 
                 y = params["y"].numpy().astype(int)
                 y_pred = params["y_pred"].numpy().astype(int)
                 w_pred = params["w_pred"].numpy().astype(int)
+                indices = indices.numpy().astype(int)
 
                 plt.figure(figsize=(20, 12))
                 cm = confusion_matrix(y, y_pred)[: args.num_classes, :]
@@ -123,6 +128,15 @@ def main(args):
                 plt.yticks(rotation=45)
                 plt.title(f"confusion matrix y / y' at epoch {epoch}")
                 plt.savefig(f"cm_y_{epoch}.png")
+                plt.close()
+
+                plt.figure(figsize=(20, 12))
+                targets_filtered = np.unique(y[indices])
+                cm = confusion_matrix(y[indices], y_pred[indices])[: len(targets_filtered), :]
+                sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, yticklabels=targets_filtered)
+                plt.yticks(rotation=45)
+                plt.title(f"confusion matrix y / y' filtered at epoch {epoch}")
+                plt.savefig(f"cm_y_filtered_{epoch}.png")
                 plt.close()
 
                 plt.figure(figsize=(20, 12))
