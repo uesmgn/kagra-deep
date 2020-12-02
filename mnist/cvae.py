@@ -6,6 +6,32 @@ import numpy as np
 from collections import abc
 
 
+class ResBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, stride=1):
+        super().__init__()
+        self.block = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, stride=stride, kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(out_channels),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(out_channels),
+        )
+        self.connection = None
+        if in_channels != out_channels or stride != 1:
+            self.connection = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride),
+                nn.BatchNorm2d(out_channels),
+            )
+        self.activation = nn.LeakyReLU(0.2, inplace=True)
+
+    def forward(self, x):
+        identity = x
+        if self.connection is not None:
+            identity = self.connection(x)
+        x = self.block(x) + identity
+        return self.activation(x)
+
+
 class Block(nn.Module):
     def __init__(self, in_channels, out_channels, stride=1):
         super().__init__()
@@ -33,9 +59,9 @@ class Encoder(nn.Module):
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
         )
         self.blocks = nn.Sequential(
-            Block(32, 64, stride=2),
-            Block(64, 128, stride=2),
-            Block(128, 256, stride=2),
+            ResBlock(32, 64, stride=2),
+            ResBlock(64, 128, stride=2),
+            ResBlock(128, 256, stride=2),
             nn.Flatten(),
         )
         self.fc = nn.Sequential(
@@ -50,7 +76,33 @@ class Encoder(nn.Module):
         return self.fc(x)
 
 
-class TransposeBlock(nn.Module):
+class TransposeResBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, stride=1):
+        super().__init__()
+        self.block = nn.Sequential(
+            nn.ConvTranspose2d(in_channels, in_channels, stride=stride, kernel_size=4, padding=1, bias=False),
+            nn.BatchNorm2d(in_channels),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.ConvTranspose2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(out_channels),
+        )
+        self.connection = None
+        if in_channels != out_channels or stride != 1:
+            self.connection = nn.Sequential(
+                nn.ConvTranspose2d(in_channels, out_channels, kernel_size=1, stride=stride),
+                nn.BatchNorm2d(out_channels),
+            )
+        self.activation = nn.LeakyReLU(0.2, inplace=True)
+
+    def forward(self, x):
+        identity = x
+        if self.connection is not None:
+            identity = self.connection(x)
+        x = self.block(x) + identity
+        return self.activation(x)
+
+
+class Block(nn.Module):
     def __init__(self, in_channels, out_channels, stride=1, activation=None):
         super().__init__()
         self.block = nn.Sequential(
@@ -81,10 +133,10 @@ class Decoder(nn.Module):
         )
         self.blocks = nn.Sequential(
             nn.Upsample(scale_factor=2),
-            TransposeBlock(256, 128, stride=2),
-            TransposeBlock(128, 64, stride=2),
-            TransposeBlock(64, 32, stride=2),
-            TransposeBlock(32, ch_out, stride=2, activation=nn.Sigmoid()),
+            TransposeResBlock(256, 128, stride=2),
+            TransposeResBlock(128, 64, stride=2),
+            TransposeResBlock(64, 32, stride=2),
+            TransposeResBlock(32, ch_out, stride=2, activation=nn.Sigmoid()),
         )
 
     def forward(self, x):
