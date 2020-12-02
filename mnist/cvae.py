@@ -66,8 +66,11 @@ class Encoder(nn.Module):
         )
         self.blocks = nn.Sequential(
             ResBlock(32, 64, stride=2),
+            ResBlock(64, 64),
             ResBlock(64, 128, stride=2),
+            ResBlock(128, 128),
             ResBlock(128, 256, stride=2),
+            ResBlock(256, 256),
             nn.Flatten(),
         )
         self.fc = nn.Sequential(
@@ -143,8 +146,11 @@ class Decoder(nn.Module):
         self.blocks = nn.Sequential(
             nn.Upsample(scale_factor=2),
             TransposeResBlock(256, 128, stride=2),
+            TransposeResBlock(128, 128),
             TransposeResBlock(128, 64, stride=2),
+            TransposeResBlock(64, 64),
             TransposeResBlock(64, 32, stride=2),
+            TransposeResBlock(32, 32),
             TransposeResBlock(32, ch_out, stride=2, activation=nn.Sigmoid()),
         )
 
