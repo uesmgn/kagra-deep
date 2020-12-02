@@ -44,9 +44,7 @@ def main(args):
 
     dataset = datasets.HDF5(args.dataset_root, transform_fn, target_transform_fn)
     train_set, test_set = dataset.split(train_size=args.train_size, stratify=dataset.targets)
-    labeled_set, unlabeled_set = train_set.split(
-        train_size=args.labeled_size, stratify=train_set.targets
-    )
+    labeled_set, unlabeled_set = train_set.split(train_size=args.labeled_size, stratify=train_set.targets)
     labeled_set.transform, unlabeled_set.transform = augment_fn, augment_fn
 
     def sampler_callback(ds, batch_size):
@@ -193,6 +191,9 @@ def main(args):
                         plt.xlim((0, len(value) - 1))
                         plt.savefig(f"loss_{key}_{epoch}.png")
                         plt.close()
+
+        if epoch % args.save_interval == 0:
+            torch.save(model.state_dict(), args.model_path)
 
 
 if __name__ == "__main__":
