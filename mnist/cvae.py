@@ -386,9 +386,9 @@ class M2(nn.Module):
 class IIC(nn.Module):
     def __init__(self, ch_in, dim_y, dim_w):
         super().__init__()
-
-        self.qy_x = Qy_x(ch_in, dim_y)
-        self.qw_x = Qy_x(ch_in, dim_w)
+        self.encoder = Encoder(ch_in, 1024)
+        self.qy_x = Qy_x(self.encoder, dim_y)
+        self.qw_x = Qy_x(self.encoder, dim_w)
         self.weight_init()
 
     def load_state_dict_part(self, state_dict):
