@@ -95,7 +95,7 @@ class TransposeResBlock(nn.Module):
         self.connection = None
         if in_channels != out_channels or stride != 1:
             self.connection = nn.Sequential(
-                nn.ConvTranspose2d(in_channels, out_channels, kernel_size=1, stride=stride),
+                nn.ConvTranspose2d(in_channels, out_channels, kernel_size=stride, stride=stride),
                 nn.BatchNorm2d(out_channels),
             )
         if activation is None:
