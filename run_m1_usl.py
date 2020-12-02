@@ -136,6 +136,9 @@ def main(args):
                         plt.savefig(f"loss_{key}_{epoch}.png")
                         plt.close()
 
+        if epoch % args.save_interval == 0:
+            torch.save(model.state_dict(), args.model_path)
+
 
 if __name__ == "__main__":
     main()

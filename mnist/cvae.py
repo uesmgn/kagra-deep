@@ -112,9 +112,10 @@ class Gaussian(nn.Module):
 
 
 class Qz_x(nn.Module):
-    def __init__(self, ch_in, dim_z):
+    def __init__(self, encoder, dim_z):
         super().__init__()
-        self.encoder = Encoder(ch_in, 1024)
+        self.encoder = encoder
+
         self.fc = nn.Sequential(
             nn.Linear(1024, 512),
             nn.BatchNorm1d(512),
@@ -130,9 +131,9 @@ class Qz_x(nn.Module):
 
 
 class Qz_xy(nn.Module):
-    def __init__(self, ch_in, dim_y, dim_z):
+    def __init__(self, encoder, dim_y, dim_z):
         super().__init__()
-        self.encoder = Encoder(ch_in, 1024)
+        self.encoder = encoder
 
         self.fc_x = nn.Sequential(
             nn.Linear(1024, 512),
@@ -155,9 +156,9 @@ class Qz_xy(nn.Module):
 
 
 class Qy_x(nn.Module):
-    def __init__(self, ch_in, dim_y):
+    def __init__(self, encoder, dim_y):
         super().__init__()
-        self.encoder = Encoder(ch_in, 1024)
+        self.encoder = encoder
 
         self.fc = nn.Sequential(
             nn.Linear(1024, dim_y),
@@ -189,10 +190,9 @@ class Pz_y(nn.Module):
 
 
 class Px_z(nn.Module):
-    def __init__(self, ch_out, dim_z):
+    def __init__(self, decoder):
         super().__init__()
-
-        self.decoder = Decoder(ch_out, dim_z)
+        self.decoder = decoder
 
     def forward(self, z):
         x = self.decoder(z)
@@ -206,9 +206,19 @@ class M1(nn.Module):
         dim_z=64,
     ):
         super().__init__()
-        self.qz_x = Qz_x(ch_in, dim_z)
-        self.px_z = Px_z(ch_in, dim_z)
+        self.encoder = Encoder(ch_in, 1024)
+        self.decoder = Decoder(ch_in, dim_z)
+        self.qz_x = Qz_x(self.encoder, dim_z)
+        self.px_z = Px_z(self.decoder)
         self.weight_init()
+
+    def load_state_dict_part(self, state_dict):
+        own_state = self.state_dict()
+        for name, param in state_dict.items():
+            if name not in own_state:
+                continue
+            print(f"load state dict of {name}")
+            own_state[name].copy_(param)
 
     def weight_init(self):
         for m in self.modules():
@@ -247,12 +257,22 @@ class M2(nn.Module):
         dim_z=64,
     ):
         super().__init__()
+        self.encoder = Encoder(ch_in, 1024)
+        self.decoder = Decoder(ch_in, dim_z)
         self.dim_y = dim_y
-        self.qy_x = Qy_x(ch_in, dim_y)
-        self.qz_xy = Qz_xy(ch_in, dim_y, dim_z)
+        self.qy_x = Qy_x(self.encoder, dim_y)
+        self.qz_xy = Qz_xy(self.encoder, dim_y, dim_z)
         self.pz_y = Pz_y(dim_y, dim_z)
-        self.px_z = Px_z(ch_in, dim_z)
+        self.px_z = Px_z(self.decoder)
         self.weight_init()
+
+    def load_state_dict_part(self, state_dict):
+        own_state = self.state_dict()
+        for name, param in state_dict.items():
+            if name not in own_state:
+                continue
+            print(f"load state dict of {name}")
+            own_state[name].copy_(param)
 
     def weight_init(self):
         for m in self.modules():
@@ -303,6 +323,14 @@ class IIC(nn.Module):
         self.qy_x = Qy_x(ch_in, dim_y)
         self.qw_x = Qy_x(ch_in, dim_w)
         self.weight_init()
+
+    def load_state_dict_part(self, state_dict):
+        own_state = self.state_dict()
+        for name, param in state_dict.items():
+            if name not in own_state:
+                continue
+            print(f"load state dict of {name}")
+            own_state[name].copy_(param)
 
     def weight_init(self):
         for m in self.modules():
@@ -375,6 +403,14 @@ class M3(nn.Module):
         self.px_z = Px_z(ch_in, dim_z)
         self.cluster_heads = ClusterHeads(dim_z, dim_y, dim_w)
         self.weight_init()
+
+    def load_state_dict_part(self, state_dict):
+        own_state = self.state_dict()
+        for name, param in state_dict.items():
+            if name not in own_state:
+                continue
+            print(f"load state dict of {name}")
+            own_state[name].copy_(param)
 
     def weight_init(self):
         for m in self.modules():
