@@ -45,6 +45,9 @@ def main(args):
     dataset = datasets.HDF5(args.dataset_root, transform_fn, target_transform_fn)
     train_set, test_set = dataset.split(train_size=args.train_size, stratify=dataset.targets)
     labeled_set, unlabeled_set = train_set.split(train_size=args.labeled_size, stratify=train_set.targets)
+    print("labeled_set:", labeled_set.counter)
+    print("unlabeled_set:", unlabeled_set.counter)
+    print("test_set:", test_set.counter)
     labeled_set.transform, unlabeled_set.transform = augment_fn, augment_fn
 
     def sampler_callback(ds, batch_size):
@@ -60,9 +63,9 @@ def main(args):
     )
     unlabeled_loader = torch.utils.data.DataLoader(
         unlabeled_set,
-        batch_size=args.batch_size - 16,
+        batch_size=args.batch_size,
         num_workers=args.num_workers,
-        sampler=sampler_callback(unlabeled_set, args.batch_size - 16),
+        sampler=sampler_callback(unlabeled_set, args.batch_size),
         pin_memory=True,
         drop_last=True,
     )
@@ -82,7 +85,6 @@ def main(args):
         model.load_state_dict_part(torch.load(args.model_path))
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=2, T_mult=2)
-    weights = args.weights
 
     stats = defaultdict(lambda: [])
 
@@ -98,7 +100,7 @@ def main(args):
             bce, kl_gauss, kl_cat = model(ux)
             bce_, ce = model(lx, y)
             bce += bce_
-            loss = bce + 10.0 * kl_gauss + kl_cat + 1000.0 * ce
+            loss = bce + kl_gauss + kl_cat + 1000.0 * ce
             optim.zero_grad()
             loss.backward()
             optim.step()
