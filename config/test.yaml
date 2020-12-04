@@ -12,7 +12,7 @@ thres: 0.9
 num_epochs: 10000
 num_classes: 22
 dim_w: 50
-dim_z: 512
+dim_z: 1024
 train_size: 0.7
 labeled_size: 0.05
 batch_size: 128
