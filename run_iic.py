@@ -39,7 +39,7 @@ def main(args):
     alt = -1 if args.use_other else None
     target_transform_fn = transforms.ToIndex(args.targets, alt=alt)
 
-    targets = [acronym(target) for target in args.targets]
+    targets = np.array([acronym(target) for target in args.targets])
 
     dataset = datasets.HDF5(args.dataset_root, transform_fn, target_transform_fn)
     train_set, test_set = dataset.split(train_size=args.train_size, stratify=dataset.targets)
@@ -107,7 +107,7 @@ def main(args):
                 for i, (x, y) in tqdm(enumerate(test_loader)):
                     x = x.to(device)
                     y_pi, w_pi = model.clustering(x)
-                    idx = torch.nonzero(y_pi > args.thres).squeeze() + n
+                    idx = torch.nonzero((y_pi > args.thres).any(-1)).squeeze() + n
                     y_pred = torch.argmax(y_pi, -1)
                     w_pred = torch.argmax(w_pi, -1)
 
@@ -131,7 +131,7 @@ def main(args):
                 plt.close()
 
                 plt.figure(figsize=(20, 12))
-                targets_filtered = np.unique(y[indices])
+                targets_filtered = targets[np.unique(y[indices])]
                 cm = confusion_matrix(y[indices], y_pred[indices])[: len(targets_filtered), :]
                 sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, yticklabels=targets_filtered)
                 plt.yticks(rotation=45)

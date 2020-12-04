@@ -266,6 +266,22 @@ class Px_z(nn.Module):
         return x
 
 
+class Affinity_Loss(nn.Module):
+    def __init__(self, lambd):
+        super().__init__()
+        self.lamda = lambd
+
+    def forward(self, y_pred_plusone, y_true_plusone):
+        onehot = y_true_plusone[:, :-1]
+        distance = y_pred_plusone[:, :-1]
+        rw = torch.mean(y_pred_plusone[:, -1])
+        d_fi_wyi = torch.sum(onehot * distance, -1).unsqueeze(1)
+        losses = torch.clamp(self.lamda + distance - d_fi_wyi, min=0)
+        L_mm = torch.sum(losses * (1.0 - onehot), -1) / y_true_plusone.size(0)
+        loss = torch.sum(L_mm + rw, -1)
+        return loss
+
+
 class M1(nn.Module):
     def __init__(
         self,

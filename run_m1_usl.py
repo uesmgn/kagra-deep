@@ -73,7 +73,6 @@ def main(args):
         model.load_state_dict_part(torch.load(args.model_path))
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=2, T_mult=2)
-    weights = args.weights
 
     stats = defaultdict(lambda: [])
 
@@ -85,7 +84,7 @@ def main(args):
         for x, _ in tqdm(train_loader):
             x = x.to(device)
             bce, kl_gauss = model(x)
-            loss = bce + 10.0 * kl_gauss
+            loss = bce + kl_gauss
             optim.zero_grad()
             loss.backward()
             optim.step()
