@@ -14,13 +14,13 @@ num_classes: 22
 dim_w: 50
 dim_z: 512
 train_size: 0.7
-labeled_size: 0.1
+labeled_size: 0.05
 batch_size: 128
 num_workers: 4
 lr: 1e-4
 num_train_steps: 100
-eval_interval: 5
-save_interval: 10
+eval_interval: 10
+save_interval: 50
 model_path: /home/gen.ueshima/gen/workspace/github/model.pt
 dataset_root: /home/gen.ueshima/gen/workspace/github/GravitySpy/processed/dataset_small.h5
 weights: [1., 1., 10.]
