@@ -51,7 +51,8 @@ def main(args):
     labeled_set.transform, unlabeled_set.transform = augment_fn, augment_fn
 
     def sampler_callback(ds, batch_size):
-        return samplers.Upsampler(ds, batch_size * args.num_train_steps)
+        # return samplers.Upsampler(ds, batch_size * args.num_train_steps)
+        return samplers.Balancer(ds, batch_size * args.num_train_steps)
 
     labeled_loader = torch.utils.data.DataLoader(
         labeled_set,
