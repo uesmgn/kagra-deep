@@ -245,7 +245,10 @@ class M1(nn.Module):
                 nn.init.constant_(m.bias, 0)
             elif isinstance(m, nn.Linear):
                 nn.init.xavier_normal_(m.weight)
-                nn.init.zeros_(m.bias)
+                try:
+                    nn.init.zeros_(m.bias)
+                except:
+                    continue
 
     def forward(self, x):
         b = x.shape[0]
@@ -299,7 +302,10 @@ class M2(nn.Module):
                 nn.init.constant_(m.bias, 0)
             elif isinstance(m, nn.Linear):
                 nn.init.xavier_normal_(m.weight)
-                nn.init.zeros_(m.bias)
+                try:
+                    nn.init.zeros_(m.bias)
+                except:
+                    continue
 
     def forward(self, x, y=None):
         b = x.shape[0]
@@ -357,7 +363,10 @@ class IIC(nn.Module):
                 nn.init.constant_(m.bias, 0)
             elif isinstance(m, nn.Linear):
                 nn.init.xavier_normal_(m.weight)
-                nn.init.zeros_(m.bias)
+                try:
+                    nn.init.zeros_(m.bias)
+                except:
+                    continue
 
     def forward(self, x, v):
         # iic
@@ -437,7 +446,10 @@ class M3(nn.Module):
                 nn.init.constant_(m.bias, 0)
             elif isinstance(m, nn.Linear):
                 nn.init.xavier_normal_(m.weight)
-                nn.init.zeros_(m.bias)
+                try:
+                    nn.init.zeros_(m.bias)
+                except:
+                    continue
 
     def forward(self, x):
         return self.vae(x)
