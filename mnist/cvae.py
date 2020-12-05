@@ -9,8 +9,13 @@ from collections import abc
 class Block(nn.Module):
     def __init__(self, in_channels, out_channels, activation=None):
         super().__init__()
+        self.x_conv = nn.Conv2d(
+            in_channels, out_channels // 2, stride=(1, 2), kernel_size=(1, 3), padding=(0, 1), bias=False
+        )
+        self.y_conv = nn.Conv2d(
+            in_channels, out_channels // 2, stride=(2, 1), kernel_size=(3, 1), padding=(1, 0), bias=False
+        )
         self.block = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, stride=(1, 2), kernel_size=(1, 3), padding=(0, 1), bias=False),
             nn.BatchNorm2d(out_channels),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
@@ -26,6 +31,9 @@ class Block(nn.Module):
             self.activation = activation
 
     def forward(self, x):
+        x_conv = self.x_conv(x)
+        y_conv = self.y_conv(x)
+        x = torch.cat([x_conv, y_conv])
         identity = self.connection(x)
         x = self.block(x) + identity
         return self.activation(x)
@@ -34,10 +42,13 @@ class Block(nn.Module):
 class TransposeBlock(nn.Module):
     def __init__(self, in_channels, out_channels, activation=None):
         super().__init__()
+        self.x_conv = nn.ConvTranspose2d(
+            in_channels, out_channels // 2, stride=(1, 2), kernel_size=(1, 4), padding=(0, 1), bias=False
+        )
+        self.y_conv = nn.ConvTranspose2d(
+            in_channels, out_channels // 2, stride=(2, 1), kernel_size=(4, 1), padding=(1, 0), bias=False
+        )
         self.block = nn.Sequential(
-            nn.ConvTranspose2d(
-                in_channels, out_channels, stride=(1, 2), kernel_size=(1, 4), padding=(0, 1), bias=False
-            ),
             nn.BatchNorm2d(out_channels),
             nn.LeakyReLU(0.2, inplace=True),
             nn.ConvTranspose2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
@@ -53,6 +64,9 @@ class TransposeBlock(nn.Module):
             self.activation = activation
 
     def forward(self, x):
+        x_conv = self.x_conv(x)
+        y_conv = self.y_conv(x)
+        x = torch.cat([x_conv, y_conv])
         identity = self.connection(x)
         x = self.block(x) + identity
         return self.activation(x)
