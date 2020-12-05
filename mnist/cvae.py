@@ -74,7 +74,7 @@ class Encoder(nn.Module):
         )
         self.fc = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(100352, dim_out),
+            nn.Linear(100352, dim_out, bias=False),
             nn.BatchNorm1d(dim_out),
             nn.LeakyReLU(0.2, inplace=True),
         )
@@ -90,7 +90,7 @@ class Decoder(nn.Module):
     def __init__(self, ch_in=3, dim_in=1024):
         super().__init__()
         self.head = nn.Sequential(
-            nn.Linear(dim_in, 128 * 112 * 7),
+            nn.Linear(dim_in, 128 * 112 * 7, bias=False),
             nn.BatchNorm1d(128 * 112 * 7),
             nn.LeakyReLU(0.2, inplace=True),
         )
