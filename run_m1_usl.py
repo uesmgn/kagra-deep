@@ -45,15 +45,16 @@ def main(args):
     dataset = datasets.HDF5(args.dataset_root, transform_fn, target_transform_fn)
     train_set, test_set = dataset.split(train_size=args.train_size, stratify=dataset.targets)
     train_set.transform = augment_fn
+    test_set.transform = augment_fn
 
-    def sampler_callback(ds, batch_size):
-        return samplers.Upsampler(ds, batch_size * args.num_train_steps)
+    def sampler_callback(ds, num_samples):
+        return samplers.Upsampler(ds, num_samples)
 
     train_loader = torch.utils.data.DataLoader(
         train_set,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
-        sampler=sampler_callback(train_set, args.batch_size),
+        sampler=sampler_callback(train_set, args.batch_size * args.num_train_steps),
         pin_memory=True,
         drop_last=True,
     )
@@ -61,6 +62,7 @@ def main(args):
         test_set,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
+        sampler=sampler_callback(test_set, args.batch_size * args.num_test_steps),
         pin_memory=True,
         drop_last=False,
     )
