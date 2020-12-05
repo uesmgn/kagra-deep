@@ -133,7 +133,7 @@ class Qz_x(nn.Module):
         self.encoder = encoder
 
         self.fc = nn.Sequential(
-            nn.Linear(1024, 512),
+            nn.Linear(1024, 512, bias=False),
             nn.BatchNorm1d(512),
             nn.LeakyReLU(0.2, inplace=True),
         )
@@ -152,12 +152,12 @@ class Qz_xy(nn.Module):
         self.encoder = encoder
 
         self.fc_x = nn.Sequential(
-            nn.Linear(1024, 512),
+            nn.Linear(1024, 512, bias=False),
             nn.BatchNorm1d(512),
             nn.LeakyReLU(0.2, inplace=True),
         )
         self.fc_y = nn.Sequential(
-            nn.Linear(1024, dim_y),
+            nn.Linear(1024, dim_y, bias=False),
             nn.BatchNorm1d(dim_y),
             nn.LeakyReLU(0.2, inplace=True),
         )
@@ -193,7 +193,7 @@ class Pz_y(nn.Module):
         super().__init__()
 
         self.fc = nn.Sequential(
-            nn.Linear(dim_y, 1024),
+            nn.Linear(dim_y, 1024, bias=False),
             nn.BatchNorm1d(1024),
             nn.LeakyReLU(0.2, inplace=True),
         )
@@ -388,13 +388,13 @@ class ClusterHeads(nn.Module):
     def __init__(self, dim_in, dim_y, dim_w):
         super().__init__()
         self.fc1 = nn.Sequential(
-            nn.Linear(dim_in, 1024),
+            nn.Linear(dim_in, 1024, bias=False),
             nn.BatchNorm1d(1024),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Linear(1024, dim_y),
         )
         self.fc2 = nn.Sequential(
-            nn.Linear(dim_in, 1024),
+            nn.Linear(dim_in, 1024, bias=False),
             nn.BatchNorm1d(1024),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Linear(1024, dim_w),
