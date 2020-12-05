@@ -6,43 +6,45 @@ import numpy as np
 from collections import abc
 
 
-class ResBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, stride=1, activation=None):
+class Block(nn.Module):
+    def __init__(self, in_channels, out_channels, activation=None):
         super().__init__()
         self.block = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, stride=stride, kernel_size=3, padding=1, bias=False),
+            nn.Conv2d(in_channels, out_channels, stride=(1, 2), kernel_size=(1, 3), padding=(0, 1), bias=False),
             nn.BatchNorm2d(out_channels),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(out_channels),
         )
-        self.connection = None
-        if in_channels != out_channels or stride != 1:
-            self.connection = nn.Sequential(
-                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride),
-                nn.BatchNorm2d(out_channels),
-            )
+        self.connection = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=(1, 2)),
+            nn.BatchNorm2d(out_channels),
+        )
         if activation is None:
             self.activation = nn.LeakyReLU(0.2, inplace=True)
         else:
             self.activation = activation
 
     def forward(self, x):
-        identity = x
-        if self.connection is not None:
-            identity = self.connection(x)
+        identity = self.connection(x)
         x = self.block(x) + identity
         return self.activation(x)
 
 
-class Block(nn.Module):
-    def __init__(self, in_channels, out_channels, stride=1, activation=None):
+class TransposeBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, activation=None):
         super().__init__()
         self.block = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, stride=stride, kernel_size=3, padding=1, bias=False),
+            nn.ConvTranspose2d(
+                in_channels, out_channels, stride=(1, 2), kernel_size=(1, 4), padding=(0, 1), bias=False
+            ),
             nn.BatchNorm2d(out_channels),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            nn.ConvTranspose2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(out_channels),
+        )
+        self.connection = nn.Sequential(
+            nn.ConvTranspose2d(in_channels, out_channels, kernel_size=(1, 2), stride=(1, 2)),
             nn.BatchNorm2d(out_channels),
         )
         if activation is None:
@@ -51,30 +53,28 @@ class Block(nn.Module):
             self.activation = activation
 
     def forward(self, x):
-        return self.block(x)
+        identity = self.connection(x)
+        x = self.block(x) + identity
+        return self.activation(x)
 
 
 class Encoder(nn.Module):
-    def __init__(self, ch_in=3, dim_out=512):
+    def __init__(self, ch_in=3, dim_out=1024):
         super().__init__()
-        self.dim_out = dim_out
         self.head = nn.Sequential(
             nn.Conv2d(ch_in, 32, kernel_size=7, stride=2, padding=3, bias=False),
             nn.BatchNorm2d(32),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+            nn.MaxPool2d(kernel_size=(1, 3), stride=(1, 2), padding=(0, 1)),
         )
         self.blocks = nn.Sequential(
-            ResBlock(32, 64, stride=2),
-            ResBlock(64, 64),
-            ResBlock(64, 128, stride=2),
-            ResBlock(128, 128),
-            ResBlock(128, 256, stride=2),
-            ResBlock(256, 256),
-            nn.Flatten(),
+            Block(32, 64),
+            Block(64, 96),
+            Block(96, 128),
         )
         self.fc = nn.Sequential(
-            nn.Linear(12544, dim_out),
+            nn.Flatten(),
+            nn.Linear(100352, dim_out),
             nn.BatchNorm1d(dim_out),
             nn.LeakyReLU(0.2, inplace=True),
         )
@@ -82,82 +82,31 @@ class Encoder(nn.Module):
     def forward(self, x):
         x = self.head(x)
         x = self.blocks(x)
-        return self.fc(x)
-
-
-class TransposeResBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, stride=1, activation=None):
-        super().__init__()
-        self.block = nn.Sequential(
-            nn.ConvTranspose2d(in_channels, in_channels, stride=stride, kernel_size=stride + 2, padding=1, bias=False),
-            nn.BatchNorm2d(in_channels),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.ConvTranspose2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(out_channels),
-        )
-        self.connection = None
-        if in_channels != out_channels or stride != 1:
-            self.connection = nn.Sequential(
-                nn.ConvTranspose2d(in_channels, out_channels, kernel_size=stride, stride=stride),
-                nn.BatchNorm2d(out_channels),
-            )
-        if activation is None:
-            self.activation = nn.LeakyReLU(0.2, inplace=True)
-        else:
-            self.activation = activation
-
-    def forward(self, x):
-        identity = x
-        if self.connection is not None:
-            identity = self.connection(x)
-        x = self.block(x) + identity
-        return self.activation(x)
-
-
-class TransposeBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, stride=1, activation=None):
-        super().__init__()
-        self.block = nn.Sequential(
-            nn.ConvTranspose2d(in_channels, in_channels, stride=stride, kernel_size=4, padding=1, bias=False),
-            nn.BatchNorm2d(in_channels),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.ConvTranspose2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(out_channels),
-        )
-        if activation is None:
-            self.activation = nn.LeakyReLU(0.2, inplace=True)
-        else:
-            self.activation = activation
-
-    def forward(self, x):
-        x = self.block(x)
-        return self.activation(x)
+        x = self.fc(x)
+        return x
 
 
 class Decoder(nn.Module):
-    def __init__(self, ch_out=3, dim_in=512):
+    def __init__(self, ch_in=3, dim_in=1024):
         super().__init__()
-        self.dim_in = dim_in
         self.head = nn.Sequential(
-            nn.Linear(dim_in, 256 * 7 * 7),
-            nn.BatchNorm1d(256 * 7 * 7),
+            nn.Linear(dim_in, 128 * 112 * 7),
+            nn.BatchNorm1d(128 * 112 * 7),
             nn.LeakyReLU(0.2, inplace=True),
         )
         self.blocks = nn.Sequential(
             nn.Upsample(scale_factor=2),
-            TransposeResBlock(256, 128, stride=2),
-            TransposeResBlock(128, 128),
-            TransposeResBlock(128, 64, stride=2),
-            TransposeResBlock(64, 64),
-            TransposeResBlock(64, 32, stride=2),
-            TransposeResBlock(32, 32),
-            TransposeResBlock(32, ch_out, stride=2, activation=nn.Sigmoid()),
+            TransposeBlock(128, 96),
+            TransposeBlock(96, 64),
+            TransposeBlock(64, 32),
+            TransposeBlock(32, ch_in, activation=nn.Sigmoid()),
         )
 
     def forward(self, x):
         x = self.head(x)
-        x = x.view(x.shape[0], 256, 7, 7)
-        return self.blocks(x)
+        x = x.view(x.shape[0], 128, 112, 7)
+        x = self.blocks(x)
+        return x
 
 
 class Gaussian(nn.Module):
@@ -264,22 +213,6 @@ class Px_z(nn.Module):
     def forward(self, z):
         x = self.decoder(z)
         return x
-
-
-class Affinity_Loss(nn.Module):
-    def __init__(self, lambd):
-        super().__init__()
-        self.lamda = lambd
-
-    def forward(self, y_pred_plusone, y_true_plusone):
-        onehot = y_true_plusone[:, :-1]
-        distance = y_pred_plusone[:, :-1]
-        rw = torch.mean(y_pred_plusone[:, -1])
-        d_fi_wyi = torch.sum(onehot * distance, -1).unsqueeze(1)
-        losses = torch.clamp(self.lamda + distance - d_fi_wyi, min=0)
-        L_mm = torch.sum(losses * (1.0 - onehot), -1) / y_true_plusone.size(0)
-        loss = torch.sum(L_mm + rw, -1)
-        return loss
 
 
 class M1(nn.Module):
