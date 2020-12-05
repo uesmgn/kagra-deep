@@ -19,6 +19,7 @@ batch_size: 96
 num_workers: 4
 lr: 1e-4
 num_train_steps: 100
+num_test_steps: 100
 eval_interval: 10
 save_interval: 50
 model_path: /home/gen.ueshima/gen/workspace/github/model.pt
