@@ -50,7 +50,7 @@ class TransposeBlock(nn.Module):
             nn.ConvTranspose2d(in_channels, in_channels, stride=2, kernel_size=4, padding=1, bias=False),
             nn.BatchNorm2d(in_channels),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.ConvTranspose2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            nn.ConvTranspose2d(in_channels, out_channels, kernel_size=1, bias=False),
             nn.BatchNorm2d(out_channels),
         )
         self.connection = nn.Sequential(
@@ -75,12 +75,12 @@ class Encoder(nn.Module):
             Block(ch_in, 32, stride=(2, 2), kernel_size=(3, 7), padding=(0, 3)),
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
             Block(32, 64),
-            Block(64, 96),
-            Block(96, 128),
+            Block(64, 128),
+            Block(128, 256),
         )
         self.fc = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(128 * 7 * 7, dim_out, bias=False),
+            nn.Linear(256 * 7 * 7, dim_out, bias=False),
             nn.BatchNorm1d(dim_out),
             nn.LeakyReLU(0.2, inplace=True),
         )
@@ -95,14 +95,14 @@ class Decoder(nn.Module):
     def __init__(self, ch_in=3, dim_in=1024):
         super().__init__()
         self.head = nn.Sequential(
-            nn.Linear(dim_in, 128 * 7 * 7, bias=False),
-            nn.BatchNorm1d(128 * 7 * 7),
+            nn.Linear(dim_in, 256 * 7 * 7, bias=False),
+            nn.BatchNorm1d(256 * 7 * 7),
             nn.LeakyReLU(0.2, inplace=True),
         )
         self.blocks = nn.Sequential(
             nn.Upsample(scale_factor=2),
-            TransposeBlock(128, 96),
-            TransposeBlock(96, 64),
+            TransposeBlock(256, 128),
+            TransposeBlock(128, 64),
             TransposeBlock(64, 32),
         )
         self.fc = nn.Sequential(
@@ -113,7 +113,7 @@ class Decoder(nn.Module):
 
     def forward(self, x):
         x = self.head(x)
-        x = x.view(x.shape[0], 128, 7, 7)
+        x = x.view(x.shape[0], 256, 7, 7)
         x = self.blocks(x)
         x = self.fc(x)
         return x
