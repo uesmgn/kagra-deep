@@ -94,7 +94,7 @@ def main(args):
         model.train()
         total = 0
         total_dict = defaultdict(lambda: 0)
-        for (ux, _), (lx, y) in tqdm(zip(unlabeled_loader, cycle(labeled_loader))):
+        for (ux, _), (lx, y) in zip(unlabeled_loader, cycle(labeled_loader)):
             ux = ux.to(device)
             lx = lx.to(device)
             y = y.to(device)
@@ -123,7 +123,7 @@ def main(args):
             params = defaultdict(lambda: torch.tensor([]))
 
             with torch.no_grad():
-                for i, (x, y) in tqdm(enumerate(test_loader)):
+                for i, (x, y) in enumerate(test_loader):
                     x = x.to(device)
                     qy, qy_pi = model.qy_x(x, hard=True)
                     _, qz, _ = model.qz_xy(x, qy)
