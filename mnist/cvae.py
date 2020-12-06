@@ -10,7 +10,12 @@ class Block(nn.Module):
     def __init__(self, in_channels, out_channels, stride=(1, 2), kernel_size=(1, 3), padding=(0, 1), activation=None):
         super().__init__()
         self.x_conv = nn.Conv2d(
-            in_channels, out_channels, stride=stride, kernel_size=kernel_size, padding=padding, bias=False
+            in_channels,
+            out_channels,
+            stride=stride,
+            kernel_size=kernel_size,
+            padding=padding,
+            bias=False,
         )
         self.y_conv = nn.Conv2d(
             in_channels,
@@ -72,8 +77,10 @@ class Encoder(nn.Module):
     def __init__(self, ch_in=3, dim_out=1024):
         super().__init__()
         self.blocks = nn.Sequential(
-            Block(ch_in, 32, stride=(2, 2), kernel_size=(3, 7), padding=(0, 3)),
-            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(ch_in, 32, kernel_size=7, stride=2, padding=3, bias=False),
+            nn.BatchNorm2d(32),
+            nn.LeakyReLU(0.2, inplace=True),
+            Block(32, 32),
             Block(32, 64),
             Block(64, 128),
             Block(128, 256),
