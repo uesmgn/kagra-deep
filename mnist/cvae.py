@@ -7,13 +7,18 @@ from collections import abc
 
 
 class Block(nn.Module):
-    def __init__(self, in_channels, out_channels, activation=None):
+    def __init__(self, in_channels, out_channels, stride=(1, 2), kernel_size=(1, 3), padding=(0, 1), activation=None):
         super().__init__()
         self.x_conv = nn.Conv2d(
-            in_channels, out_channels, stride=(1, 2), kernel_size=(1, 3), padding=(0, 1), bias=False
+            in_channels, out_channels, stride=stride, kernel_size=kernel_size, padding=padding, bias=False
         )
         self.y_conv = nn.Conv2d(
-            in_channels, out_channels, stride=(2, 1), kernel_size=(3, 1), padding=(1, 0), bias=False
+            in_channels,
+            out_channels,
+            stride=stride[::-1],
+            kernel_size=kernel_size[::-1],
+            padding=padding[::-1],
+            bias=False,
         )
         self.block = nn.Sequential(
             nn.BatchNorm2d(out_channels),
@@ -66,13 +71,9 @@ class TransposeBlock(nn.Module):
 class Encoder(nn.Module):
     def __init__(self, ch_in=3, dim_out=1024):
         super().__init__()
-        self.head = nn.Sequential(
-            nn.Conv2d(ch_in, 32, kernel_size=7, stride=2, padding=3, bias=False),
-            nn.BatchNorm2d(32),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
-        )
         self.blocks = nn.Sequential(
+            Block(ch_in, 32, stride=(2, 2), kernel_size=(3, 7), padding=(0, 3)),
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
             Block(32, 64),
             Block(64, 96),
             Block(96, 128),
@@ -85,7 +86,6 @@ class Encoder(nn.Module):
         )
 
     def forward(self, x):
-        x = self.head(x)
         x = self.blocks(x)
         x = self.fc(x)
         return x
