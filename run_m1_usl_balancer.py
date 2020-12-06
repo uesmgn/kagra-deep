@@ -122,7 +122,7 @@ def main(args):
                     idx = np.where(y == i)
                     c = colormap(i)
                     plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
-                plt.legend(loc="upper right")
+                plt.legend()
                 plt.title(f"qz_true at epoch {epoch}")
                 plt.savefig(f"qz_true_{epoch}.png")
                 plt.close()
