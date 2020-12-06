@@ -80,7 +80,7 @@ class Encoder(nn.Module):
             nn.Conv2d(ch_in, 32, kernel_size=7, stride=2, padding=3, bias=False),
             nn.BatchNorm2d(32),
             nn.LeakyReLU(0.2, inplace=True),
-            Block(32, 32),
+            nn.MaxPool2d(kernel_size=(2, 3), stride=2, padding=(0, 1)),
             Block(32, 64),
             Block(64, 128),
             Block(128, 256),
