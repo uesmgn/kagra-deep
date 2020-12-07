@@ -112,7 +112,7 @@ def main(args):
                     params["y"] = torch.cat([params["y"], y])
 
                 qz = params["qz"].numpy()
-                umapper = umap.UMAP(min_dist=0.5, random_state=123).fit(qz)
+                umapper = umap.UMAP(random_state=123).fit(qz)
                 qz = umapper.embedding_
 
                 y = params["y"].numpy().astype(int)

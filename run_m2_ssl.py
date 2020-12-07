@@ -142,7 +142,7 @@ def main(args):
 
                 qz = params["qz"].numpy()
                 pz = params["pz"].numpy()
-                umapper = umap.UMAP(min_dist=0.5, random_state=123).fit(qz)
+                umapper = umap.UMAP(random_state=123).fit(qz)
                 qz = umapper.embedding_
                 pz = umapper.transform(pz)
 
