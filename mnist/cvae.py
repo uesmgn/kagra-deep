@@ -9,8 +9,13 @@ from collections import abc
 class Block(nn.Module):
     def __init__(self, in_channels, out_channels, stride=(1, 2), kernel_size=(1, 3), padding=(0, 1), activation=None):
         super().__init__()
+        self.bottle = self.block = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False),
+            nn.BatchNorm2d(out_channels),
+            nn.LeakyReLU(0.2, inplace=True),
+        )
         self.x_conv = nn.Conv2d(
-            in_channels,
+            out_channels,
             out_channels,
             stride=stride,
             kernel_size=kernel_size,
@@ -18,7 +23,7 @@ class Block(nn.Module):
             bias=False,
         )
         self.y_conv = nn.Conv2d(
-            in_channels,
+            out_channels,
             out_channels,
             stride=stride[::-1],
             kernel_size=kernel_size[::-1],
@@ -28,11 +33,9 @@ class Block(nn.Module):
         self.block = nn.Sequential(
             nn.BatchNorm2d(out_channels),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(out_channels, out_channels, kernel_size=1, bias=False),
-            nn.BatchNorm2d(out_channels),
         )
         self.connection = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=2),
+            nn.Conv2d(out_channels, out_channels, kernel_size=1, stride=2),
             nn.BatchNorm2d(out_channels),
         )
         if activation is None:
@@ -41,6 +44,7 @@ class Block(nn.Module):
             self.activation = activation
 
     def forward(self, x):
+        x = self.bottle(x)
         identity = self.connection(x)
         x_conv = self.x_conv(x)
         y_conv = self.y_conv(x)
