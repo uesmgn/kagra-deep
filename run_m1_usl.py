@@ -117,12 +117,13 @@ def main(args):
 
                 y = params["y"].numpy().astype(int)
 
-                plt.figure(figsize=(12, 12))
+                plt.figure(figsize=(15, 12))
                 for i in np.unique(y):
                     idx = np.where(y == i)
                     c = colormap(i)
                     plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
-                plt.legend()
+                plt.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
+                plt.tight_layout()
                 plt.title(f"qz_true at epoch {epoch}")
                 plt.savefig(f"qz_true_{epoch}.png")
                 plt.close()
