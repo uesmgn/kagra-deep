@@ -8,6 +8,7 @@ targets: [1080Lines, 1400Ripples, Air_Compressor, Blip,
           Wandering_Line, Whistle]
 use_other: False
 load_state_dict: False
+iic_detach: True
 thres: 0.9
 num_epochs: 10000
 num_classes: 22

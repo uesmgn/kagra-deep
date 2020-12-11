@@ -82,7 +82,7 @@ def main(args):
             x, v = data
             x = x.to(device)
             v = v.to(device)
-            mi_x, mi_v = model(x, v)
+            mi_x, mi_v = model(x, v, args.iic_detach)
             loss = mi_x + mi_v
             optim.zero_grad()
             loss.backward()
