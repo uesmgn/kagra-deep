@@ -114,7 +114,7 @@ def main(args):
                     params["y"] = torch.cat([params["y"], y])
                     params["y_pred"] = torch.cat([params["y_pred"], y_pred.cpu()])
                     params["w_pred"] = torch.cat([params["w_pred"], w_pred.cpu()])
-                    indices = torch.cat([indices, idx.cpu()])
+                    indices = torch.cat([indices, torch.atleast_1d(idx.cpu())])
                     n += x.shape[0]
 
                 y = params["y"].numpy().astype(int)
