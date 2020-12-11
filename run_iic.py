@@ -168,7 +168,8 @@ def main(args):
 
                 plt.figure(figsize=(15, 12))
                 for i in np.unique(y):
-                    idx = np.where(y[indices] == i)[0]
+                    idx = np.where(y == i)[0]
+                    idx = np.intersect1d(idx, indices)
                     c = colormap(i)
                     if idx.size > 0:
                         plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
