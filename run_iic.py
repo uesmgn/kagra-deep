@@ -128,7 +128,8 @@ def main(args):
                 qz = umapper.embedding_
 
                 plt.figure(figsize=(20, 12))
-                cm = confusion_matrix(y, y_pred)[: args.num_classes, :]
+                cm = confusion_matrix(y, y_pred, labels=np.arange(args.num_classes))
+                cm = cm[: args.num_classes, :]
                 sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
                 plt.yticks(rotation=45)
                 plt.title(f"confusion matrix y / y' at epoch {epoch}")
@@ -137,15 +138,17 @@ def main(args):
 
                 plt.figure(figsize=(20, 12))
                 targets_filtered = targets[np.unique(y[indices])]
-                cm = confusion_matrix(y[indices], y_pred[indices])[: len(targets_filtered), :]
-                sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, yticklabels=targets_filtered)
+                cm = confusion_matrix(y[indices], y_pred[indices], labels=np.arange(args.num_classes))
+                cm = cm[: args.num_classes, :]
+                sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
                 plt.yticks(rotation=45)
                 plt.title(f"confusion matrix y / y' filtered at epoch {epoch}")
                 plt.savefig(f"cm_y_filtered_{epoch}.png")
                 plt.close()
 
                 plt.figure(figsize=(20, 12))
-                cm = confusion_matrix(y, w_pred)[: args.num_classes, :]
+                cm = confusion_matrix(y, w_pred, labels=np.arange(args.w_dim))
+                cm = cm[: args.num_classes, :]
                 sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
                 plt.yticks(rotation=45)
                 plt.title(f"confusion matrix y / w' at epoch {epoch}")
