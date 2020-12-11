@@ -361,17 +361,18 @@ class M2(nn.Module):
 
 
 class IIC(nn.Module):
-    def __init__(self, ch_in, dim_y, dim_w):
+    def __init__(self, ch_in, dim_y, dim_w, dim_z):
         super().__init__()
         self.encoder = Encoder(ch_in, 1024)
+        self.qz_x = Qz_x(self.encoder, dim_z)
         self.fc1 = nn.Sequential(
-            nn.Linear(1024, 1024, bias=False),
+            nn.Linear(dim_z, 1024, bias=False),
             nn.BatchNorm1d(1024),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Linear(1024, dim_y),
         )
         self.fc2 = nn.Sequential(
-            nn.Linear(1024, 1024, bias=False),
+            nn.Linear(dim_z, 1024, bias=False),
             nn.BatchNorm1d(1024),
             nn.LeakyReLU(0.2, inplace=True),
             nn.Linear(1024, dim_w),
@@ -411,7 +412,7 @@ class IIC(nn.Module):
         return mi_y, mi_w
 
     def clustering(self, x, detach=False):
-        x = self.encoder(x)
+        _, x, _ = self.qz_x(x)
         if detach:
             x = x.detach()
         y_pi = F.softmax(self.fc1(x), dim=-1)
