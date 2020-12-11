@@ -411,12 +411,14 @@ class IIC(nn.Module):
 
         return mi_y, mi_w
 
-    def clustering(self, x, detach=False):
-        _, x, _ = self.qz_x(x)
+    def clustering(self, x, detach=False, return_z=False):
+        _, z, _ = self.qz_x(x)
         if detach:
-            x = x.detach()
-        y_pi = F.softmax(self.fc1(x), dim=-1)
-        w_pi = F.softmax(self.fc2(x), dim=-1)
+            z = z.detach()
+        y_pi = F.softmax(self.fc1(z), dim=-1)
+        w_pi = F.softmax(self.fc2(z), dim=-1)
+        if return_z:
+            return y_pi, w_pi, z
         return y_pi, w_pi
 
     def mutual_info(self, x, y, alpha=2.0, eps=1e-8):

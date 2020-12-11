@@ -6,6 +6,7 @@ import numpy as np
 from collections import abc, defaultdict
 import numbers
 from tqdm import tqdm
+import umap
 from sklearn.manifold import TSNE
 
 from src.utils.functional import acronym
@@ -106,7 +107,7 @@ def main(args):
                 n = 0
                 for i, (x, y) in tqdm(enumerate(test_loader)):
                     x = x.to(device)
-                    y_pi, w_pi = model.clustering(x)
+                    y_pi, w_pi, qz = model.clustering(x, return_z=True)
                     idx = torch.nonzero((y_pi > args.thres).any(-1)).squeeze() + n
                     y_pred = torch.argmax(y_pi, -1)
                     w_pred = torch.argmax(w_pi, -1)
@@ -114,6 +115,7 @@ def main(args):
                     params["y"] = torch.cat([params["y"], y])
                     params["y_pred"] = torch.cat([params["y_pred"], y_pred.cpu()])
                     params["w_pred"] = torch.cat([params["w_pred"], w_pred.cpu()])
+                    params["qz"] = torch.cat([params["qz"], qz.cpu()])
                     indices = torch.cat([indices, torch.atleast_1d(idx.cpu())])
                     n += x.shape[0]
 
@@ -121,6 +123,9 @@ def main(args):
                 y_pred = params["y_pred"].numpy().astype(int)
                 w_pred = params["w_pred"].numpy().astype(int)
                 indices = indices.numpy().astype(int)
+                qz = params["qz"].numpy()
+                umapper = umap.UMAP(random_state=123).fit(qz)
+                qz = umapper.embedding_
 
                 plt.figure(figsize=(20, 12))
                 cm = confusion_matrix(y, y_pred)[: args.num_classes, :]
@@ -145,6 +150,29 @@ def main(args):
                 plt.yticks(rotation=45)
                 plt.title(f"confusion matrix y / w' at epoch {epoch}")
                 plt.savefig(f"cm_w_{epoch}.png")
+                plt.close()
+
+                plt.figure(figsize=(15, 12))
+                for i in np.unique(y):
+                    idx = np.where(y == i)[0]
+                    c = colormap(i)
+                    plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
+                plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
+                plt.title(f"qz_true at epoch {epoch}")
+                plt.tight_layout()
+                plt.savefig(f"qz_true_{epoch}.png")
+                plt.close()
+
+                plt.figure(figsize=(15, 12))
+                for i in np.unique(y):
+                    idx = np.where(y[indices] == i)[0]
+                    c = colormap(i)
+                    if idx.size > 0:
+                        plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
+                plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
+                plt.title(f"qz_true_filtered at epoch {epoch}")
+                plt.tight_layout()
+                plt.savefig(f"qz_true_filtered_{epoch}.png")
                 plt.close()
 
                 if epoch > 0:
