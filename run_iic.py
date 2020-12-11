@@ -147,7 +147,7 @@ def main(args):
                 plt.close()
 
                 plt.figure(figsize=(20, 12))
-                cm = confusion_matrix(y, w_pred, labels=np.arange(args.w_dim))
+                cm = confusion_matrix(y, w_pred, labels=np.arange(args.dim_w))
                 cm = cm[: args.num_classes, :]
                 sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
                 plt.yticks(rotation=45)
