@@ -9,7 +9,7 @@ from tqdm import tqdm
 import umap
 from sklearn.manifold import TSNE
 
-from src.utils.functional import acronym
+from src.utils.functional import acronym, darken, colormap
 from src.utils import transforms
 from src.data import datasets
 from src.data import samplers
