@@ -80,6 +80,7 @@ class TransposeBlock(nn.Module):
 class Encoder(nn.Module):
     def __init__(self, ch_in=3, dim_out=1024):
         super().__init__()
+        self.dim_out = dim_out
         self.blocks = nn.Sequential(
             nn.Conv2d(ch_in, 32, kernel_size=7, stride=2, padding=3, bias=False),
             nn.BatchNorm2d(32),
@@ -363,8 +364,18 @@ class IIC(nn.Module):
     def __init__(self, ch_in, dim_y, dim_w):
         super().__init__()
         self.encoder = Encoder(ch_in, 1024)
-        self.qy_x = Qy_x(self.encoder, dim_y)
-        self.qw_x = Qy_x(self.encoder, dim_w)
+        self.fc1 = nn.Sequential(
+            nn.Linear(1024, 1024, bias=False),
+            nn.BatchNorm1d(1024),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(1024, dim_y),
+        )
+        self.fc2 = nn.Sequential(
+            nn.Linear(1024, 1024, bias=False),
+            nn.BatchNorm1d(1024),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(1024, dim_w),
+        )
         self.weight_init()
 
     def load_state_dict_part(self, state_dict):
@@ -389,19 +400,22 @@ class IIC(nn.Module):
                 except:
                     continue
 
-    def forward(self, x, v):
+    def forward(self, x, v, detach=False):
         # iic
-        y_x, w_x = self.clustering(x)
-        y_v, w_v = self.clustering(v)
+        y_x, w_x = self.clustering(x, detach)
+        y_v, w_v = self.clustering(v, detach)
 
         mi_y = self.mutual_info(y_x, y_v)
         mi_w = self.mutual_info(w_x, w_v)
 
         return mi_y, mi_w
 
-    def clustering(self, x):
-        _, y_pi = self.qy_x(x)
-        _, w_pi = self.qw_x(x)
+    def clustering(self, x, detach=False):
+        x = self.encoder(x)
+        if detach:
+            x = x.detach()
+        y_pi = F.softmax(self.fc1(x), dim=-1)
+        w_pi = F.softmax(self.fc2(x), dim=-1)
         return y_pi, w_pi
 
     def mutual_info(self, x, y, alpha=2.0, eps=1e-8):
