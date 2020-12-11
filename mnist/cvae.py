@@ -421,6 +421,11 @@ class IIC(nn.Module):
             return y_pi, w_pi, z
         return y_pi, w_pi
 
+    def mutual_info_mat(self, x, y):
+        p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(dim=0)
+        p = ((p + p.t()) / 2) / p.sum()
+        return p
+
     def mutual_info(self, x, y, alpha=2.0, eps=1e-8):
         p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(dim=0)
         p = ((p + p.t()) / 2) / p.sum()
