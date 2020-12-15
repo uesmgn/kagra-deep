@@ -104,11 +104,10 @@ def main(args):
             params = defaultdict(lambda: torch.tensor([]))
             indices = torch.tensor([]).long()
             with torch.no_grad():
-                n = 0
                 for i, (x, y) in tqdm(enumerate(test_loader)):
                     x = x.to(device)
-                    y_pi, w_pi, qz = model.clustering(x, return_z=True)
-                    idx = torch.nonzero((y_pi > args.thres).any(-1)).squeeze() + n
+                    qz = model.embedding(x)
+                    y_pi, w_pi = model.clustering(qz)
                     y_pred = torch.argmax(y_pi, -1)
                     w_pred = torch.argmax(w_pi, -1)
 
@@ -116,44 +115,32 @@ def main(args):
                     params["y_pred"] = torch.cat([params["y_pred"], y_pred.cpu()])
                     params["w_pred"] = torch.cat([params["w_pred"], w_pred.cpu()])
                     params["qz"] = torch.cat([params["qz"], qz.cpu()])
-                    indices = torch.cat([indices, torch.atleast_1d(idx.cpu())])
-                    n += x.shape[0]
 
                 y = params["y"].numpy().astype(int)
                 y_pred = params["y_pred"].numpy().astype(int)
                 w_pred = params["w_pred"].numpy().astype(int)
-                indices = indices.numpy().astype(int)
                 qz = params["qz"].numpy()
                 umapper = umap.UMAP(random_state=123).fit(qz)
                 qz = umapper.embedding_
 
-                plt.figure(figsize=(20, 12))
-                cm = confusion_matrix(y, y_pred, labels=np.arange(args.num_classes))
-                cm = cm[: args.num_classes, :]
-                sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
-                plt.yticks(rotation=45)
-                plt.title(f"confusion matrix y / y' at epoch {epoch}")
-                plt.savefig(f"cm_y_{epoch}.png")
-                plt.close()
+                for j in range(args.num_heads):
+                    plt.figure(figsize=(20, 12))
+                    cm = confusion_matrix(y, y_pred[:, j], labels=np.arange(args.num_classes))
+                    cm = cm[: args.num_classes, :]
+                    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
+                    plt.yticks(rotation=45)
+                    plt.title(f"confusion matrix y / y_{j}' at epoch {epoch}")
+                    plt.savefig(f"cm_y_{j}_{epoch}.png")
+                    plt.close()
 
-                plt.figure(figsize=(20, 12))
-                targets_filtered = targets[np.unique(y[indices])]
-                cm = confusion_matrix(y[indices], y_pred[indices], labels=np.arange(args.num_classes))
-                cm = cm[: args.num_classes, :]
-                sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
-                plt.yticks(rotation=45)
-                plt.title(f"confusion matrix y / y' filtered at epoch {epoch}")
-                plt.savefig(f"cm_y_filtered_{epoch}.png")
-                plt.close()
-
-                plt.figure(figsize=(20, 12))
-                cm = confusion_matrix(y, w_pred, labels=np.arange(args.dim_w))
-                cm = cm[: args.num_classes, :]
-                sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
-                plt.yticks(rotation=45)
-                plt.title(f"confusion matrix y / w' at epoch {epoch}")
-                plt.savefig(f"cm_w_{epoch}.png")
-                plt.close()
+                    plt.figure(figsize=(20, 12))
+                    cm = confusion_matrix(y, w_pred[:, j], labels=np.arange(args.dim_w))
+                    cm = cm[: args.num_classes, :]
+                    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
+                    plt.yticks(rotation=45)
+                    plt.title(f"confusion matrix y / w_{j}' at epoch {epoch}")
+                    plt.savefig(f"cm_w_{j}_{epoch}.png")
+                    plt.close()
 
                 plt.figure(figsize=(15, 12))
                 for i in np.unique(y):
@@ -164,19 +151,6 @@ def main(args):
                 plt.title(f"qz_true at epoch {epoch}")
                 plt.tight_layout()
                 plt.savefig(f"qz_true_{epoch}.png")
-                plt.close()
-
-                plt.figure(figsize=(15, 12))
-                for i in np.unique(y):
-                    idx = np.where(y == i)[0]
-                    idx = np.intersect1d(idx, indices)
-                    c = colormap(i)
-                    if idx.size > 0:
-                        plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
-                plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-                plt.title(f"qz_true_filtered at epoch {epoch}")
-                plt.tight_layout()
-                plt.savefig(f"qz_true_filtered_{epoch}.png")
                 plt.close()
 
                 if epoch > 0:

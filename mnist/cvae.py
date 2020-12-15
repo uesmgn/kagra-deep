@@ -361,23 +361,27 @@ class M2(nn.Module):
 
 
 class IIC(nn.Module):
-    def __init__(self, ch_in, dim_y, dim_w, dim_z):
+    def __init__(self, ch_in, dim_y, dim_w, dim_z, use_multi_heads=False, num_heads=10):
         super().__init__()
+        self.use_multi_heads = use_multi_heads
+        self.num_heads = num_heads
         self.encoder = Encoder(ch_in, 1024)
         self.qz_x = Qz_x(self.encoder, dim_z)
-        self.fc1 = nn.Sequential(
-            nn.Linear(dim_z, 1024, bias=False),
-            nn.BatchNorm1d(1024),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Linear(1024, dim_y),
-        )
-        self.fc2 = nn.Sequential(
-            nn.Linear(dim_z, 1024, bias=False),
-            nn.BatchNorm1d(1024),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Linear(1024, dim_w),
-        )
+        if self.use_multi_heads:
+            self.fc1 = nn.ModuleList([self.generate_fc(dim_z, dim_y) for _ in range(self.num_heads)])
+            self.fc2 = nn.ModuleList([self.generate_fc(dim_z, dim_w) for _ in range(self.num_heads)])
+        else:
+            self.fc1 = self.generate_fc(dim_z, dim_y)
+            self.fc2 = self.generate_fc(dim_z, dim_w)
         self.weight_init()
+
+    def generate_fc(self, dim_in, dim_out):
+        return nn.Sequential(
+            nn.Linear(dim_in, 1024, bias=False),
+            nn.BatchNorm1d(1024),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(1024, dim_out),
+        )
 
     def load_state_dict_part(self, state_dict):
         own_state = self.state_dict()
@@ -401,25 +405,48 @@ class IIC(nn.Module):
                 except:
                     continue
 
-    def forward(self, x, v, detach=False):
-        # iic
-        y_x, w_x = self.clustering(x, detach)
-        y_v, w_v = self.clustering(v, detach)
+    def forward(self, x, z_detach=False):
+        z1 = self.embedding(x, z_detach)
+        z2 = self.embedding(x, z_detach)
+        if self.use_multi_heads:
+            mi_y, mi_w = 0, 0
+            for fc1, fc2 in zip(self.fc1, self.fc2):
+                y1, w1 = F.softmax(fc1(z1), dim=-1), F.softmax(fc2(z1), dim=-1)
+                y2, w2 = F.softmax(fc1(z2), dim=-1), F.softmax(fc2(z2), dim=-1)
 
-        mi_y = self.mutual_info(y_x, y_v)
-        mi_w = self.mutual_info(w_x, w_v)
+                mi_y += self.mutual_info(y1, y2)
+                mi_w += self.mutual_info(w1, w2)
+
+        else:
+            y1, w1 = F.softmax(self.fc1(z1), dim=-1), F.softmax(self.fc2(z1), dim=-1)
+            y2, w2 = F.softmax(self.fc1(z2), dim=-1), F.softmax(self.fc2(z2), dim=-1)
+
+            mi_y = self.mutual_info(y1, y2)
+            mi_w = self.mutual_info(w1, w2)
 
         return mi_y, mi_w
 
-    def clustering(self, x, detach=False, return_z=False):
-        _, z, _ = self.qz_x(x)
-        if detach:
-            z = z.detach()
-        y_pi = F.softmax(self.fc1(z), dim=-1)
-        w_pi = F.softmax(self.fc2(z), dim=-1)
-        if return_z:
-            return y_pi, w_pi, z
-        return y_pi, w_pi
+    def embedding(self, x, z_detach=False, return_z=False):
+        if self.training:
+            z, _, _ = self.qz_x(x)
+            if z_detach:
+                z = z.detach()
+        else:
+            _, z, _ = self.qz_x(x)
+
+        return z
+
+    def clustering(self, z):
+        if self.use_multi_heads:
+            yy, ww = [], []
+            for fc1, fc2 in zip(self.fc1, self.fc2):
+                y, w = F.softmax(fc1(z), dim=-1), F.softmax(fc2(z), dim=-1)
+                yy.append(y)
+                ww.append(w)
+            return torch.stack(yy, dim=1), torch.stack(ww, dim=1)
+        else:
+            y, w = F.softmax(self.fc1(z), dim=-1), F.softmax(self.fc2(z), dim=-1)
+            return y, w
 
     def mutual_info_mat(self, x, y):
         p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(dim=0)
