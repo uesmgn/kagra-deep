@@ -44,7 +44,7 @@ def main(args):
 
     dataset = datasets.HDF5(args.dataset_root, transform_fn, target_transform_fn)
     train_set, test_set = dataset.split(train_size=args.train_size, stratify=dataset.targets)
-    train_set = datasets.co(train_set, augment_fn)
+    train_set.transform = augment_fn
     # train_sampler = samplers.Balancer(train_set, args.batch_size * args.num_train_steps)
     train_sampler = samplers.Upsampler(train_set, args.batch_size * args.num_train_steps)
 
@@ -67,9 +67,18 @@ def main(args):
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
-    model = IIC(ch_in=args.ch_in, dim_y=args.num_classes, dim_w=args.dim_w, dim_z=args.dim_z).to(device)
+    model = IIC(
+        ch_in=args.ch_in,
+        dim_y=args.num_classes,
+        dim_w=args.dim_w,
+        dim_z=args.dim_z,
+        use_multi_heads=args.use_multi_heads,
+        num_heads=args.num_heads,
+    ).to(device)
+
     if args.load_state_dict:
         model.load_state_dict_part(torch.load(args.model_path))
+
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=2, T_mult=2)
     stats = defaultdict(lambda: [])
@@ -79,11 +88,9 @@ def main(args):
         model.train()
         total = 0
         total_dict = defaultdict(lambda: 0)
-        for i, (data, _) in tqdm(enumerate(train_loader)):
-            x, v = data
+        for i, (x, _) in tqdm(enumerate(train_loader)):
             x = x.to(device)
-            v = v.to(device)
-            mi_x, mi_v = model(x, v, args.iic_detach)
+            mi_x, mi_v = model(x, args.iic_detach)
             loss = mi_x + mi_v
             optim.zero_grad()
             loss.backward()
