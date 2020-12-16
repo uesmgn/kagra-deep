@@ -133,17 +133,15 @@ def main(args):
                 y = params["y"].numpy().astype(int)
                 y_pred = params["y_pred"].numpy().astype(int)
                 w_pred = params["w_pred"].numpy().astype(int)
-                y_hyp = params["y_pi"]
-                w_hyp = params["w_pi"]
+                y_hyp = params["y_pi"].view(params["y_pi"].shape[0], -1)
+                w_hyp = params["w_pi"].view(params["w_pi"].shape[0], -1)
                 qz = params["qz"].numpy()
                 umapper = umap.UMAP(random_state=123).fit(qz)
                 qz = umapper.embedding_
 
                 plt.rcParams["text.usetex"] = True
 
-                print(y_hyp.shape)
                 y_hyp = y_hyp / y_hyp.norm(dim=-1)[:, None]
-                print(y_hyp.shape)
                 y_pred_ens, _ = SpectrumClustering(args.num_classes)(y_hyp)
                 plt.figure()
                 for i in range(args.num_classes):
