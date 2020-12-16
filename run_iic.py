@@ -136,8 +136,10 @@ def main(args):
             y_hyp = params["y_pi"].view(params["y_pi"].shape[0], -1)
             w_hyp = params["w_pi"].view(params["w_pi"].shape[0], -1)
             qz = params["qz"].numpy()
-            umapper = umap.UMAP(random_state=123).fit(qz)
-            qz = umapper.embedding_
+            mapper = TSNE(n_components=2, random_state=123)
+            qz = mapper.fit_transform(qz)
+            # mapper = umap.UMAP(random_state=123).fit(qz)
+            # qz = mapper.embedding_
 
             w_hyp = w_hyp / w_hyp.norm(dim=-1)[:, None]
             w_hyp = torch.mm(w_hyp, w_hyp.transpose(0, 1))
@@ -159,7 +161,7 @@ def main(args):
             plt.close()
 
             plt.figure()
-            cm = confusion_matrix(y, y_pred_ens, labels=np.arange(args.num_classes))
+            cm = confusion_matrix(y, y_pred_ens, labels=np.arange(args.num_pred_classes))
             cm = cm[: args.num_classes, :]
             cmn = (cm - np.mean(cm, axis=1)[:, np.newaxis]) / np.std(cm, axis=1)[:, np.newaxis]
             sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets, vmin=0)
