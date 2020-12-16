@@ -25,6 +25,7 @@ from torchcluster.zoo.spectrum import SpectrumClustering
 
 plt.style.use("seaborn-poster")
 plt.rcParams["text.latex.preamble"] = r"\usepackage{bm}"
+plt.rc("legend", fontsize=12)
 
 
 @hydra.main(config_path="config", config_name="test")
@@ -167,7 +168,7 @@ def main(args):
                 if len(idx) > 0:
                     c = colormap(i)
                     plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=i, edgecolors=darken(c))
-            plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
+            plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=2)
             plt.title(r"$q(\bm{z})$ ensembled at epoch %d" % (epoch))
             plt.tight_layout()
             plt.savefig(f"qz_ensembled_e{epoch}.png")
