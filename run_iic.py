@@ -137,10 +137,10 @@ def main(args):
                     plt.figure()
                     cm = confusion_matrix(y, y_pred[:, j], labels=np.arange(args.num_classes))
                     cm = cm[: args.num_classes, :]
-                    cm_ = (cm - np.mean(cm, axis=1)[:, np.newaxis]) / np.std(cm, axis=1)[:, np.newaxis]
-                    sns.heatmap(cm_, annot=False, cmap="Blues", cbar=False, yticklabels=targets)
+                    cmn = (cm - np.mean(cm, axis=1)[:, np.newaxis]) / np.std(cm, axis=1)[:, np.newaxis]
+                    sns.heatmap(cmn, annot=False, cmap="Blues", cbar=False, yticklabels=targets)
                     plt.yticks(rotation=45)
-                    plt.title(r"confusion matrix $\mathbf{\it{{y}}$ with $q(\mathbf{\it{{y}})$ by head %d at epoch %d" % (j, epoch))
+                    plt.title(r"confusion matrix $\mathbf{\mathit{{y}}$ with $q(\mathbf{\mathit{{y}})$ by head %d at epoch %d" % (j, epoch))
                     plt.tight_layout()
                     plt.savefig(f"cm_y_h{j}_e{epoch}.png")
                     plt.close()
@@ -148,10 +148,10 @@ def main(args):
                     plt.figure()
                     cm = confusion_matrix(y, w_pred[:, j], labels=np.arange(args.dim_w))
                     cm = cm[: args.num_classes, :]
-                    cm_ = (cm - np.mean(cm, axis=1)[:, np.newaxis]) / np.std(cm, axis=1)[:, np.newaxis]
-                    sns.heatmap(cm_, annot=False, cmap="Blues", cbar=False, yticklabels=targets)
+                    cmn = (cm - np.mean(cm, axis=1)[:, np.newaxis]) / np.std(cm, axis=1)[:, np.newaxis]
+                    sns.heatmap(cmn, annot=False, cmap="Blues", cbar=False, yticklabels=targets)
                     plt.yticks(rotation=45)
-                    plt.title(r"confusion matrix $\mathbf{\it{{y}}$ with $q(\mathbf{\it{{w}})$ by head %d at epoch %d" % (j, epoch))
+                    plt.title(r"confusion matrix $\mathbf{\mathit{{y}}$ with $q(\mathbf{\mathit{{w}})$ by head %d at epoch %d" % (j, epoch))
                     plt.tight_layout()
                     plt.savefig(f"cm_w_h{j}_e{epoch}.png")
                     plt.close()
@@ -163,7 +163,7 @@ def main(args):
                         c = colormap(i)
                         plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
                 plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-                plt.title(r"$q(\mathbf{\it{z}})$ at epoch {}".format(epoch))
+                plt.title(r"$q(\mathbf{\mathit{z}})$ at epoch {}".format(epoch))
                 plt.tight_layout()
                 plt.savefig(f"qz_true_e{epoch}.png")
                 plt.close()
@@ -176,7 +176,7 @@ def main(args):
                             c = colormap(i)
                             plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=i, edgecolors=darken(c))
                     plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-                    plt.title(r"$q(\mathbf{\it{z}})$ labeled by head %d at epoch %d" % (j, epoch))
+                    plt.title(r"$q(\mathbf{\mathit{z}})$ labeled by head %d at epoch %d" % (j, epoch))
                     plt.tight_layout()
                     plt.savefig(f"qz_true_h{j}_e{epoch}.png")
                     plt.close()
