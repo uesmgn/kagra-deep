@@ -22,6 +22,7 @@ from sklearn.metrics import confusion_matrix
 import seaborn as sns
 
 plt.rc("text", usetex=True)
+plt.style.use("journal")
 
 
 @hydra.main(config_path="config", config_name="test")
