@@ -141,10 +141,11 @@ def main(args):
             # mapper = umap.UMAP(random_state=123).fit(qz)
             # qz = mapper.embedding_
 
-            w_hyp = w_hyp / w_hyp.norm(dim=-1)[:, None]
-            w_hyp = torch.mm(w_hyp, w_hyp.transpose(0, 1))
-            w_hyp = pca(w_hyp, 6)
-            y_pred_ens, _ = SpectrumClustering(args.num_pred_classes, k=6)(w_hyp)
+            # y_hyp = y_hyp / y_hyp.norm(dim=-1)[:, None]
+            # y_hyp = y_hyp.norm(dim=-1)[:, None]
+            # y_hyp = torch.mm(y_hyp, y_hyp.transpose(0, 1))
+            # y_hyp = pca(y_hyp, 6)
+            y_pred_ens, _ = SpectrumClustering(args.num_pred_classes, k=2)(y_hyp)
 
             plt.rcParams["text.usetex"] = True
 
