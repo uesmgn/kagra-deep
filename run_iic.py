@@ -22,7 +22,7 @@ from sklearn.metrics import confusion_matrix
 import seaborn as sns
 
 plt.rc("text", usetex=True)
-plt.rcParams["text.latex.preamble"] = [r"\usepackage{amsmath}"]
+plt.rcParams["text.latex.preamble"] = r"\usepackage{amsmath}"
 plt.style.use("seaborn")
 
 
