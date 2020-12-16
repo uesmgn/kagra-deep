@@ -139,7 +139,7 @@ def main(args):
                     cm = confusion_matrix(y, y_pred[:, j], labels=np.arange(args.num_classes))
                     cm = cm[: args.num_classes, :]
                     cmn = (cm - np.mean(cm, axis=1)[:, np.newaxis]) / np.std(cm, axis=1)[:, np.newaxis]
-                    sns.heatmap(cmn, annot=False, cmap="Blues", cbar=False, yticklabels=targets)
+                    sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
                     plt.yticks(rotation=45)
                     plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ by head %d at epoch %d" % (j, epoch))
                     plt.tight_layout()
@@ -150,7 +150,7 @@ def main(args):
                     cm = confusion_matrix(y, w_pred[:, j], labels=np.arange(args.dim_w))
                     cm = cm[: args.num_classes, :]
                     cmn = (cm - np.mean(cm, axis=1)[:, np.newaxis]) / np.std(cm, axis=1)[:, np.newaxis]
-                    sns.heatmap(cmn, annot=False, cmap="Blues", cbar=False, yticklabels=targets)
+                    sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
                     plt.yticks(rotation=45)
                     plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{w})$ by head %d at epoch %d" % (j, epoch))
                     plt.tight_layout()
