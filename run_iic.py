@@ -139,12 +139,13 @@ def main(args):
             umapper = umap.UMAP(random_state=123).fit(qz)
             qz = umapper.embedding_
 
+            w_hyp = w_hyp / w_hyp.norm(dim=-1)[:, None]
+            w_hyp = torch.mm(w_hyp, w_hyp.transpose(0, 1))
+            (u, _, _) = torch.pca_lowrank(w_hyp)
+            y_pred_ens, _ = SpectrumClustering(args.num_classes)(torch.mm(w_hyp, u))
+
             plt.rcParams["text.usetex"] = True
 
-            y_hyp = y_hyp / y_hyp.norm(dim=-1)[:, None]
-            y_hyp = torch.mm(y_hyp, y_hyp.transpose(0, 1))
-            (u, _, _) = torch.pca_lowrank(y_hyp)
-            y_pred_ens, _ = SpectrumClustering(args.num_classes)(torch.mm(y_hyp, u))
             plt.figure()
             for i in range(args.num_classes):
                 idx = np.where(y_pred_ens == i)[0]
@@ -155,6 +156,17 @@ def main(args):
             plt.title(r"$q(\bm{z})$ ensembled at epoch %d" % (epoch))
             plt.tight_layout()
             plt.savefig(f"qz_ensembled_e{epoch}.png")
+            plt.close()
+
+            plt.figure()
+            cm = confusion_matrix(y, y_pred_ens, labels=np.arange(args.num_classes))
+            cm = cm[: args.num_classes, :]
+            cmn = (cm - np.mean(cm, axis=1)[:, np.newaxis]) / np.std(cm, axis=1)[:, np.newaxis]
+            sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets, vmin=0)
+            plt.yticks(rotation=45)
+            plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ ensembled at epoch %d" % epoch)
+            plt.tight_layout()
+            plt.savefig(f"cm_y_qz_ensembled_e{epoch}.png")
             plt.close()
 
             for j in range(args.num_heads):
