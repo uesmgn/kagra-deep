@@ -21,6 +21,8 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
 
+plt.rc(usetex=True)
+
 
 @hydra.main(config_path="config", config_name="test")
 def main(args):
@@ -136,7 +138,7 @@ def main(args):
                     cm = cm[: args.num_classes, :]
                     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
                     plt.yticks(rotation=45)
-                    plt.title(f"confusion matrix y / y_{j}' at epoch {epoch}")
+                    plt.title(f"confusion matrix $y$ with $q(y)$' by heads-{j} at epoch-{epoch}")
                     plt.savefig(f"cm_y_h{j}_e{epoch}.png")
                     plt.close()
 
@@ -145,7 +147,7 @@ def main(args):
                     cm = cm[: args.num_classes, :]
                     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
                     plt.yticks(rotation=45)
-                    plt.title(f"confusion matrix y / w_{j}' at epoch {epoch}")
+                    plt.title(f"confusion matrix $y$ with $q(w)$' by heads-{j} at epoch-{epoch}")
                     plt.savefig(f"cm_w_h{j}_e{epoch}.png")
                     plt.close()
 
@@ -156,7 +158,7 @@ def main(args):
                         c = colormap(i)
                         plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
                 plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-                plt.title(f"qz_true at epoch {epoch}")
+                plt.title(f"$q(z)$ at epoch-{epoch}")
                 plt.tight_layout()
                 plt.savefig(f"qz_true_e{epoch}.png")
                 plt.close()
@@ -169,7 +171,7 @@ def main(args):
                             c = colormap(i)
                             plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
                     plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-                    plt.title(f"qz_true_{j} at epoch {epoch}")
+                    plt.title(f"$q(z)$ labeled by heads-{j} at epoch-{epoch}")
                     plt.tight_layout()
                     plt.savefig(f"qz_true_h{j}_e{epoch}.png")
                     plt.close()
