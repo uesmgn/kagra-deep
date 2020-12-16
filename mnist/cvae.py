@@ -405,7 +405,7 @@ class IIC(nn.Module):
     def forward(self, x, z_detach=False):
         x_logits = self.x_logits(x)
         z1, z2 = self.embedding(x, z_detach)
-        z1, z2 = torch.cat([z1, x_logits]), torch.cat([z2, x_logits])
+        z1, z2 = torch.cat([z1, x_logits], -1), torch.cat([z2, x_logits], -1)
         if self.use_multi_heads:
             mi_y, mi_w = 0, 0
             for fc1, fc2 in zip(self.fc1, self.fc2):
