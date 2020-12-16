@@ -285,9 +285,7 @@ class M1(nn.Module):
         return F.binary_cross_entropy(x_recon, x, reduction="sum")
 
     def kl_gauss(self, mean_p, logvar_p, mean_q, logvar_q):
-        return -0.5 * torch.sum(
-            logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp()
-        )
+        return -0.5 * torch.sum(logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp())
 
 
 class M2(nn.Module):
@@ -355,9 +353,7 @@ class M2(nn.Module):
         return torch.sum(q * (torch.log(q + eps) - torch.log(p + eps)))
 
     def kl_gauss(self, mean_p, logvar_p, mean_q, logvar_q):
-        return -0.5 * torch.sum(
-            logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp()
-        )
+        return -0.5 * torch.sum(logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp())
 
 
 class IIC(nn.Module):
@@ -406,8 +402,7 @@ class IIC(nn.Module):
                     continue
 
     def forward(self, x, z_detach=False):
-        z1 = self.embedding(x, z_detach)
-        z2 = self.embedding(x, z_detach)
+        z1, z2 = self.embedding(x, z_detach)
         if self.use_multi_heads:
             mi_y, mi_w = 0, 0
             for fc1, fc2 in zip(self.fc1, self.fc2):
@@ -426,15 +421,15 @@ class IIC(nn.Module):
 
         return mi_y, mi_w
 
-    def embedding(self, x, z_detach=False, return_z=False):
+    def embedding(self, x, z_detach=False):
         if self.training:
-            z, _, _ = self.qz_x(x)
+            z, z_mean, _ = self.qz_x(x)
             if z_detach:
-                z = z.detach()
+                return z.detach(), z_mean.detach()
+            return z, z_mean
         else:
             _, z, _ = self.qz_x(x)
-
-        return z
+            return z
 
     def clustering(self, z):
         if self.use_multi_heads:
@@ -554,9 +549,7 @@ class M3(nn.Module):
         return F.binary_cross_entropy(x_recon, x, reduction="sum")
 
     def kl_gauss(self, mean_p, logvar_p, mean_q, logvar_q):
-        return -0.5 * torch.sum(
-            logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp()
-        )
+        return -0.5 * torch.sum(logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp())
 
     def mutual_info(self, x, y, alpha=2.0, eps=1e-8):
         p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(dim=0)
