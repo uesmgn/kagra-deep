@@ -138,7 +138,7 @@ def main(args):
                     cm = cm[: args.num_classes, :]
                     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
                     plt.yticks(rotation=45)
-                    plt.title(f"confusion matrix $y$ with $q(y)$' by heads-{j} at epoch-{epoch}")
+                    plt.title("confusion matrix $y$ with $q(y)$ by heads-{} at epoch-{}".format(j, epoch))
                     plt.savefig(f"cm_y_h{j}_e{epoch}.pdf")
                     plt.close()
 
@@ -147,7 +147,7 @@ def main(args):
                     cm = cm[: args.num_classes, :]
                     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
                     plt.yticks(rotation=45)
-                    plt.title(f"confusion matrix $y$ with $q(w)$' by heads-{j} at epoch-{epoch}")
+                    plt.title("confusion matrix $y$ with $q(w)$ by heads-{} at epoch-{}".format(j, epoch))
                     plt.savefig(f"cm_w_h{j}_e{epoch}.pdf")
                     plt.close()
 
@@ -158,7 +158,7 @@ def main(args):
                         c = colormap(i)
                         plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
                 plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-                plt.title(f"$q(z)$ at epoch-{epoch}")
+                plt.title("$q(z)$ at epoch-{}".format(epoch))
                 plt.tight_layout()
                 plt.savefig(f"qz_true_e{epoch}.pdf")
                 plt.close()
@@ -171,7 +171,7 @@ def main(args):
                             c = colormap(i)
                             plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=i, edgecolors=darken(c))
                     plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-                    plt.title(f"$q(z)$ labeled by heads-{j} at epoch-{epoch}")
+                    plt.title("$q(z)$ labeled by heads-{} at epoch-{}".format(j, epoch))
                     plt.tight_layout()
                     plt.savefig(f"qz_true_h{j}_e{epoch}.pdf")
                     plt.close()
