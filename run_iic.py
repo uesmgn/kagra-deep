@@ -142,7 +142,7 @@ def main(args):
             w_hyp = w_hyp / w_hyp.norm(dim=-1)[:, None]
             w_hyp = torch.mm(w_hyp, w_hyp.transpose(0, 1))
             (u, _, _) = torch.pca_lowrank(w_hyp)
-            y_pred_ens, _ = SpectrumClustering(args.num_classes)(torch.mm(w_hyp, u))
+            y_pred_ens, _ = SpectrumClustering(args.num_pred_classes)(torch.mm(w_hyp, u))
 
             plt.rcParams["text.usetex"] = True
 
