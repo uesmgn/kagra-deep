@@ -137,7 +137,7 @@ def main(args):
                     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
                     plt.yticks(rotation=45)
                     plt.title(f"confusion matrix y / y_{j}' at epoch {epoch}")
-                    plt.savefig(f"cm_y_{j}_{epoch}.png")
+                    plt.savefig(f"cm_y_h{j}_e{epoch}.png")
                     plt.close()
 
                     plt.figure(figsize=(20, 12))
@@ -146,19 +146,33 @@ def main(args):
                     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
                     plt.yticks(rotation=45)
                     plt.title(f"confusion matrix y / w_{j}' at epoch {epoch}")
-                    plt.savefig(f"cm_w_{j}_{epoch}.png")
+                    plt.savefig(f"cm_w_h{j}_e{epoch}.png")
                     plt.close()
 
                 plt.figure(figsize=(15, 12))
                 for i in np.unique(y):
                     idx = np.where(y == i)[0]
-                    c = colormap(i)
-                    plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
+                    if len(idx) > 0:
+                        c = colormap(i)
+                        plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
                 plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
                 plt.title(f"qz_true at epoch {epoch}")
                 plt.tight_layout()
-                plt.savefig(f"qz_true_{epoch}.png")
+                plt.savefig(f"qz_true_e{epoch}.png")
                 plt.close()
+
+                for j in range(args.num_heads):
+                    plt.figure(figsize=(15, 12))
+                    for i in np.unique(y):
+                        idx = np.where(y_pred[:, j] == i)[0]
+                        if len(idx) > 0:
+                            c = colormap(i)
+                            plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
+                    plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
+                    plt.title(f"qz_true_{j} at epoch {epoch}")
+                    plt.tight_layout()
+                    plt.savefig(f"qz_true_h{j}_e{epoch}.png")
+                    plt.close()
 
                 if epoch > 0:
                     for key, value in stats.items():
@@ -167,7 +181,7 @@ def main(args):
                         plt.xlabel("epoch")
                         plt.title(key)
                         plt.xlim((0, len(value) - 1))
-                        plt.savefig(f"loss_{key}_{epoch}.png")
+                        plt.savefig(f"loss_{key}_e{epoch}.png")
                         plt.close()
 
 
