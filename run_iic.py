@@ -150,7 +150,7 @@ def main(args):
             plt.rcParams["text.usetex"] = True
 
             plt.figure()
-            for i in np.unique(y):
+            for i in range(args.num_classes):
                 idx = np.where(y == i)[0]
                 if len(idx) > 0:
                     c = colormap(i)
