@@ -362,14 +362,14 @@ class IIC(nn.Module):
         self.use_multi_heads = use_multi_heads
         self.num_heads = num_heads
         self.encoder = Encoder(ch_in, 1024)
-        self.x_logits = Encoder(ch_in, 1024)
+        self.x_logits = Encoder(ch_in, dim_z)
         self.qz_x = Qz_x(self.encoder, dim_z)
         if self.use_multi_heads:
-            self.fc1 = nn.ModuleList([self._fc(dim_z + 1024, dim_y) for _ in range(self.num_heads)])
-            self.fc2 = nn.ModuleList([self._fc(dim_z + 1024, dim_w) for _ in range(self.num_heads)])
+            self.fc1 = nn.ModuleList([self._fc(dim_z + dim_z, dim_y) for _ in range(self.num_heads)])
+            self.fc2 = nn.ModuleList([self._fc(dim_z + dim_z, dim_w) for _ in range(self.num_heads)])
         else:
-            self.fc1 = self.generate_fc(dim_z + 1024, dim_y)
-            self.fc2 = self.generate_fc(dim_z + 1024, dim_w)
+            self.fc1 = self.generate_fc(dim_z + dim_z, dim_y)
+            self.fc2 = self.generate_fc(dim_z + dim_z, dim_w)
         self.weight_init()
 
     def _fc(self, dim_in, dim_out):
