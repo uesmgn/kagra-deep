@@ -21,10 +21,9 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
 
-plt.rc("text", usetex=True)
-plt.rcParams["text.latex.preamble"] = r"\usepackage{amsmath}"
-plt.rcParams["text.latex.unicode"] = True
 plt.style.use("seaborn")
+plt.rcParams["text.usetex"] = True
+plt.rcParams["text.latex.preamble"] = r"\usepackage{amsmath}"
 
 
 @hydra.main(config_path="config", config_name="test")
