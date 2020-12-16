@@ -93,7 +93,7 @@ def main(args):
     ).to(device)
 
     if args.load_state_dict:
-        model.load_state_dict_part(torch.load(os.path.join(args.model_path, "model.pt")))
+        model.load_state_dict_part(torch.load(os.path.join(args.model_dir, "model.pt")))
 
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=2, T_mult=2)
