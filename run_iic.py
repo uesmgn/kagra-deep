@@ -129,7 +129,7 @@ def main(args):
                 for i, (x, y) in tqdm(enumerate(test_loader)):
                     x = x.to(device)
                     qz = model.embedding(x)
-                    y_pi, w_pi = model.clustering(qz)
+                    y_pi, w_pi = model.clustering(x, qz)
                     y_pred = torch.argmax(y_pi, -1)
                     w_pred = torch.argmax(w_pi, -1)
 

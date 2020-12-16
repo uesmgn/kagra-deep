@@ -434,7 +434,9 @@ class IIC(nn.Module):
             _, z, _ = self.qz_x(x)
             return z
 
-    def clustering(self, z):
+    def clustering(self, x, z):
+        x_logits = self.x_logits(x)
+        z = torch.cat([z, x_logits], -1)
         if self.use_multi_heads:
             yy, ww = [], []
             for fc1, fc2 in zip(self.fc1, self.fc2):
