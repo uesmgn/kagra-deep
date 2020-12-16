@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
 
-plt.rcParams["text.usetex"] = True
+plt.rc("text", usetex=True)
 
 
 @hydra.main(config_path="config", config_name="test")
