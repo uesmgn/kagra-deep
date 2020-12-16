@@ -133,8 +133,8 @@ def main(args):
                 y = params["y"].numpy().astype(int)
                 y_pred = params["y_pred"].numpy().astype(int)
                 w_pred = params["w_pred"].numpy().astype(int)
-                y_pi = params["y_pi"]
-                w_pi = params["w_pi"]
+                y_hyp = params["y_pi"]
+                w_hyp = params["w_pi"]
                 qz = params["qz"].numpy()
                 umapper = umap.UMAP(random_state=123).fit(qz)
                 qz = umapper.embedding_
@@ -201,11 +201,11 @@ def main(args):
                         plt.savefig(f"loss_{key}_e{epoch}.png")
                         plt.close()
 
-                y_pi = y_pi / y_pi.norm(dim=1)[:, None]
-                y_pi_ens, _ = SpectrumClustering(args.num_classes)(y_pi)
+                y_hyp = y_hyp / y_hyp.norm(dim=-1)[:, None]
+                y_pred_ens, _ = SpectrumClustering(args.num_classes)(y_hyp)
                 plt.figure()
                 for i in range(args.num_classes):
-                    idx = np.where(y_pi_ens == i)[0]
+                    idx = np.where(y_pred_ens == i)[0]
                     if len(idx) > 0:
                         c = colormap(i)
                         plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
