@@ -151,6 +151,8 @@ def main(args):
             # mapper = umap.UMAP(random_state=args.seed).fit(qz)
             # qz = mapper.embedding_
 
+            plt.rcParams["text.usetex"] = True
+
             y_simmat = cosine_similarity(y_hyp)
             plt.figure(dpi=300)
             plt.title("Ranking of similarity")
@@ -177,8 +179,6 @@ def main(args):
             # y_hyp = torch.mm(y_hyp, y_hyp.transpose(0, 1))
             # y_hyp = pca(y_hyp, 6)
             y_pred_ens, _ = SpectrumClustering(args.num_pred_classes, k=5)(y_simmat)
-
-            plt.rcParams["text.usetex"] = True
 
             plt.figure()
             for i in range(args.num_classes):
