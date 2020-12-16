@@ -409,8 +409,8 @@ class IIC(nn.Module):
                 y1, w1 = F.softmax(fc1(z1), dim=-1), F.softmax(fc2(z1), dim=-1)
                 y2, w2 = F.softmax(fc1(z2), dim=-1), F.softmax(fc2(z2), dim=-1)
 
-                mi_y += self.mutual_info(y1, y2)
-                mi_w += self.mutual_info(w1, w2)
+                mi_y += self.mutual_info(y1, y2) / self.use_multi_heads
+                mi_w += self.mutual_info(w1, w2) / self.use_multi_heads
 
         else:
             y1, w1 = F.softmax(self.fc1(z1), dim=-1), F.softmax(self.fc2(z1), dim=-1)
