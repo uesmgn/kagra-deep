@@ -145,11 +145,19 @@ def main(args):
             w_pred = params["w_pred"].numpy().astype(int)
             y_hyp = params["y_pi"].view(params["y_pi"].shape[0], -1)
             w_hyp = params["w_pi"].view(params["w_pi"].shape[0], -1)
-            qz = params["qz"].numpy()
-            mapper = TSNE(n_components=2, random_state=args.seed)
-            qz = mapper.fit_transform(qz)
-            # mapper = umap.UMAP(random_state=args.seed).fit(qz)
-            # qz = mapper.embedding_
+
+            if epoch > 0:
+                plt.rcParams["text.usetex"] = False
+                for key, value in stats.items():
+                    plt.figure()
+                    plt.plot(value)
+                    plt.ylabel(key)
+                    plt.xlabel("epoch")
+                    plt.title("loss %s" % key)
+                    plt.xlim((0, len(value) - 1))
+                    plt.tight_layout()
+                    plt.savefig(f"loss_{key}_e{epoch}.png")
+                    plt.close()
 
             plt.rcParams["text.usetex"] = True
 
@@ -179,31 +187,7 @@ def main(args):
 
             # y_hyp = torch.mm(y_hyp, y_hyp.transpose(0, 1))
             # y_hyp = pca(y_hyp, 6)
-            y_pred_ens, _ = SpectrumClustering(args.num_pred_classes, k=5)(y_simmat)
-
-            plt.figure()
-            for i in range(args.num_classes):
-                idx = np.where(y == i)[0]
-                if len(idx) > 0:
-                    c = colormap(i)
-                    plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
-            plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-            plt.title(r"$q(\bm{z})$ at epoch %d" % (epoch))
-            plt.tight_layout()
-            plt.savefig(f"qz_true_e{epoch}.png")
-            plt.close()
-
-            plt.figure()
-            for i in range(args.num_pred_classes):
-                idx = np.where(y_pred_ens == i)[0]
-                if len(idx) > 0:
-                    c = colormap(i)
-                    plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=i, edgecolors=darken(c))
-            plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-            plt.title(r"$q(\bm{z})$ ensembled at epoch %d" % (epoch))
-            plt.tight_layout()
-            plt.savefig(f"qz_ensembled_e{epoch}.png")
-            plt.close()
+            y_pred_ens, _ = SpectrumClustering(args.num_pred_classes, k=5)(y_hyp)
 
             plt.figure()
             cm = confusion_matrix(y, y_pred_ens, labels=np.arange(args.num_pred_classes))
@@ -228,6 +212,39 @@ def main(args):
                 plt.savefig(f"cm_y_h{j}_e{epoch}.png")
                 plt.close()
 
+            if epoch % args.embedding_interval == 0:
+
+                # latent features
+                qz = params["qz"].numpy()
+                mapper = TSNE(n_components=2, random_state=args.seed)
+                qz = mapper.fit_transform(qz)
+                # mapper = umap.UMAP(random_state=args.seed).fit(qz)
+                # qz = mapper.embedding_
+
+                plt.figure()
+                for i in range(args.num_classes):
+                    idx = np.where(y == i)[0]
+                    if len(idx) > 0:
+                        c = colormap(i)
+                        plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
+                plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
+                plt.title(r"$q(\bm{z})$ at epoch %d" % (epoch))
+                plt.tight_layout()
+                plt.savefig(f"qz_true_e{epoch}.png")
+                plt.close()
+
+                plt.figure()
+                for i in range(args.num_pred_classes):
+                    idx = np.where(y_pred_ens == i)[0]
+                    if len(idx) > 0:
+                        c = colormap(i)
+                        plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=i, edgecolors=darken(c))
+                plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
+                plt.title(r"$q(\bm{z})$ ensembled at epoch %d" % (epoch))
+                plt.tight_layout()
+                plt.savefig(f"qz_ensembled_e{epoch}.png")
+                plt.close()
+
                 # plt.figure()
                 # cm = confusion_matrix(y, w_pred[:, j], labels=np.arange(args.dim_w))
                 # cm = cm[: args.num_classes, :]
@@ -239,31 +256,21 @@ def main(args):
                 # plt.savefig(f"cm_w_h{j}_e{epoch}.png")
                 # plt.close()
 
-            for j in range(0, args.num_heads, 3):
-                plt.figure()
-                for i in np.unique(y):
-                    idx = np.where(y_pred[:, j] == i)[0]
-                    if len(idx) > 0:
-                        c = colormap(i)
-                        plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=i, edgecolors=darken(c))
-                plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-                plt.title(r"$q(\bm{z})$ labeled by head %d at epoch %d" % (j, epoch))
-                plt.tight_layout()
-                plt.savefig(f"qz_h{j}_e{epoch}.png")
-                plt.close()
-
-            plt.rcParams["text.usetex"] = False
-            if epoch > 0:
-                for key, value in stats.items():
+                for j in range(0, args.num_heads, 3):
                     plt.figure()
-                    plt.plot(value)
-                    plt.ylabel(key)
-                    plt.xlabel("epoch")
-                    plt.title("loss %s" % key)
-                    plt.xlim((0, len(value) - 1))
+                    for i in np.unique(y):
+                        idx = np.where(y_pred[:, j] == i)[0]
+                        if len(idx) > 0:
+                            c = colormap(i)
+                            plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=i, edgecolors=darken(c))
+                    plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
+                    plt.title(r"$q(\bm{z})$ labeled by head %d at epoch %d" % (j, epoch))
                     plt.tight_layout()
-                    plt.savefig(f"loss_{key}_e{epoch}.png")
+                    plt.savefig(f"qz_h{j}_e{epoch}.png")
                     plt.close()
+
+        if epoch % args.save_interval == 0:
+            torch.save(model.state_dict(), os.path.join(args.model_dir, "model_iic.pt"))
 
 
 if __name__ == "__main__":

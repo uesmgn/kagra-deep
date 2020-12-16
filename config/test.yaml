@@ -26,8 +26,9 @@ num_workers: 4
 lr: 1e-4
 num_train_steps: 100
 eval_interval: 10
-save_interval: 50
-model_path: /home/gen.ueshima/gen/workspace/github/model.pt
+embedding_interval: 50
+save_interval: 100
+model_dir: /home/gen.ueshima/gen/workspace/github/
 dataset_root: /home/gen.ueshima/gen/workspace/github/GravitySpy/processed/dataset_small.h5
 weights: [1., 1., 10.]
 
