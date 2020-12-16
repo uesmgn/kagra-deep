@@ -9,7 +9,7 @@ from tqdm import tqdm
 import umap
 from sklearn.manifold import TSNE
 
-from src.utils.functional import acronym, darken, colormap, pca, normalize
+from src.utils.functional import acronym, darken, colormap, pca
 from src.utils import transforms
 from src.data import datasets
 from src.data import samplers
@@ -19,6 +19,7 @@ from mnist import IIC
 
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
+from sklearn.preprocessing import normalize
 import seaborn as sns
 from torchcluster.zoo.spectrum import SpectrumClustering
 
@@ -168,7 +169,7 @@ def main(args):
                 if len(idx) > 0:
                     c = colormap(i)
                     plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=i, edgecolors=darken(c))
-            plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=2)
+            plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
             plt.title(r"$q(\bm{z})$ ensembled at epoch %d" % (epoch))
             plt.tight_layout()
             plt.savefig(f"qz_ensembled_e{epoch}.png")
@@ -177,7 +178,7 @@ def main(args):
             plt.figure()
             cm = confusion_matrix(y, y_pred_ens, labels=np.arange(args.num_pred_classes))
             cm = cm[: args.num_classes, :]
-            cmn = normalize(cm, 0) * normalize(cm, 1)
+            cmn = normalize(cm, axis=0) * normalize(cm, axis=1)
             sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
             plt.yticks(rotation=45)
             plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ ensembled at epoch %d" % epoch)
@@ -189,7 +190,7 @@ def main(args):
                 plt.figure()
                 cm = confusion_matrix(y, y_pred[:, j], labels=np.arange(args.num_classes))
                 cm = cm[: args.num_classes, :]
-                cmn = normalize(cm, 0) * normalize(cm, 1)
+                cmn = normalize(cm, axis=0) * normalize(cm, axis=1)
                 sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
                 plt.yticks(rotation=45)
                 plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ by head %d at epoch %d" % (j, epoch))
@@ -200,7 +201,7 @@ def main(args):
                 plt.figure()
                 cm = confusion_matrix(y, w_pred[:, j], labels=np.arange(args.dim_w))
                 cm = cm[: args.num_classes, :]
-                cmn = normalize(cm, 0) * normalize(cm, 1)
+                cmn = normalize(cm, axis=0) * normalize(cm, axis=1)
                 sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
                 plt.yticks(rotation=45)
                 plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{w})$ by head %d at epoch %d" % (j, epoch))
