@@ -154,8 +154,7 @@ def main(args):
             plt.rcParams["text.usetex"] = True
 
             y_simmat = cosine_similarity(y_hyp)
-            plt.figure(dpi=300)
-            plt.title("Ranking of similarity")
+            fig = plt.figure(dpi=300)
             for i, j in enumerate(sample_indices):
                 x, _ = test_set[j]
                 ax = plt.subplot(len(sample_indices), args.num_ranking + 2, (args.num_ranking + 2) * i + 1)
@@ -173,6 +172,7 @@ def main(args):
                     ax.margins(0)
                     ax.set_title(r"%.2f" % sim[n])
             plt.tight_layout()
+            fig.suptitle("Ranking of similarity")
             plt.savefig(f"simrank_e{epoch}.png")
             plt.close()
 
