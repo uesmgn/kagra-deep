@@ -28,6 +28,7 @@ from torchcluster.zoo.spectrum import SpectrumClustering
 plt.style.use("seaborn-poster")
 plt.rcParams["text.latex.preamble"] = r"\usepackage{bm}"
 plt.rc("legend", fontsize=12)
+plt.rc("axes", titlesize=12)
 
 
 @hydra.main(config_path="config", config_name="test")
@@ -151,8 +152,8 @@ def main(args):
             # qz = mapper.embedding_
 
             y_simmat = cosine_similarity(y_hyp)
-            plt.figure()
-            plt.subplots_adjust(wspace=0.05, hspace=0.1)
+            plt.figure(dpi=300)
+            plt.title("Ranking of similarity")
             for i, j in enumerate(sample_indices):
                 x, _ = test_set[j]
                 ax = plt.subplot(len(sample_indices), args.num_ranking + 2, (args.num_ranking + 2) * i + 1)
@@ -167,7 +168,6 @@ def main(args):
                     ax.imshow(x[0])
                     ax.axis("off")
                     ax.set_title(r"$\mathrm{sim}(\bm{x}_{(%d)}, \bm{x}_{(%d)}) = %.2f$" % (j, n, sim[n]))
-            plt.title("Ranking of similarity")
             plt.tight_layout()
             plt.savefig(f"simrank_e{epoch}.png")
             plt.close()
