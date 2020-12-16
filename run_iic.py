@@ -22,7 +22,6 @@ from sklearn.metrics import confusion_matrix
 import seaborn as sns
 
 plt.style.use("seaborn-poster")
-plt.rcParams["text.usetex"] = True
 plt.rcParams["text.latex.preamble"] = r"\usepackage{bm}"
 
 
@@ -134,6 +133,7 @@ def main(args):
                 umapper = umap.UMAP(random_state=123).fit(qz)
                 qz = umapper.embedding_
 
+                plt.rcParams["text.usetex"] = True
                 for j in range(args.num_heads):
                     plt.figure()
                     cm = confusion_matrix(y, y_pred[:, j], labels=np.arange(args.num_classes))
@@ -182,13 +182,14 @@ def main(args):
                     plt.savefig(f"qz_true_h{j}_e{epoch}.png")
                     plt.close()
 
+                plt.rcParams["text.usetex"] = False
                 if epoch > 0:
                     for key, value in stats.items():
                         plt.figure()
                         plt.plot(value)
                         plt.ylabel(key)
                         plt.xlabel("epoch")
-                        plt.title(key)
+                        plt.title("loss %s" % key)
                         plt.xlim((0, len(value) - 1))
                         plt.tight_layout()
                         plt.savefig(f"loss_{key}_e{epoch}.png")
