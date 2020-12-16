@@ -6,7 +6,12 @@ import warnings
 import matplotlib.colors as mc
 import colorsys
 
-__all__ = ["normalize", "pca", "colormap", "darken", "acronym", "to_device", "flatten", "tensordict"]
+__all__ = ["cosine_similarity", "normalize", "pca", "colormap", "darken", "acronym", "to_device", "flatten", "tensordict"]
+
+
+def cosine_similarity(x):
+    x = x / x.norm(dim=-1)[:, None]
+    return torch.mm(x, x.transpose(0, 1))
 
 
 def normalize(x, axis=1):

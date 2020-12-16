@@ -10,6 +10,7 @@ use_other: False
 load_state_dict: True
 iic_detach: True
 use_multi_heads: True
+num_ranking: 10
 num_heads: 10
 thres: 0.9
 num_epochs: 10000
