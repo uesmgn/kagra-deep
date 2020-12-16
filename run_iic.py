@@ -27,8 +27,8 @@ from torchcluster.zoo.spectrum import SpectrumClustering
 
 plt.style.use("seaborn-poster")
 plt.rcParams["text.latex.preamble"] = r"\usepackage{bm}"
-plt.rc("legend", fontsize=12)
-plt.rc("axes", titlesize=12)
+plt.rc("legend", fontsize=10)
+plt.rc("axes", titlesize=10)
 
 
 @hydra.main(config_path="config", config_name="test")
