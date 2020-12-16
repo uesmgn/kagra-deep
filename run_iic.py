@@ -165,6 +165,7 @@ def main(args):
                     plt.imshow(x[0])
                     plt.axis("off")
                     plt.xlabel("%.2f" % sim[n])
+            plt.title("Ranking of similarity at epoch %d" % epoch)
             plt.tight_layout()
             plt.savefig(f"simrank_e{epoch}.png")
             plt.close()
