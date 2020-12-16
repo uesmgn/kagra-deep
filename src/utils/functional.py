@@ -5,7 +5,19 @@ import warnings
 import matplotlib.colors as mc
 import colorsys
 
-__all__ = ["colormap", "darken", "acronym", "to_device", "flatten", "tensordict"]
+__all__ = ["pca", "colormap", "darken", "acronym", "to_device", "flatten", "tensordict"]
+
+
+def pca(x, k, center=True):
+    n = x.shape[0]
+    ones = torch.ones(n).view([n, 1])
+    h = ((1 / n) * torch.mm(ones, ones.t())) if center else torch.zeros(n * n).view([n, n])
+    h = torch.eye(n) - h
+    h = h.to(x.device)
+    x_center = torch.mm(h.double(), x.double())
+    u, s, v = torch.svd(x_center)
+    components = v[:k].t()
+    return components
 
 
 def colormap(i):

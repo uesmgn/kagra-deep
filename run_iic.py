@@ -9,7 +9,7 @@ from tqdm import tqdm
 import umap
 from sklearn.manifold import TSNE
 
-from src.utils.functional import acronym, darken, colormap
+from src.utils.functional import acronym, darken, colormap, pca
 from src.utils import transforms
 from src.data import datasets
 from src.data import samplers
@@ -141,8 +141,8 @@ def main(args):
 
             w_hyp = w_hyp / w_hyp.norm(dim=-1)[:, None]
             w_hyp = torch.mm(w_hyp, w_hyp.transpose(0, 1))
-            (u, _, _) = torch.pca_lowrank(w_hyp)
-            y_pred_ens, _ = SpectrumClustering(args.num_pred_classes)(torch.mm(w_hyp, u))
+            w_hyp = pca(w_hyp, 6)
+            y_pred_ens, _ = SpectrumClustering(args.num_pred_classes)(w_hyp)
 
             plt.rcParams["text.usetex"] = True
 
