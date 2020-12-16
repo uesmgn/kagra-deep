@@ -58,7 +58,7 @@ def main(args):
 
     dataset = datasets.HDF5(args.dataset_root, transform_fn, target_transform_fn)
     train_set, test_set = dataset.split(train_size=args.train_size, stratify=dataset.targets)
-    sample_indices = random.sample(range(len(test_set)), 10)
+    sample_indices = random.sample(range(len(test_set)), 5)
     train_set.transform = augment_fn
     # train_sampler = samplers.Balancer(train_set, args.batch_size * args.num_train_steps)
     train_sampler = samplers.Upsampler(train_set, args.batch_size * args.num_train_steps)
@@ -154,7 +154,7 @@ def main(args):
             plt.rcParams["text.usetex"] = True
 
             y_simmat = cosine_similarity(y_hyp)
-            fig = plt.figure(dpi=300)
+            fig = plt.figure(dpi=500)
             for i, j in enumerate(sample_indices):
                 x, _ = test_set[j]
                 ax = plt.subplot(len(sample_indices), args.num_ranking + 2, (args.num_ranking + 2) * i + 1)
@@ -171,8 +171,9 @@ def main(args):
                     ax.axis("off")
                     ax.margins(0)
                     ax.set_title(r"%.2f" % sim[n])
-            plt.tight_layout()
+            plt.subplots_adjust(wspace=0.05, top=0.92, bottom=0.05, left=0.05, right=0.95)
             fig.suptitle("Ranking of similarity")
+            plt.tight_layout()
             plt.savefig(f"simrank_e{epoch}.png")
             plt.close()
 
