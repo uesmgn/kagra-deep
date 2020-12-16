@@ -145,6 +145,7 @@ def main(args):
             # qz = mapper.embedding_
 
             y_simmat = cosine_similarity(y_hyp)
+            plt.subplots_adjust(wspace=0.1, hspace=0.1)
             for i, j in enumerate(random.sample(range(len(test_set)), 10)):
                 x, _ = test_set[j]
                 plt.subplot(10, args.num_ranking + 2, 12 * i + 1)
