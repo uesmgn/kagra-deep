@@ -29,6 +29,8 @@ plt.style.use("seaborn-poster")
 plt.rcParams["text.latex.preamble"] = r"\usepackage{bm}"
 plt.rc("legend", fontsize=12)
 
+random.seed(123)
+
 
 @hydra.main(config_path="config", config_name="test")
 def main(args):
