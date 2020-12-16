@@ -9,7 +9,7 @@ import colorsys
 __all__ = ["normalize", "pca", "colormap", "darken", "acronym", "to_device", "flatten", "tensordict"]
 
 
-def normalize(axis=1):
+def normalize(x, axis=1):
     return (x - np.mean(x, axis=axis)[:, np.newaxis]) / np.std(x, axis=axis)[:, np.newaxis]
 
 
