@@ -169,7 +169,7 @@ def main(args):
                         idx = np.where(y_pred[:, j] == i)[0]
                         if len(idx) > 0:
                             c = colormap(i)
-                            plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
+                            plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=i, edgecolors=darken(c))
                     plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
                     plt.title(f"$q(z)$ labeled by heads-{j} at epoch-{epoch}")
                     plt.tight_layout()
