@@ -193,7 +193,7 @@ def main(args):
             plt.figure()
             cm = confusion_matrix(y, y_pred_ens, labels=np.arange(args.num_pred_classes))
             cm = cm[: args.num_classes, :]
-            cmn = normalize(cm, axis=1)
+            cmn = normalize(cm, axis=0)
             sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
             plt.yticks(rotation=45)
             plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ ensembled at epoch %d" % epoch)
@@ -205,7 +205,7 @@ def main(args):
                 plt.figure()
                 cm = confusion_matrix(y, y_pred[:, j], labels=np.arange(args.num_classes))
                 cm = cm[: args.num_classes, :]
-                cmn = normalize(cm, axis=1)
+                cmn = normalize(cm, axis=0)
                 sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
                 plt.yticks(rotation=45)
                 plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ by head %d at epoch %d" % (j, epoch))
