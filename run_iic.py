@@ -52,6 +52,7 @@ def main(args):
 
     dataset = datasets.HDF5(args.dataset_root, transform_fn, target_transform_fn)
     train_set, test_set = dataset.split(train_size=args.train_size, stratify=dataset.targets)
+    sample_indices = random.sample(range(len(test_set)), 10)
     train_set.transform = augment_fn
     # train_sampler = samplers.Balancer(train_set, args.batch_size * args.num_train_steps)
     train_sampler = samplers.Upsampler(train_set, args.batch_size * args.num_train_steps)
@@ -146,14 +147,14 @@ def main(args):
 
             y_simmat = cosine_similarity(y_hyp)
             plt.subplots_adjust(wspace=0.1, hspace=0.1)
-            for i, j in enumerate(random.sample(range(len(test_set)), 10)):
+            for i, j in enumerate(sample_indices):
                 x, _ = test_set[j]
-                plt.subplot(10, args.num_ranking + 2, 12 * i + 1)
+                plt.subplot(len(sample_indices), args.num_ranking + 2, (args.num_ranking + 2) * i + 1)
                 plt.imshow(x[0])
                 plt.axis("off")
                 sim_indices = torch.argsort(y_simmat[j, :], descending=True)[1 : args.num_ranking + 1]
                 for n, m in enumerate(sim_indices):
-                    plt.subplot(10, args.num_ranking + 2, 12 * i + 3 + n)
+                    plt.subplot(len(sample_indices), args.num_ranking + 2, (args.num_ranking + 2) * i + 3 + n)
                     x, _ = test_set[m]
                     plt.imshow(x[0])
                     plt.axis("off")
