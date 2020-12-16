@@ -23,6 +23,7 @@ import seaborn as sns
 
 plt.rc("text", usetex=True)
 plt.rcParams["text.latex.preamble"] = r"\usepackage{amsmath}"
+plt.rcParams["text.latex.unicode"] = True
 plt.style.use("seaborn")
 
 
