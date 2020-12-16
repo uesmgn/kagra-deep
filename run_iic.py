@@ -147,7 +147,7 @@ def main(args):
             # y_hyp = y_hyp.norm(dim=-1)[:, None]
             # y_hyp = torch.mm(y_hyp, y_hyp.transpose(0, 1))
             # y_hyp = pca(y_hyp, 6)
-            y_pred_ens, _ = SpectrumClustering(args.num_pred_classes, k=2)(y_hyp)
+            y_pred_ens, _ = SpectrumClustering(args.num_pred_classes, k=5)(w_hyp)
 
             plt.rcParams["text.usetex"] = True
 
@@ -198,16 +198,16 @@ def main(args):
                 plt.savefig(f"cm_y_h{j}_e{epoch}.png")
                 plt.close()
 
-                plt.figure()
-                cm = confusion_matrix(y, w_pred[:, j], labels=np.arange(args.dim_w))
-                cm = cm[: args.num_classes, :]
-                cmn = normalize(cm, axis=0) * normalize(cm, axis=1)
-                sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
-                plt.yticks(rotation=45)
-                plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{w})$ by head %d at epoch %d" % (j, epoch))
-                plt.tight_layout()
-                plt.savefig(f"cm_w_h{j}_e{epoch}.png")
-                plt.close()
+                # plt.figure()
+                # cm = confusion_matrix(y, w_pred[:, j], labels=np.arange(args.dim_w))
+                # cm = cm[: args.num_classes, :]
+                # cmn = normalize(cm, axis=0) * normalize(cm, axis=1)
+                # sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
+                # plt.yticks(rotation=45)
+                # plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{w})$ by head %d at epoch %d" % (j, epoch))
+                # plt.tight_layout()
+                # plt.savefig(f"cm_w_h{j}_e{epoch}.png")
+                # plt.close()
 
             for j in range(args.num_heads):
                 plt.figure()
