@@ -130,91 +130,91 @@ def main(args):
                     params["w_pi"] = torch.cat([params["w_pi"], w_pi.cpu()])
                     params["qz"] = torch.cat([params["qz"], qz.cpu()])
 
-                y = params["y"].numpy().astype(int)
-                y_pred = params["y_pred"].numpy().astype(int)
-                w_pred = params["w_pred"].numpy().astype(int)
-                y_hyp = params["y_pi"].view(params["y_pi"].shape[0], -1)
-                w_hyp = params["w_pi"].view(params["w_pi"].shape[0], -1)
-                qz = params["qz"].numpy()
-                umapper = umap.UMAP(random_state=123).fit(qz)
-                qz = umapper.embedding_
+            y = params["y"].numpy().astype(int)
+            y_pred = params["y_pred"].numpy().astype(int)
+            w_pred = params["w_pred"].numpy().astype(int)
+            y_hyp = params["y_pi"].view(params["y_pi"].shape[0], -1)
+            w_hyp = params["w_pi"].view(params["w_pi"].shape[0], -1)
+            qz = params["qz"].numpy()
+            umapper = umap.UMAP(random_state=123).fit(qz)
+            qz = umapper.embedding_
 
-                plt.rcParams["text.usetex"] = True
+            plt.rcParams["text.usetex"] = True
 
-                y_hyp = y_hyp / y_hyp.norm(dim=-1)[:, None]
-                y_pred_ens, _ = SpectrumClustering(args.num_classes)(y_hyp)
+            y_hyp = y_hyp / y_hyp.norm(dim=-1)[:, None]
+            y_pred_ens, _ = SpectrumClustering(args.num_classes)(y_hyp)
+            plt.figure()
+            for i in range(args.num_classes):
+                idx = np.where(y_pred_ens == i)[0]
+                if len(idx) > 0:
+                    c = colormap(i)
+                    plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=i, edgecolors=darken(c))
+            plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
+            plt.title(r"$q(\bm{z})$ ensembled at epoch %d" % (epoch))
+            plt.tight_layout()
+            plt.savefig(f"qz_ensembled_e{epoch}.png")
+            plt.close()
+
+            for j in range(args.num_heads):
                 plt.figure()
-                for i in range(args.num_classes):
-                    idx = np.where(y_pred_ens == i)[0]
+                cm = confusion_matrix(y, y_pred[:, j], labels=np.arange(args.num_classes))
+                cm = cm[: args.num_classes, :]
+                cmn = (cm - np.mean(cm, axis=1)[:, np.newaxis]) / np.std(cm, axis=1)[:, np.newaxis]
+                sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets, vmin=0)
+                plt.yticks(rotation=45)
+                plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ by head %d at epoch %d" % (j, epoch))
+                plt.tight_layout()
+                plt.savefig(f"cm_y_h{j}_e{epoch}.png")
+                plt.close()
+
+                plt.figure()
+                cm = confusion_matrix(y, w_pred[:, j], labels=np.arange(args.dim_w))
+                cm = cm[: args.num_classes, :]
+                cmn = (cm - np.mean(cm, axis=1)[:, np.newaxis]) / np.std(cm, axis=1)[:, np.newaxis]
+                sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets, vmin=0)
+                plt.yticks(rotation=45)
+                plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{w})$ by head %d at epoch %d" % (j, epoch))
+                plt.tight_layout()
+                plt.savefig(f"cm_w_h{j}_e{epoch}.png")
+                plt.close()
+
+            plt.figure()
+            for i in np.unique(y):
+                idx = np.where(y == i)[0]
+                if len(idx) > 0:
+                    c = colormap(i)
+                    plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
+            plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
+            plt.title(r"$q(\bm{z})$ at epoch %d" % (epoch))
+            plt.tight_layout()
+            plt.savefig(f"qz_true_e{epoch}.png")
+            plt.close()
+
+            for j in range(args.num_heads):
+                plt.figure()
+                for i in np.unique(y):
+                    idx = np.where(y_pred[:, j] == i)[0]
                     if len(idx) > 0:
                         c = colormap(i)
                         plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=i, edgecolors=darken(c))
                 plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-                plt.title(r"$q(\bm{z})$ ensembled at epoch %d" % (epoch))
+                plt.title(r"$q(\bm{z})$ labeled by head %d at epoch %d" % (j, epoch))
                 plt.tight_layout()
-                plt.savefig(f"qz_ensembled_e{epoch}.png")
+                plt.savefig(f"qz_h{j}_e{epoch}.png")
                 plt.close()
 
-                for j in range(args.num_heads):
+            plt.rcParams["text.usetex"] = False
+            if epoch > 0:
+                for key, value in stats.items():
                     plt.figure()
-                    cm = confusion_matrix(y, y_pred[:, j], labels=np.arange(args.num_classes))
-                    cm = cm[: args.num_classes, :]
-                    cmn = (cm - np.mean(cm, axis=1)[:, np.newaxis]) / np.std(cm, axis=1)[:, np.newaxis]
-                    sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets, vmin=0)
-                    plt.yticks(rotation=45)
-                    plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ by head %d at epoch %d" % (j, epoch))
+                    plt.plot(value)
+                    plt.ylabel(key)
+                    plt.xlabel("epoch")
+                    plt.title("loss %s" % key)
+                    plt.xlim((0, len(value) - 1))
                     plt.tight_layout()
-                    plt.savefig(f"cm_y_h{j}_e{epoch}.png")
+                    plt.savefig(f"loss_{key}_e{epoch}.png")
                     plt.close()
-
-                    plt.figure()
-                    cm = confusion_matrix(y, w_pred[:, j], labels=np.arange(args.dim_w))
-                    cm = cm[: args.num_classes, :]
-                    cmn = (cm - np.mean(cm, axis=1)[:, np.newaxis]) / np.std(cm, axis=1)[:, np.newaxis]
-                    sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets, vmin=0)
-                    plt.yticks(rotation=45)
-                    plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{w})$ by head %d at epoch %d" % (j, epoch))
-                    plt.tight_layout()
-                    plt.savefig(f"cm_w_h{j}_e{epoch}.png")
-                    plt.close()
-
-                plt.figure()
-                for i in np.unique(y):
-                    idx = np.where(y == i)[0]
-                    if len(idx) > 0:
-                        c = colormap(i)
-                        plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
-                plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-                plt.title(r"$q(\bm{z})$ at epoch %d" % (epoch))
-                plt.tight_layout()
-                plt.savefig(f"qz_true_e{epoch}.png")
-                plt.close()
-
-                for j in range(args.num_heads):
-                    plt.figure()
-                    for i in np.unique(y):
-                        idx = np.where(y_pred[:, j] == i)[0]
-                        if len(idx) > 0:
-                            c = colormap(i)
-                            plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=i, edgecolors=darken(c))
-                    plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-                    plt.title(r"$q(\bm{z})$ labeled by head %d at epoch %d" % (j, epoch))
-                    plt.tight_layout()
-                    plt.savefig(f"qz_h{j}_e{epoch}.png")
-                    plt.close()
-
-                plt.rcParams["text.usetex"] = False
-                if epoch > 0:
-                    for key, value in stats.items():
-                        plt.figure()
-                        plt.plot(value)
-                        plt.ylabel(key)
-                        plt.xlabel("epoch")
-                        plt.title("loss %s" % key)
-                        plt.xlim((0, len(value) - 1))
-                        plt.tight_layout()
-                        plt.savefig(f"loss_{key}_e{epoch}.png")
-                        plt.close()
 
 
 if __name__ == "__main__":
