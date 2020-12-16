@@ -20,6 +20,8 @@ from mnist import IIC
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
+from torchcluster.zoo.spectrum import SpectrumClustering
+
 
 plt.style.use("seaborn-poster")
 plt.rcParams["text.latex.preamble"] = r"\usepackage{bm}"
@@ -124,11 +126,15 @@ def main(args):
                     params["y"] = torch.cat([params["y"], y])
                     params["y_pred"] = torch.cat([params["y_pred"], y_pred.cpu()])
                     params["w_pred"] = torch.cat([params["w_pred"], w_pred.cpu()])
+                    params["y_pi"] = torch.cat([params["y_pi"], y_pi.cpu()])
+                    params["w_pi"] = torch.cat([params["w_pi"], w_pi.cpu()])
                     params["qz"] = torch.cat([params["qz"], qz.cpu()])
 
                 y = params["y"].numpy().astype(int)
                 y_pred = params["y_pred"].numpy().astype(int)
                 w_pred = params["w_pred"].numpy().astype(int)
+                y_pi = params["y_pi"]
+                w_pi = params["w_pi"]
                 qz = params["qz"].numpy()
                 umapper = umap.UMAP(random_state=123).fit(qz)
                 qz = umapper.embedding_
@@ -179,7 +185,7 @@ def main(args):
                     plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
                     plt.title(r"$q(\bm{z})$ labeled by head %d at epoch %d" % (j, epoch))
                     plt.tight_layout()
-                    plt.savefig(f"qz_true_h{j}_e{epoch}.png")
+                    plt.savefig(f"qz_h{j}_e{epoch}.png")
                     plt.close()
 
                 plt.rcParams["text.usetex"] = False
@@ -194,6 +200,34 @@ def main(args):
                         plt.tight_layout()
                         plt.savefig(f"loss_{key}_e{epoch}.png")
                         plt.close()
+
+                y_pi = y_pi / y_pi.norm(dim=1)[:, None]
+                y_pi_ens, _ = SpectrumClustering(args.num_classes)(y_pi)
+                plt.figure()
+                for i in range(args.num_classes):
+                    idx = np.where(y_pi_ens == i)[0]
+                    if len(idx) > 0:
+                        c = colormap(i)
+                        plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
+                plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
+                plt.title(r"$q(\bm{z})$ ensembled at epoch %d" % (epoch))
+                plt.tight_layout()
+                plt.savefig(f"qz_ensembled_e{epoch}.png")
+                plt.close()
+
+                # w_pi = w_pi / w_pi.norm(dim=1)[:, None]
+                # w_pi_ens, _ = SpectrumClustering(args.dim_w)(w_pi)
+                # plt.figure()
+                # for i in range(args.dim_w):
+                #     idx = np.where(w_pi_ens == i)[0]
+                #     if len(idx) > 0:
+                #         c = colormap(i)
+                #         plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
+                # plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
+                # plt.title(r"$q(\bm{z})$ ensembled at epoch %d" % (epoch))
+                # plt.tight_layout()
+                # plt.savefig(f"qz_ensembled_e{epoch}.png")
+                # plt.close()
 
 
 if __name__ == "__main__":
