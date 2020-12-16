@@ -29,7 +29,10 @@ plt.style.use("seaborn-poster")
 plt.rcParams["text.latex.preamble"] = r"\usepackage{bm}"
 plt.rc("legend", fontsize=12)
 
-random.seed(123)
+np.random.seed(args.seed)
+random.seed(args.seed)
+torch.manual_seed(args.seed)
+torch.cuda.manual_seed(args.seed)
 
 
 @hydra.main(config_path="config", config_name="test")
@@ -142,9 +145,9 @@ def main(args):
             y_hyp = params["y_pi"].view(params["y_pi"].shape[0], -1)
             w_hyp = params["w_pi"].view(params["w_pi"].shape[0], -1)
             qz = params["qz"].numpy()
-            mapper = TSNE(n_components=2, random_state=123)
+            mapper = TSNE(n_components=2, random_state=args.seed)
             qz = mapper.fit_transform(qz)
-            # mapper = umap.UMAP(random_state=123).fit(qz)
+            # mapper = umap.UMAP(random_state=args.seed).fit(qz)
             # qz = mapper.embedding_
 
             y_simmat = cosine_similarity(y_hyp)
@@ -205,7 +208,7 @@ def main(args):
             plt.savefig(f"cm_y_qz_ensembled_e{epoch}.png")
             plt.close()
 
-            for j in range(args.num_heads):
+            for j in range(0, args.num_heads, 3):
                 plt.figure()
                 cm = confusion_matrix(y, y_pred[:, j], labels=np.arange(args.num_classes))
                 cm = cm[: args.num_classes, :]
@@ -228,7 +231,7 @@ def main(args):
                 # plt.savefig(f"cm_w_h{j}_e{epoch}.png")
                 # plt.close()
 
-            for j in range(args.num_heads):
+            for j in range(0, args.num_heads, 3):
                 plt.figure()
                 for i in np.unique(y):
                     idx = np.where(y_pred[:, j] == i)[0]

@@ -12,6 +12,7 @@ iic_detach: True
 use_multi_heads: True
 num_ranking: 10
 num_heads: 10
+seed: 123
 thres: 0.9
 num_epochs: 10000
 num_classes: 22
