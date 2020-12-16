@@ -157,10 +157,12 @@ def main(args):
                 plt.subplot(len(sample_indices), args.num_ranking + 2, (args.num_ranking + 2) * i + 1)
                 plt.imshow(x[0])
                 plt.axis("off")
-                sim_indices = torch.argsort(y_simmat[j, :], descending=True)[1 : args.num_ranking + 1]
+                sim, sim_indices = torch.sort(y_simmat[j, :], descending=True)
+                sim, sim_indices = sim[1 : args.num_ranking + 1], sim_indices[1 : args.num_ranking + 1]
                 for n, m in enumerate(sim_indices):
                     plt.subplot(len(sample_indices), args.num_ranking + 2, (args.num_ranking + 2) * i + 3 + n)
                     x, _ = test_set[m]
+                    plt.xlabel("%.2f" % sim[n])
                     plt.imshow(x[0])
                     plt.axis("off")
             plt.tight_layout()
