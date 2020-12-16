@@ -138,7 +138,7 @@ def main(args):
                     plt.figure()
                     cm = confusion_matrix(y, y_pred[:, j], labels=np.arange(args.num_classes))
                     cm = cm[: args.num_classes, :]
-                    cm = (cm - np.mean(cm, axis=0)) / np.std(cm, axis=0)
+                    cm = (cm - np.mean(cm, axis=1)) / np.std(cm, axis=1)
                     sns.heatmap(cm, annot=True, fmt=".2f", cmap="Blues", cbar=False, yticklabels=targets)
                     plt.yticks(rotation=45)
                     plt.title(r"confusion matrix $\boldsymbol{{y}}$ with $q(\boldsymbol{{y}})$ by head {} at epoch {}".format(j, epoch))
@@ -146,10 +146,10 @@ def main(args):
                     plt.savefig(f"cm_y_h{j}_e{epoch}.png")
                     plt.close()
 
-                    plt.figure(figsize=(20, 12))
+                    plt.figure()
                     cm = confusion_matrix(y, w_pred[:, j], labels=np.arange(args.dim_w))
                     cm = cm[: args.num_classes, :]
-                    cm = (cm - np.mean(cm, axis=0)) / np.std(cm, axis=0)
+                    cm = (cm - np.mean(cm, axis=1)) / np.std(cm, axis=1)
                     sns.heatmap(cm, annot=True, fmt=".2f", cmap="Blues", cbar=False, yticklabels=targets)
                     plt.yticks(rotation=45)
                     plt.title(r"confusion matrix $\boldsymbol{{y}}$ with $q(\boldsymbol{{w}})$ by head {} at epoch {}".format(j, epoch))
@@ -157,7 +157,7 @@ def main(args):
                     plt.savefig(f"cm_w_h{j}_e{epoch}.png")
                     plt.close()
 
-                plt.figure(figsize=(15, 12))
+                plt.figure()
                 for i in np.unique(y):
                     idx = np.where(y == i)[0]
                     if len(idx) > 0:
