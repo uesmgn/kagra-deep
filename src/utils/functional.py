@@ -1,11 +1,16 @@
 import torch
+import numpy as np
 from collections import abc
 import re
 import warnings
 import matplotlib.colors as mc
 import colorsys
 
-__all__ = ["pca", "colormap", "darken", "acronym", "to_device", "flatten", "tensordict"]
+__all__ = ["normalize", "pca", "colormap", "darken", "acronym", "to_device", "flatten", "tensordict"]
+
+
+def normalize(axis=1):
+    return (x - np.mean(x, axis=axis)[:, np.newaxis]) / np.std(x, axis=axis)[:, np.newaxis]
 
 
 def pca(x, k, center=True):
