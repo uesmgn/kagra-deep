@@ -362,14 +362,13 @@ class IIC(nn.Module):
         self.use_multi_heads = use_multi_heads
         self.num_heads = num_heads
         self.encoder = Encoder(ch_in, 1024)
-        self.x_logits = Encoder(ch_in, dim_z)
         self.qz_x = Qz_x(self.encoder, dim_z)
         if self.use_multi_heads:
-            self.fc1 = nn.ModuleList([self._fc(dim_z + dim_z, dim_y) for _ in range(self.num_heads)])
-            self.fc2 = nn.ModuleList([self._fc(dim_z + dim_z, dim_w) for _ in range(self.num_heads)])
+            self.fc1 = nn.ModuleList([self._fc(dim_z, dim_y) for _ in range(self.num_heads)])
+            self.fc2 = nn.ModuleList([self._fc(dim_z, dim_w) for _ in range(self.num_heads)])
         else:
-            self.fc1 = self.generate_fc(dim_z + dim_z, dim_y)
-            self.fc2 = self.generate_fc(dim_z + dim_z, dim_w)
+            self.fc1 = self.generate_fc(dim_z, dim_y)
+            self.fc2 = self.generate_fc(dim_z, dim_w)
         self.weight_init()
 
     def _fc(self, dim_in, dim_out):
@@ -403,9 +402,7 @@ class IIC(nn.Module):
                     continue
 
     def forward(self, x, z_detach=False):
-        x_logits = self.x_logits(x)
         z1, z2 = self.embedding(x, z_detach)
-        z1, z2 = torch.cat([z1, x_logits], -1), torch.cat([z2, x_logits], -1)
         if self.use_multi_heads:
             mi_y, mi_w = 0, 0
             for fc1, fc2 in zip(self.fc1, self.fc2):
@@ -435,8 +432,6 @@ class IIC(nn.Module):
             return z
 
     def clustering(self, x, z):
-        x_logits = self.x_logits(x)
-        z = torch.cat([z, x_logits], -1)
         if self.use_multi_heads:
             yy, ww = [], []
             for fc1, fc2 in zip(self.fc1, self.fc2):
