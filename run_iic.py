@@ -141,7 +141,9 @@ def main(args):
 
                 plt.rcParams["text.usetex"] = True
 
+                print(y_hyp.shape)
                 y_hyp = y_hyp / y_hyp.norm(dim=-1)[:, None]
+                print(y_hyp.shape)
                 y_pred_ens, _ = SpectrumClustering(args.num_classes)(y_hyp)
                 plt.figure()
                 for i in range(args.num_classes):
