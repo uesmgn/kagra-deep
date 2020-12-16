@@ -142,8 +142,9 @@ def main(args):
             plt.rcParams["text.usetex"] = True
 
             y_hyp = y_hyp / y_hyp.norm(dim=-1)[:, None]
-            (u, _, _) = torch.pca_lowrank(torch.mm(y_hyp, y_hyp.transpose(0, 1)))
-            y_pred_ens, _ = SpectrumClustering(args.num_classes)(u)
+            y_hyp = torch.mm(y_hyp, y_hyp.transpose(0, 1))
+            (u, _, _) = torch.pca_lowrank(y_hyp)
+            y_pred_ens, _ = SpectrumClustering(args.num_classes)(torch.mm(y_hyp, u))
             plt.figure()
             for i in range(args.num_classes):
                 idx = np.where(y_pred_ens == i)[0]
