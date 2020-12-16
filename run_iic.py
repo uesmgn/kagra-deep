@@ -151,21 +151,23 @@ def main(args):
             # qz = mapper.embedding_
 
             y_simmat = cosine_similarity(y_hyp)
+            plt.figure()
             plt.subplots_adjust(wspace=0.05, hspace=0.1)
             for i, j in enumerate(sample_indices):
                 x, _ = test_set[j]
-                plt.subplot(len(sample_indices), args.num_ranking + 2, (args.num_ranking + 2) * i + 1)
-                plt.imshow(x[0])
-                plt.axis("off")
+                ax = plt.subplot(len(sample_indices), args.num_ranking + 2, (args.num_ranking + 2) * i + 1)
+                ax.imshow(x[0])
+                ax.axis("off")
+                ax.set_title(r"$\bm{x}_{(%d)}$" % j)
                 sim, sim_indices = torch.sort(y_simmat[j, :], descending=True)
                 sim, sim_indices = sim[1 : args.num_ranking + 1], sim_indices[1 : args.num_ranking + 1]
                 for n, m in enumerate(sim_indices):
-                    plt.subplot(len(sample_indices), args.num_ranking + 2, (args.num_ranking + 2) * i + 3 + n)
+                    ax = plt.subplot(len(sample_indices), args.num_ranking + 2, (args.num_ranking + 2) * i + 3 + n)
                     x, _ = test_set[m]
-                    plt.imshow(x[0])
-                    plt.axis("off")
-                    plt.xlabel("%.2f" % sim[n])
-            plt.title("Ranking of similarity at epoch %d" % epoch)
+                    ax.imshow(x[0])
+                    ax.axis("off")
+                    ax.set_title(r"$\mathrm{sim}(\bm{x}_{(%d)}, \bm{x}_{(%d)}) = %.2f$" % (j, n, sim[n]))
+            plt.title("Ranking of similarity")
             plt.tight_layout()
             plt.savefig(f"simrank_e{epoch}.png")
             plt.close()
