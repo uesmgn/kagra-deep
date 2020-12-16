@@ -162,7 +162,7 @@ def main(args):
 
             plt.rcParams["text.usetex"] = True
 
-            y_simmat = cosine_similarity(y_hyp)
+            w_simmat = cosine_similarity(w_hyp)
             fig = plt.figure(dpi=500)
             for i, j in enumerate(sample_indices):
                 x, _ = test_set[j]
@@ -171,7 +171,7 @@ def main(args):
                 ax.axis("off")
                 ax.margins(0)
                 ax.set_title(r"$\bm{x}_{(%d)}$" % j)
-                sim, sim_indices = torch.sort(y_simmat[j, :], descending=True)
+                sim, sim_indices = torch.sort(w_simmat[j, :], descending=True)
                 sim, sim_indices = sim[1 : args.num_ranking + 1], sim_indices[1 : args.num_ranking + 1]
                 for n, m in enumerate(sim_indices):
                     ax = plt.subplot(len(sample_indices), args.num_ranking + 2, (args.num_ranking + 2) * i + 3 + n)
@@ -181,14 +181,14 @@ def main(args):
                     ax.margins(0)
                     ax.set_title(r"%.2f" % sim[n])
             plt.subplots_adjust(wspace=0.05, top=0.92, bottom=0.05, left=0.05, right=0.95)
-            fig.suptitle("Ranking of similarity")
+            fig.suptitle("Similar glitch")
             plt.tight_layout()
             plt.savefig(f"simrank_e{epoch}.png")
             plt.close()
 
             # y_hyp = torch.mm(y_hyp, y_hyp.transpose(0, 1))
             # y_hyp = pca(y_hyp, 6)
-            y_pred_ens, _ = SpectrumClustering(args.num_pred_classes, k=5)(y_hyp)
+            y_pred_ens, _ = SpectrumClustering(args.num_pred_classes, k=5)(w_hyp)
 
             plt.figure()
             cm = confusion_matrix(y, y_pred_ens, labels=np.arange(args.num_pred_classes))
