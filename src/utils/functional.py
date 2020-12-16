@@ -10,7 +10,7 @@ __all__ = ["normalize", "pca", "colormap", "darken", "acronym", "to_device", "fl
 
 
 def normalize(x, axis=1):
-    return (x - np.mean(x, axis=axis)[:, np.newaxis]) / np.std(x, axis=axis)[:, np.newaxis]
+    return (x - np.mean(x, axis=axis, keepdims=True)) / np.std(x, axis=axis, keepdims=True)
 
 
 def pca(x, k, center=True):
