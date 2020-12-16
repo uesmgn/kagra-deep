@@ -163,8 +163,8 @@ def main(args):
                     plt.subplot(len(sample_indices), args.num_ranking + 2, (args.num_ranking + 2) * i + 3 + n)
                     x, _ = test_set[m]
                     plt.imshow(x[0])
-                    plt.xlabel("%.2f" % sim[n])
                     plt.axis("off")
+                    plt.xlabel("%.2f" % sim[n])
             plt.tight_layout()
             plt.savefig(f"simrank_e{epoch}.png")
             plt.close()
