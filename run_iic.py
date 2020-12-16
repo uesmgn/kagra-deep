@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
 
-plt.style.use("bmh")
+plt.style.use("seaborn-poster")
 plt.rcParams["text.usetex"] = True
 plt.rcParams["text.latex.preamble"] = r"\usepackage{amsmath}"
 
