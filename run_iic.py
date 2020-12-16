@@ -135,13 +135,14 @@ def main(args):
                 qz = umapper.embedding_
 
                 for j in range(args.num_heads):
-                    plt.figure(figsize=(20, 12))
+                    plt.figure()
                     cm = confusion_matrix(y, y_pred[:, j], labels=np.arange(args.num_classes))
                     cm = cm[: args.num_classes, :]
                     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
                     plt.yticks(rotation=45)
                     plt.title(r"confusion matrix $\boldsymbol{{y}}$ with $q(\boldsymbol{{y}})$ by head {} at epoch {}".format(j, epoch))
-                    plt.savefig(f"cm_y_h{j}_e{epoch}.pdf")
+                    plt.tight_layout()
+                    plt.savefig(f"cm_y_h{j}_e{epoch}.png")
                     plt.close()
 
                     plt.figure(figsize=(20, 12))
@@ -150,7 +151,8 @@ def main(args):
                     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
                     plt.yticks(rotation=45)
                     plt.title(r"confusion matrix $\boldsymbol{{y}}$ with $q(\boldsymbol{{w}})$ by head {} at epoch {}".format(j, epoch))
-                    plt.savefig(f"cm_w_h{j}_e{epoch}.pdf")
+                    plt.tight_layout()
+                    plt.savefig(f"cm_w_h{j}_e{epoch}.png")
                     plt.close()
 
                 plt.figure(figsize=(15, 12))
@@ -162,11 +164,11 @@ def main(args):
                 plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
                 plt.title(r"$q(\boldsymbol{{z}})$ at epoch {}".format(epoch))
                 plt.tight_layout()
-                plt.savefig(f"qz_true_e{epoch}.pdf")
+                plt.savefig(f"qz_true_e{epoch}.png")
                 plt.close()
 
                 for j in range(args.num_heads):
-                    plt.figure(figsize=(15, 12))
+                    plt.figure()
                     for i in np.unique(y):
                         idx = np.where(y_pred[:, j] == i)[0]
                         if len(idx) > 0:
@@ -175,17 +177,19 @@ def main(args):
                     plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
                     plt.title(r"$q(\boldsymbol{{z}})$ labeled by head {} at epoch {}".format(j, epoch))
                     plt.tight_layout()
-                    plt.savefig(f"qz_true_h{j}_e{epoch}.pdf")
+                    plt.savefig(f"qz_true_h{j}_e{epoch}.png")
                     plt.close()
 
                 if epoch > 0:
                     for key, value in stats.items():
+                        plt.figure()
                         plt.plot(value)
                         plt.ylabel(key)
                         plt.xlabel("epoch")
                         plt.title(key)
                         plt.xlim((0, len(value) - 1))
-                        plt.savefig(f"loss_{key}_e{epoch}.pdf")
+                        plt.tight_layout()
+                        plt.savefig(f"loss_{key}_e{epoch}.png")
                         plt.close()
 
 
