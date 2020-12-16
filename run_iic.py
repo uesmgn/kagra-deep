@@ -145,12 +145,12 @@ def main(args):
             # qz = mapper.embedding_
 
             y_simmat = cosine_similarity(y_hyp)
-            for i in random.sample(range(len(test_set)), 10):
-                x, _ = test_set[i]
+            for i, j in enumerate(random.sample(range(len(test_set)), 10)):
+                x, _ = test_set[j]
                 plt.subplot(10, args.num_ranking + 2, 12 * i + 1)
                 plt.imshow(x.permute(1, 2, 0))
                 plt.axis("off")
-                sim_indices = torch.argsort(y_simmat[i, :], descending=True)[1 : args.num_ranking + 1]
+                sim_indices = torch.argsort(y_simmat[j, :], descending=True)[1 : args.num_ranking + 1]
                 for n, m in enumerate(sim_indices):
                     plt.subplot(10, args.num_ranking + 2, 12 * i + 3 + n)
                     x, _ = test_set[m]
