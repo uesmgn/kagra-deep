@@ -176,8 +176,8 @@ def main(args):
             plt.figure()
             cm = confusion_matrix(y, y_pred_ens, labels=np.arange(args.num_pred_classes))
             cm = cm[: args.num_classes, :]
-            cmn = normalize(normalize(cm, 1), 0)
-            sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets, vmin=0)
+            cmn = normalize(cm, 0) * normalize(cm, 1)
+            sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
             plt.yticks(rotation=45)
             plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ ensembled at epoch %d" % epoch)
             plt.tight_layout()
@@ -188,8 +188,8 @@ def main(args):
                 plt.figure()
                 cm = confusion_matrix(y, y_pred[:, j], labels=np.arange(args.num_classes))
                 cm = cm[: args.num_classes, :]
-                cmn = normalize(normalize(cm, 1), 0)
-                sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets, vmin=0)
+                cmn = normalize(cm, 0) * normalize(cm, 1)
+                sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
                 plt.yticks(rotation=45)
                 plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ by head %d at epoch %d" % (j, epoch))
                 plt.tight_layout()
@@ -199,8 +199,8 @@ def main(args):
                 plt.figure()
                 cm = confusion_matrix(y, w_pred[:, j], labels=np.arange(args.dim_w))
                 cm = cm[: args.num_classes, :]
-                cmn = normalize(normalize(cm, 1), 0)
-                sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets, vmin=0)
+                cmn = normalize(cm, 0) * normalize(cm, 1)
+                sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
                 plt.yticks(rotation=45)
                 plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{w})$ by head %d at epoch %d" % (j, epoch))
                 plt.tight_layout()
