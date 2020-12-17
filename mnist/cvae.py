@@ -401,7 +401,7 @@ class IIC(nn.Module):
                 except:
                     continue
 
-    def forward(self, x, z_detach=False):
+    def forward(self, x, z_detach=False, lam=1.0):
         z1, z2 = self.embedding(x, z_detach)
         if self.use_multi_heads:
             mi_y, mi_w = 0, 0
@@ -409,15 +409,15 @@ class IIC(nn.Module):
                 y1, w1 = F.softmax(fc1(z1), dim=-1), F.softmax(fc2(z1), dim=-1)
                 y2, w2 = F.softmax(fc1(z2), dim=-1), F.softmax(fc2(z2), dim=-1)
 
-                mi_y += self.mutual_info(y1, y2) / self.use_multi_heads
-                mi_w += self.mutual_info(w1, w2) / self.use_multi_heads
+                mi_y += self.mutual_info(y1, y2, lam=lam) / self.use_multi_heads
+                mi_w += self.mutual_info(w1, w2, lam=lam) / self.use_multi_heads
 
         else:
             y1, w1 = F.softmax(self.fc1(z1), dim=-1), F.softmax(self.fc2(z1), dim=-1)
             y2, w2 = F.softmax(self.fc1(z2), dim=-1), F.softmax(self.fc2(z2), dim=-1)
 
-            mi_y = self.mutual_info(y1, y2)
-            mi_w = self.mutual_info(w1, w2)
+            mi_y = self.mutual_info(y1, y2, lam=lam)
+            mi_w = self.mutual_info(w1, w2, lam=lam)
 
         return mi_y, mi_w
 
@@ -448,13 +448,13 @@ class IIC(nn.Module):
         p = ((p + p.t()) / 2) / p.sum()
         return p
 
-    def mutual_info(self, x, y, alpha=2.0, eps=1e-8):
+    def mutual_info(self, x, y, lam=1.0, eps=1e-8):
         p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(dim=0)
         p = ((p + p.t()) / 2) / p.sum()
         _, k = x.shape
         p[(p < eps).data] = eps
-        pi = p.sum(dim=1).view(k, 1).expand(k, k)
-        pj = p.sum(dim=0).view(1, k).expand(k, k)
+        pi = p.sum(dim=1).view(k, 1).expand(k, k).pow(lam)
+        pj = p.sum(dim=0).view(1, k).expand(k, k).pow(lam)
         return (p * (alpha * torch.log(pi) + alpha * torch.log(pj) - torch.log(p))).sum()
 
 
