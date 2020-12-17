@@ -16,8 +16,8 @@ seed: 100
 thres: 0.9
 num_epochs: 10000
 num_classes: 22
-num_pred_classes: 30
-dim_w: 50
+num_pred_classes: 50
+dim_w: 64
 dim_z: 512
 train_size: 0.7
 labeled_size: 0.1
