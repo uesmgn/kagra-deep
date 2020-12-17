@@ -379,8 +379,9 @@ class IIC(nn.Module):
                 except:
                     continue
 
-    def forward(self, x, z_detach=False, lam=1.0):
+    def forward(self, x, y=None, z_detach=False, lam=1.0):
         z1, z2 = self.embedding(x, z_detach)
+        ce = 0
         if self.use_multi_heads:
             mi_y, mi_w = 0, 0
             for fc1, fc2 in zip(self.fc1, self.fc2):
@@ -389,6 +390,8 @@ class IIC(nn.Module):
 
                 mi_y += self.mutual_info(y1, y2, lam=lam) / self.use_multi_heads
                 mi_w += self.mutual_info(w1, w2, lam=lam) / self.use_multi_heads
+                if y is not None:
+                    ce += F.cross_entropy(y1, y, reduction="sum")
 
         else:
             y1, w1 = F.softmax(self.fc1(z1), dim=-1), F.softmax(self.fc2(z1), dim=-1)
@@ -396,7 +399,10 @@ class IIC(nn.Module):
 
             mi_y = self.mutual_info(y1, y2, lam=lam)
             mi_w = self.mutual_info(w1, w2, lam=lam)
-
+            if y is not None:
+                ce += F.cross_entropy(y1, y, reduction="sum")
+        if y is not None:
+            return mi_y, mi_w, ce
         return mi_y, mi_w
 
     def embedding(self, x, z_detach=True):

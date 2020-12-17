@@ -59,16 +59,28 @@ def main(args):
 
     dataset = datasets.HDF5(args.dataset_root, transform_fn, target_transform_fn)
     train_set, test_set = dataset.split(train_size=args.train_size, stratify=dataset.targets)
+    labeled_set, unlabeled_set = train_set.split(train_size=args.labeled_size, stratify=train_set.targets)
     sample_indices = random.sample(range(len(test_set)), 5)
-    train_set.transform = augment_fn
+    labeled_set.transform = augment_fn
+    unlabeled_set.transform = augment_fn
     # train_sampler = samplers.Balancer(train_set, args.batch_size * args.num_train_steps)
     train_sampler = samplers.Upsampler(train_set, args.batch_size * args.num_train_steps)
 
-    train_loader = torch.utils.data.DataLoader(
-        train_set,
+    labeled_loader = cycle(
+        torch.utils.data.DataLoader(
+            labeled_set,
+            batch_size=args.batch_size // 8,
+            num_workers=args.num_workers,
+            sampler=samplers.Upsampler(labeled_set, args.batch_size * args.num_train_steps // 8),
+            pin_memory=True,
+            drop_last=True,
+        )
+    )
+    unlabeled_loader = torch.utils.data.DataLoader(
+        unlabeled_set,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
-        sampler=train_sampler,
+        sampler=samplers.Upsampler(unlabeled_set, args.batch_size * args.num_train_steps),
         pin_memory=True,
         drop_last=True,
     )
@@ -104,17 +116,22 @@ def main(args):
         model.train()
         total = 0
         total_dict = defaultdict(lambda: 0)
-        for i, (x, y) in tqdm(enumerate(train_loader)):
+        for i in tqdm(range(len(unlabeled_loader))):
+            (x, _) = next(unlabeled_loader)
             x = x.to(device)
             mi_x, mi_v = model(x, z_detach=args.iic_detach, lam=args.lam)
-            loss = mi_x + mi_v
+            (x, y) = next(labeled_loader)
+            x, y = x.to(device), y.to(device)
+            mi_x_, mi_v_, ce = model(x, y=y, z_detach=args.iic_detach, lam=args.lam)
+            loss = sum(mi_x, mi_v, mi_x_, mi_v_, 100.0 * ce)
             optim.zero_grad()
             loss.backward()
             optim.step()
             total += loss.item()
             total_dict["total"] += loss.item()
-            total_dict["mi_x"] += mi_x.item()
-            total_dict["mi_v"] += mi_v.item()
+            total_dict["mi_x"] += (mi_x + mi_x_).item()
+            total_dict["mi_v"] += (mi_v + mi_v_).item()
+            total_dict["ce"] += ce.item()
         for key, value in total_dict.items():
             print("loss_{}: {:.3f} at epoch: {}".format(key, value, epoch))
             stats[key].append(value)
