@@ -8,8 +8,8 @@ targets: [1080Lines, 1400Ripples, Air_Compressor, Blip,
           Wandering_Line, Whistle]
 use_other: False
 load_state_dict: True
-iic_detach: True
-lam: 1.5
+iic_detach: False
+lam: 1.8
 use_multi_heads: True
 num_ranking: 5
 num_heads: 10
