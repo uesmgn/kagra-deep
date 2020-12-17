@@ -455,7 +455,7 @@ class IIC(nn.Module):
         p[(p < eps).data] = eps
         pi = p.sum(dim=1).view(k, 1).expand(k, k).pow(lam)
         pj = p.sum(dim=0).view(1, k).expand(k, k).pow(lam)
-        return (p * (alpha * torch.log(pi) + alpha * torch.log(pj) - torch.log(p))).sum()
+        return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
 
 
 class ClusterHeads(nn.Module):
