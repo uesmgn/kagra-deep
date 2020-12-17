@@ -9,14 +9,15 @@ targets: [1080Lines, 1400Ripples, Air_Compressor, Blip,
 use_other: False
 load_state_dict: True
 iic_detach: True
+lam: 1.5
 use_multi_heads: True
 num_ranking: 5
 num_heads: 10
-seed: 100
+seed: 101
 thres: 0.9
 num_epochs: 10000
 num_classes: 22
-num_pred_classes: 50
+num_pred_classes: 30
 dim_w: 64
 dim_z: 512
 train_size: 0.7
