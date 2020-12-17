@@ -402,34 +402,31 @@ class IIC(nn.Module):
                     continue
 
     def forward(self, x, z_detach=False, lam=1.0):
-        b = x.shape[0]
-        z, z_mean, z_logvar = self.embedding(x, z_detach)
-        kl_gausss = self.kl_gauss(z_mean, z_logvar, torch.zeros_like(z_mean), torch.ones_like(z_logvar)) / b
-        z1, z2 = z, z_mean
+        z1, z2 = self.embedding(x, z_detach)
         if self.use_multi_heads:
             mi_y, mi_w = 0, 0
             for fc1, fc2 in zip(self.fc1, self.fc2):
-                y1, w1 = F.softmax(fc1(z), dim=-1), F.softmax(fc2(z), dim=-1)
-                y2, w2 = F.softmax(fc1(z_mean), dim=-1), F.softmax(fc2(z_mean), dim=-1)
+                y1, w1 = F.softmax(fc1(z1), dim=-1), F.softmax(fc2(z1), dim=-1)
+                y2, w2 = F.softmax(fc1(z2), dim=-1), F.softmax(fc2(z2), dim=-1)
 
                 mi_y += self.mutual_info(y1, y2, lam=lam) / self.use_multi_heads
                 mi_w += self.mutual_info(w1, w2, lam=lam) / self.use_multi_heads
 
         else:
-            y1, w1 = F.softmax(self.fc1(z), dim=-1), F.softmax(self.fc2(z), dim=-1)
-            y2, w2 = F.softmax(self.fc1(z_mean), dim=-1), F.softmax(self.fc2(z_mean), dim=-1)
+            y1, w1 = F.softmax(self.fc1(z1), dim=-1), F.softmax(self.fc2(z1), dim=-1)
+            y2, w2 = F.softmax(self.fc1(z2), dim=-1), F.softmax(self.fc2(z2), dim=-1)
 
             mi_y = self.mutual_info(y1, y2, lam=lam)
             mi_w = self.mutual_info(w1, w2, lam=lam)
 
-        return mi_y, mi_w, kl_gausss
+        return mi_y, mi_w
 
     def embedding(self, x, z_detach=True):
         if self.training:
-            z, z_mean, z_logvar = self.qz_x(x)
+            z, z_mean, _ = self.qz_x(x)
             if z_detach:
                 return z.detach(), z_mean.detach()
-            return z, z_mean, z_logvar
+            return z, z_mean
         else:
             _, z, _ = self.qz_x(x)
             return z
@@ -459,9 +456,6 @@ class IIC(nn.Module):
         pi = p.sum(dim=1).view(k, 1).expand(k, k).pow(lam)
         pj = p.sum(dim=0).view(1, k).expand(k, k).pow(lam)
         return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
-
-    def kl_gauss(self, mean_p, logvar_p, mean_q, logvar_q):
-        return -0.5 * torch.sum(logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp())
 
 
 class ClusterHeads(nn.Module):

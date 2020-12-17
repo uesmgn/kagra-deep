@@ -106,8 +106,8 @@ def main(args):
         total_dict = defaultdict(lambda: 0)
         for i, (x, _) in tqdm(enumerate(train_loader)):
             x = x.to(device)
-            mi_x, mi_v, kl_gausss = model(x, args.iic_detach, args.lam)
-            loss = mi_x + mi_v + kl_gausss
+            mi_x, mi_v = model(x, args.iic_detach, args.lam)
+            loss = mi_x + mi_v
             optim.zero_grad()
             loss.backward()
             optim.step()
@@ -115,7 +115,6 @@ def main(args):
             total_dict["total"] += loss.item()
             total_dict["mi_x"] += mi_x.item()
             total_dict["mi_v"] += mi_v.item()
-            total_dict["kl_gausss"] += kl_gausss.item()
         for key, value in total_dict.items():
             print("loss_{}: {:.3f} at epoch: {}".format(key, value, epoch))
             stats[key].append(value)
@@ -189,7 +188,7 @@ def main(args):
 
             # y_hyp = torch.mm(y_hyp, y_hyp.transpose(0, 1))
             # y_hyp = pca(y_hyp, 6)
-            y_pred_ens, _ = SpectrumClustering(args.num_pred_classes, k=5)(w_hyp)
+            y_pred_ens, _ = SpectrumClustering(args.num_pred_classes, k=32)(w_hyp)
 
             plt.figure()
             cm = confusion_matrix(y, y_pred_ens, labels=np.arange(args.num_pred_classes))
