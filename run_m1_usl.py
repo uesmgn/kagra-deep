@@ -9,6 +9,7 @@ from tqdm import tqdm
 import umap
 from itertools import cycle
 import os
+from sklearn.manifold import TSNE
 
 from src.utils.functional import acronym, darken, colormap
 from src.utils import transforms
@@ -118,8 +119,10 @@ def main(args):
                     params["y"] = torch.cat([params["y"], y])
 
                 qz = params["qz"].numpy()
-                umapper = umap.UMAP(random_state=123).fit(qz)
-                qz = umapper.embedding_
+                mapper = TSNE(n_components=2, random_state=args.seed)
+                qz = mapper.fit_transform(qz)
+                # umapper = umap.UMAP(random_state=123).fit(qz)
+                # qz = umapper.embedding_
 
                 y = params["y"].numpy().astype(int)
 
