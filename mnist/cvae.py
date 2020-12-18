@@ -69,9 +69,9 @@ class Encoder(nn.Module):
             nn.BatchNorm2d(32),
             nn.LeakyReLU(0.2, inplace=True),
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
-            ResBlock(32, 64),
-            ResBlock(64, 128),
-            ResBlock(128, 256),
+            ResBlock(32, 64, stride=2),
+            ResBlock(64, 128, stride=2),
+            ResBlock(128, 256, stride=2),
         )
         self.fc = nn.Sequential(
             nn.Flatten(),
