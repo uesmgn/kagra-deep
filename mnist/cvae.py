@@ -412,9 +412,9 @@ class IIC(nn.Module):
         return mi_y, mi_w
 
     def get_params(self, x):
-        qz_, qz = model.embedding(x)
-        y, w = model.clustering(qz)
-        y_, w_ = model.clustering(qz_)
+        qz_, qz = self.embedding(x)
+        y, w = self.clustering(qz)
+        y_, w_ = self.clustering(qz_)
         py = self.proba(y, y_)
         pw = self.proba(w, w_)
         return qz, y, w, py, pw
