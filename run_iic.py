@@ -14,7 +14,7 @@ from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 from sklearn import cluster as cl
 
-from src.utils.functional import acronym, darken, cwm, pca, cosine_similarity
+from src.utils.functional import acronym, darken, cwm, pca, cosine_similarity, compute_serial_matrix
 from src.utils import transforms
 from src.data import datasets
 from src.data import samplers
@@ -191,6 +191,13 @@ def main(args):
             plt.savefig(f"w_simmat_e{epoch}.png")
             plt.close()
 
+            w_simmat_reordered, _, _ = compute_serial_matrix(dist_mat, "complete")
+            plt.imshow(w_simmat_reordered)
+            plt.title("cosine similarity matrix reordered at epoch %d" % epoch)
+            plt.tight_layout()
+            plt.savefig(f"w_simmat_reordered_e{epoch}.png")
+            plt.close()
+
             plt.rcParams["text.usetex"] = True
 
             fig = plt.figure(dpi=300)
@@ -211,7 +218,7 @@ def main(args):
                     ax.margins(0)
                     ax.set_title(r"%.2f" % sim[n])
             plt.subplots_adjust(wspace=0.05, top=0.92, bottom=0.05, left=0.05, right=0.95)
-            fig.suptitle("Similar glitch")
+            fig.suptitle("Random samples with corresponding similar glitches")
             plt.tight_layout()
             plt.savefig(f"simrank_e{epoch}.png")
             plt.close()
