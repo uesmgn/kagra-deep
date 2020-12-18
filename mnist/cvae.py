@@ -411,36 +411,38 @@ class IIC(nn.Module):
             return mi_y, mi_w, ce
         return mi_y, mi_w
 
-    def embedding(self, x, z_detach=True):
-        if self.training:
-            z, z_mean, _ = self.qz_x(x)
-            if z_detach:
-                return z.detach(), z_mean.detach()
-            return z, z_mean
-        else:
-            _, z, _ = self.qz_x(x)
-            return z
+    def get_params(self, x):
+        qz_, qz = model.embedding(x)
+        y, w = model.clustering(qz)
+        y_, w_ = model.clustering(qz_)
+        py = self.proba(y, y_)
+        pw = self.proba(w, w_)
+        return qz, y, w, py, pw
 
-    def clustering(self, x, z):
+    def embedding(self, x, z_detach=True):
+        z, z_mean, _ = self.qz_x(x)
+        if z_detach:
+            return z.detach(), z_mean.detach()
+        return z, z_mean
+
+    def clustering(self, x):
         if self.use_multi_heads:
             yy, ww = [], []
             for fc1, fc2 in zip(self.fc1, self.fc2):
-                y, w = F.softmax(fc1(z), dim=-1), F.softmax(fc2(z), dim=-1)
+                y, w = F.softmax(fc1(x), dim=-1), F.softmax(fc2(x), dim=-1)
                 yy.append(y)
                 ww.append(w)
             return torch.stack(yy, dim=1), torch.stack(ww, dim=1)
         else:
-            y, w = F.softmax(self.fc1(z), dim=-1), F.softmax(self.fc2(z), dim=-1)
+            y, w = F.softmax(self.fc1(x), dim=-1), F.softmax(self.fc2(x), dim=-1)
             return y, w
 
-    def mutual_info_mat(self, x, y):
+    def proba(self, x, y):
         p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(dim=0)
-        p = ((p + p.t()) / 2) / p.sum()
-        return p
+        return ((p + p.t()) / 2) / p.sum()
 
     def mutual_info(self, x, y, lam=1.0, eps=1e-8):
-        p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(dim=0)
-        p = ((p + p.t()) / 2) / p.sum()
+        p = self.proba(x, y)
         _, k = x.shape
         p[(p < eps).data] = eps
         pi = p.sum(dim=1).view(k, 1).expand(k, k).pow(lam)
