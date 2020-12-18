@@ -256,18 +256,6 @@ def main(args):
                 plt.close()
 
                 plt.figure()
-                for i in range(args.num_classes):
-                    idx = np.where(y == i)[0]
-                    if len(idx) > 0:
-                        c = colormap(i)
-                        plt.scatter(qz_hyp[idx, 0], qz_hyp[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
-                plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-                plt.title(r"$q(\bm{z'}$ at epoch %d" % (epoch))
-                plt.tight_layout()
-                plt.savefig(f"qz_hyp_true_e{epoch}.png")
-                plt.close()
-
-                plt.figure()
                 for i in range(args.num_pred_classes):
                     idx = np.where(y_pred_ens == i)[0]
                     if len(idx) > 0:
