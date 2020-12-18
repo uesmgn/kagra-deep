@@ -396,7 +396,7 @@ class IIC(nn.Module):
 
                 mi_y += self.mutual_info(y1, y2, lam=lam) / self.use_multi_heads
                 mi_w += self.mutual_info(w1, w2, lam=lam) / self.use_multi_heads
-                if y is not None:
+                if target is not None:
                     ce += focal_loss(y1, target).sum()
 
         else:
@@ -405,9 +405,9 @@ class IIC(nn.Module):
 
             mi_y = self.mutual_info(y1, y2, lam=lam)
             mi_w = self.mutual_info(w1, w2, lam=lam)
-            if y is not None:
+            if target is not None:
                 ce += focal_loss(y1, target).sum()
-        if y is not None:
+        if target is not None:
             return mi_y, mi_w, ce
         return mi_y, mi_w
 
