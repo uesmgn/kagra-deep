@@ -215,7 +215,7 @@ class Px_z(nn.Module):
         return x
 
 
-def focal_loss(x, target, gamma=2, weight=None):
+def focal_loss(x, target, gamma=5.0, weight=None):
     ce = F.cross_entropy(x, target, weight=weight)
     pt = torch.exp(-ce)
     return (1 - pt).pow(gamma) * ce
