@@ -32,7 +32,7 @@ plt.style.use("seaborn-poster")
 plt.rcParams["text.latex.preamble"] = r"\usepackage{bm}"
 plt.rc("legend", fontsize=10)
 plt.rc("axes", titlesize=10)
-plt.rcParams["lines.markersize"] = 5.0
+plt.rcParams["lines.markersize"] = 6.0
 
 
 @hydra.main(config_path="config", config_name="test")
@@ -248,7 +248,7 @@ def main(args):
                     idx = np.where(y == i)[0]
                     if len(idx) > 0:
                         c, m = cwm(i)
-                        plt.scatter(qz[idx, 0], qz[idx, 1], c=c, marker=m, label=targets[i], edgecolors=darken(c))
+                        plt.scatter(qz[idx, 0], qz[idx, 1], color=c, marker=m, label=targets[i], edgecolors=darken(c))
                 plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
                 plt.title(r"$q(\bm{z})$ at epoch %d" % (epoch))
                 plt.tight_layout()
@@ -260,7 +260,7 @@ def main(args):
                     idx = np.where(y_pred_ens == i)[0]
                     if len(idx) > 0:
                         c, m = cwm(i)
-                        plt.scatter(qz[idx, 0], qz[idx, 1], c=c, marker=m, label=i, edgecolors=darken(c))
+                        plt.scatter(qz[idx, 0], qz[idx, 1], color=c, marker=m, label=i, edgecolors=darken(c))
                 plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
                 plt.title(r"$q(\bm{z})$ ensembled at epoch %d" % (epoch))
                 plt.tight_layout()
@@ -284,7 +284,7 @@ def main(args):
                         idx = np.where(y_pred[:, j] == i)[0]
                         if len(idx) > 0:
                             c, m = cwm(i)
-                            plt.scatter(qz[idx, 0], qz[idx, 1], c=c, marker=m, label=i, edgecolors=darken(c))
+                            plt.scatter(qz[idx, 0], qz[idx, 1], color=c, marker=m, label=i, edgecolors=darken(c))
                     plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
                     plt.title(r"$q(\bm{z})$ labeled by head %d at epoch %d" % (j, epoch))
                     plt.tight_layout()
