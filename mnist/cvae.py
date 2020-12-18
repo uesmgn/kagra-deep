@@ -387,27 +387,12 @@ class IIC(nn.Module):
 
     def forward(self, x, target=None, z_detach=False, lam=1.0):
         z1, z2 = self.embedding(x, z_detach)
-        ce = 0
-        if self.use_multi_heads:
-            mi_y, mi_w = 0, 0
-            for fc1, fc2 in zip(self.fc1, self.fc2):
-                y1, w1 = F.softmax(fc1(z1), dim=-1), F.softmax(fc2(z1), dim=-1)
-                y2, w2 = F.softmax(fc1(z2), dim=-1), F.softmax(fc2(z2), dim=-1)
-
-                mi_y += self.mutual_info(y1, y2, lam=lam) / self.use_multi_heads
-                mi_w += self.mutual_info(w1, w2, lam=lam) / self.use_multi_heads
-                if target is not None:
-                    ce += focal_loss(y1, target).sum()
-
-        else:
-            y1, w1 = F.softmax(self.fc1(z1), dim=-1), F.softmax(self.fc2(z1), dim=-1)
-            y2, w2 = F.softmax(self.fc1(z2), dim=-1), F.softmax(self.fc2(z2), dim=-1)
-
-            mi_y = self.mutual_info(y1, y2, lam=lam)
-            mi_w = self.mutual_info(w1, w2, lam=lam)
-            if target is not None:
-                ce += focal_loss(y1, target).sum()
+        y1, w1 = self.clustering(z1)
+        y2, w2 = self.clustering(z2)
+        mi_y = self.mutual_info(y1, y2, lam=lam)
+        mi_w = self.mutual_info(w1, w2, lam=lam)
         if target is not None:
+            ce = focal_loss(y1, target).sum()
             return mi_y, mi_w, ce
         return mi_y, mi_w
 
