@@ -13,7 +13,7 @@ lam: 0.9
 use_multi_heads: True
 num_ranking: 5
 num_heads: 16
-seed: 101
+seed: 123
 thres: 0.9
 num_epochs: 10000
 num_classes: 22
@@ -22,7 +22,7 @@ dim_w: 64
 dim_z: 512
 train_size: 0.7
 labeled_size: 0.1
-batch_size: 128
+batch_size: 256
 num_workers: 4
 lr: 3e-4
 num_train_steps: 100
