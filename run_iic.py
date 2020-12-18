@@ -11,6 +11,7 @@ import random
 import os
 import copy
 from sklearn.manifold import TSNE
+from sklearn.decomposition import PCA
 
 from src.utils.functional import acronym, darken, colormap, pca, cosine_similarity
 from src.utils import transforms
@@ -147,7 +148,7 @@ def main(args):
                     params["qz"].append(qz.cpu())
                     num_samples += x.shape[0]
 
-            y = torch.cat(params["y"]).squeeze().numpy().astype(int)
+            y = torch.cat(params["y"]).numpy().astype(int)
             y_pred = torch.cat(params["y_pred"]).numpy().astype(int)
             w_pred = torch.cat(params["w_pred"]).numpy().astype(int)
             y_hyp = torch.cat(params["y_pi"]).view(num_samples, -1)
@@ -184,7 +185,7 @@ def main(args):
             plt.rcParams["text.usetex"] = True
 
             w_simmat = cosine_similarity(w_hyp)
-            fig = plt.figure(dpi=500)
+            fig = plt.figure(dpi=300)
             for i, j in enumerate(sample_indices):
                 x, _ = test_set[j]
                 ax = plt.subplot(len(sample_indices), args.num_ranking + 2, (args.num_ranking + 2) * i + 1)
@@ -208,7 +209,7 @@ def main(args):
             plt.close()
 
             # y_hyp = torch.mm(y_hyp, y_hyp.transpose(0, 1))
-            w_hyp = pca(w_hyp, 32)
+            w_hyp = PCA(n_components=64, random_state=args.seed).fit_transform(w_hyp)
             y_pred_ens, _ = SpectrumClustering(args.num_pred_classes)(w_hyp)
 
             plt.figure()
