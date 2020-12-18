@@ -183,9 +183,16 @@ def main(args):
             plt.savefig(f"w_proba_e{epoch}.png")
             plt.close()
 
+            w_simmat = cosine_similarity(w_hyp)
+
+            plt.imshow(w_simmat)
+            plt.title("cosine similarity matrix at epoch %d" % epoch)
+            plt.tight_layout()
+            plt.savefig(f"w_simmat_e{epoch}.png")
+            plt.close()
+
             plt.rcParams["text.usetex"] = True
 
-            w_simmat = cosine_similarity(w_hyp)
             fig = plt.figure(dpi=300)
             for i, j in enumerate(sample_indices):
                 x, _ = test_set[j]
@@ -210,7 +217,7 @@ def main(args):
             plt.close()
 
             # y_hyp = torch.mm(y_hyp, y_hyp.transpose(0, 1))
-            w_hyp = PCA(n_components=64, random_state=args.seed).fit_transform(w_hyp)
+            w_hyp = PCA(n_components=64, random_state=args.seed).fit_transform(w_simmat)
             y_pred_ens = cl.SpectralClustering(n_clusters=args.num_pred_classes, random_state=args.seed, n_jobs=-1).fit_predict(w_hyp)
 
             plt.figure()
