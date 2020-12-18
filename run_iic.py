@@ -240,8 +240,7 @@ def main(args):
 
                 # latent features
                 qz = torch.cat(params["qz"]).numpy()
-                # mapper = TSNE(n_components=2, random_state=args.seed, n_jobs=-1)
-                # qz = mapper.fit_transform(qz)
+                # qz = TSNE(n_components=2, random_state=args.seed, n_jobs=-1).fit_transform(qz)
                 qz = umap.UMAP(n_components=2, random_state=args.seed).fit(qz).embedding_
 
                 plt.figure()
