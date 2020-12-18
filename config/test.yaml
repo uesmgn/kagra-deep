@@ -9,7 +9,7 @@ targets: [1080Lines, 1400Ripples, Air_Compressor, Blip,
 use_other: False
 load_state_dict: False
 iic_detach: True
-lam: 1.5
+lam: 0.5
 use_multi_heads: True
 num_ranking: 5
 num_heads: 16
