@@ -341,18 +341,21 @@ class M2(nn.Module):
 
 
 class IIC(nn.Module):
-    def __init__(self, ch_in, dim_y, dim_w, dim_z, use_multi_heads=False, num_heads=10):
+    def __init__(self, ch_in, dim_y, dim_w, dim_z=512, use_z=True, use_multi_heads=False, num_heads=10):
         super().__init__()
+        self.use_z = use_z
         self.use_multi_heads = use_multi_heads
         self.num_heads = num_heads
         self.encoder = Encoder(ch_in, 1024)
         self.qz_x = Qz_x(self.encoder, dim_z)
+        if not self.use_z:
+            dim_z = 1024
         if self.use_multi_heads:
             self.fc1 = nn.ModuleList([self._fc(dim_z, dim_y) for _ in range(self.num_heads)])
             self.fc2 = nn.ModuleList([self._fc(dim_z, dim_w) for _ in range(self.num_heads)])
         else:
-            self.fc1 = self.generate_fc(dim_z, dim_y)
-            self.fc2 = self.generate_fc(dim_z, dim_w)
+            self.fc1 = self._fc(dim_z, dim_y)
+            self.fc2 = self._fc(dim_z, dim_w)
         self.weight_init()
 
     def _fc(self, dim_in, dim_out):
@@ -405,10 +408,14 @@ class IIC(nn.Module):
         return qz, y, w, py, pw
 
     def embedding(self, x, z_detach=True):
-        z, z_mean, _ = self.qz_x(x)
-        if z_detach:
-            return z.detach(), z_mean.detach()
-        return z, z_mean
+        if self.use_z:
+            z1, z2, _ = self.qz_x(x)
+            if z_detach:
+                z1, z2 = z1.detach(), z2.detach()
+        else:
+            z1 = self.encoder(x)
+            z2 = z1 + torch.randn_like(z1)
+        return z1, z2
 
     def clustering(self, x):
         if self.use_multi_heads:

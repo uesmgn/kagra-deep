@@ -88,6 +88,7 @@ def main(args):
         dim_y=args.num_classes,
         dim_w=args.dim_w,
         dim_z=args.dim_z,
+        use_z=args.use_z,
         use_multi_heads=args.use_multi_heads,
         num_heads=args.num_heads,
     ).to(device)

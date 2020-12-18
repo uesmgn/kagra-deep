@@ -11,6 +11,7 @@ load_state_dict: False
 iic_detach: True
 lam: 0.95
 use_multi_heads: True
+use_z: False
 num_ranking: 5
 num_heads: 16
 seed: 101
