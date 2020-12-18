@@ -228,7 +228,7 @@ def main(args):
             if epoch % args.embedding_interval == 0:
 
                 # latent features
-                qz = params["qz"].numpy()
+                qz = torch.cat(params["qz"]).numpy()
                 mapper = TSNE(n_components=2, random_state=args.seed)
                 qz = mapper.fit_transform(qz)
                 # mapper = umap.UMAP(random_state=args.seed).fit(qz)
