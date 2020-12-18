@@ -9,6 +9,7 @@ from tqdm import tqdm
 import umap
 import random
 import os
+from itertools import cycle
 from sklearn.manifold import TSNE
 
 from src.utils.functional import acronym, darken, colormap, pca, cosine_similarity
