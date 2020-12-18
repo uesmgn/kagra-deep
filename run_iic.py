@@ -172,12 +172,14 @@ def main(args):
                     plt.savefig(f"loss_{key}_e{epoch}.png", transparent=True)
                     plt.close()
 
+            plt.figure()
             plt.imshow(y_proba)
             plt.title("y_proba at epoch %d" % epoch)
             plt.tight_layout()
             plt.savefig(f"y_proba_e{epoch}.png", transparent=True)
             plt.close()
 
+            plt.figure()
             plt.imshow(w_proba)
             plt.title("w_proba at epoch %d" % epoch)
             plt.tight_layout()
@@ -186,6 +188,7 @@ def main(args):
 
             w_simmat = cosine_similarity(w_hyp)
 
+            plt.figure()
             plt.imshow(w_simmat)
             plt.title("cosine similarity matrix at epoch %d" % epoch)
             plt.tight_layout()
@@ -201,7 +204,7 @@ def main(args):
 
             plt.rcParams["text.usetex"] = True
 
-            fig = plt.figure(dpi=300)
+            fig = plt.figure(dpi=500)
             for i, j in enumerate(sample_indices):
                 x, _ = test_set[j]
                 ax = plt.subplot(len(sample_indices), args.num_ranking + 2, (args.num_ranking + 2) * i + 1)
@@ -228,7 +231,7 @@ def main(args):
             w_hyp = PCA(n_components=64, random_state=args.seed).fit_transform(w_hyp)
             y_pred_ens = cl.SpectralClustering(n_clusters=args.num_pred_classes, random_state=args.seed, n_jobs=-1).fit_predict(w_hyp)
 
-            plt.figure()
+            plt.figure(dpi=500)
             cm = confusion_matrix(y, y_pred_ens, labels=np.arange(args.num_pred_classes))
             cm = cm[: args.num_classes, :]
             cmn = normalize(cm, axis=0)
@@ -240,7 +243,7 @@ def main(args):
             plt.close()
 
             for j in range(0, args.num_heads, 3):
-                plt.figure()
+                plt.figure(dpi=500)
                 cm = confusion_matrix(y, y_pred[:, j], labels=np.arange(args.num_classes))
                 cm = cm[: args.num_classes, :]
                 cmn = normalize(cm, axis=0)
