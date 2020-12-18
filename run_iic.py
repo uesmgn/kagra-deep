@@ -147,7 +147,7 @@ def main(args):
                     params["qz"].append(qz.cpu())
                     num_samples += x.shape[0]
 
-            y = torch.cat(params["y"]).numpy().astype(int)
+            y = torch.cat(params["y"]).squeeze().numpy().astype(int)
             y_pred = torch.cat(params["y_pred"]).numpy().astype(int)
             w_pred = torch.cat(params["w_pred"]).numpy().astype(int)
             y_hyp = torch.cat(params["y_pi"]).view(num_samples, -1)
@@ -208,8 +208,8 @@ def main(args):
             plt.close()
 
             # y_hyp = torch.mm(y_hyp, y_hyp.transpose(0, 1))
-            # y_hyp = pca(y_hyp, 6)
-            y_pred_ens, _ = SpectrumClustering(args.num_pred_classes, k=32)(w_hyp)
+            w_hyp = pca(w_hyp, 32)
+            y_pred_ens, _ = SpectrumClustering(args.num_pred_classes)(w_hyp)
 
             plt.figure()
             cm = confusion_matrix(y, y_pred_ens, labels=np.arange(args.num_pred_classes))
