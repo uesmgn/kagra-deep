@@ -6,6 +6,7 @@ import numpy as np
 from collections import abc, defaultdict
 import numbers
 from tqdm import tqdm
+import copy
 import umap
 from itertools import cycle
 import os
@@ -50,7 +51,8 @@ def main(args):
     targets = [acronym(target) for target in args.targets]
 
     dataset = datasets.HDF5(args.dataset_root, transform_fn, target_transform_fn)
-    train_set, test_set = dataset.split(train_size=args.train_size, stratify=dataset.targets)
+    train_set, test_set = copy.copy(dataset), copy.copy(dataset)
+    # train_set, test_set = dataset.split(train_size=args.train_size, stratify=dataset.targets)
     train_set.transform = augment_fn
 
     def sampler_callback(ds, num_samples):
@@ -115,26 +117,34 @@ def main(args):
                     x = x.to(device)
                     _, qz, _ = model.qz_x(x)
 
-                    params["qz"] = torch.cat([params["qz"], qz.cpu()])
                     params["y"] = torch.cat([params["y"], y])
-
-                qz = params["qz"].numpy()
-                mapper = TSNE(n_components=2, random_state=args.seed)
-                qz = mapper.fit_transform(qz)
-                # umapper = umap.UMAP(random_state=123).fit(qz)
-                # qz = umapper.embedding_
+                    params["qz"] = torch.cat([params["qz"], qz.cpu()])
 
                 y = params["y"].numpy().astype(int)
+                qz = params["qz"].numpy()
 
+                qz_tsne = TSNE(n_components=2, random_state=args.seed).fit_transform(qz)
                 plt.figure()
                 for i in np.unique(y):
                     idx = np.where(y == i)
                     c = colormap(i)
-                    plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
+                    plt.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
                 plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-                plt.title(f"qz_true at epoch {epoch}")
+                plt.title(f"2d qz using t-sne at epoch {epoch}")
                 plt.tight_layout()
-                plt.savefig(f"qz_true_{epoch}.png")
+                plt.savefig(f"qz_tsne_e{epoch}.png")
+                plt.close()
+
+                qz_umap = umap.UMAP(n_components=2, random_state=args.seed).fit_transform(qz)
+                plt.figure()
+                for i in np.unique(y):
+                    idx = np.where(y == i)
+                    c = colormap(i)
+                    plt.scatter(qz_umap[idx, 0], qz_umap[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
+                plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
+                plt.title(f"2d qz using umap at epoch {epoch}")
+                plt.tight_layout()
+                plt.savefig(f"qz_umap_e{epoch}.png")
                 plt.close()
 
                 if epoch > 0:
@@ -144,7 +154,7 @@ def main(args):
                         plt.xlabel("epoch")
                         plt.title(key)
                         plt.xlim((0, len(value) - 1))
-                        plt.savefig(f"loss_{key}_{epoch}.png")
+                        plt.savefig(f"loss_{key}_e{epoch}.png")
                         plt.close()
 
         if epoch % args.save_interval == 0:
