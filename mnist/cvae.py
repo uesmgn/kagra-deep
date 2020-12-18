@@ -348,8 +348,6 @@ class IIC(nn.Module):
         self.num_heads = num_heads
         self.encoder = Encoder(ch_in, 1024)
         self.qz_x = Qz_x(self.encoder, dim_z)
-        if not self.use_z:
-            dim_z = 1024
         if self.use_multi_heads:
             self.fc1 = nn.ModuleList([self._fc(dim_z, dim_y) for _ in range(self.num_heads)])
             self.fc2 = nn.ModuleList([self._fc(dim_z, dim_w) for _ in range(self.num_heads)])
@@ -395,12 +393,12 @@ class IIC(nn.Module):
         mi_y = self.mutual_info(y1, y2, lam=lam)
         mi_w = self.mutual_info(w1, w2, lam=lam)
         if target is not None:
-            ce = focal_loss(y1, target).sum()
-            return mi_y, mi_w, ce
+            fl = focal_loss(y1, target).sum()
+            return mi_y, mi_w, fl
         return mi_y, mi_w
 
     def get_params(self, x):
-        qz_, qz = self.embedding(x)
+        qz, qz_ = self.embedding(x)
         y, w = self.clustering(qz)
         y_, w_ = self.clustering(qz_)
         py = self.proba(y, y_)
@@ -408,13 +406,9 @@ class IIC(nn.Module):
         return qz, y, w, py, pw
 
     def embedding(self, x, z_detach=True):
-        if self.use_z:
-            z1, z2, _ = self.qz_x(x)
-            if z_detach:
-                z1, z2 = z1.detach(), z2.detach()
-        else:
-            z1 = self.encoder(x)
-            z2 = z1 + torch.randn_like(z1)
+        z2, z1, _ = self.qz_x(x)
+        if z_detach:
+            z1, z2 = z1.detach(), z2.detach()
         return z1, z2
 
     def clustering(self, x):
