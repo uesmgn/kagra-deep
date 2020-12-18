@@ -22,6 +22,11 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
 
+plt.style.use("seaborn-poster")
+plt.rcParams["text.latex.preamble"] = r"\usepackage{bm}"
+plt.rc("legend", fontsize=10)
+plt.rc("axes", titlesize=10)
+
 
 @hydra.main(config_path="config", config_name="test")
 def main(args):
@@ -118,7 +123,7 @@ def main(args):
 
                 y = params["y"].numpy().astype(int)
 
-                plt.figure(figsize=(15, 12))
+                plt.figure()
                 for i in np.unique(y):
                     idx = np.where(y == i)
                     c = colormap(i)
