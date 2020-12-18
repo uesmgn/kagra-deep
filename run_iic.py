@@ -240,8 +240,9 @@ def main(args):
 
                 # latent features
                 qz = torch.cat(params["qz"]).numpy()
-                mapper = TSNE(n_components=2, random_state=args.seed)
+                mapper = TSNE(n_components=2, random_state=args.seed, n_jobs=-1)
                 qz = mapper.fit_transform(qz)
+                qz_hyp = mapper.fit_transform(w_hyp)
                 # mapper = umap.UMAP(random_state=args.seed).fit(qz)
                 # qz = mapper.embedding_
 
@@ -255,6 +256,18 @@ def main(args):
                 plt.title(r"$q(\bm{z})$ at epoch %d" % (epoch))
                 plt.tight_layout()
                 plt.savefig(f"qz_true_e{epoch}.png")
+                plt.close()
+
+                plt.figure()
+                for i in range(args.num_classes):
+                    idx = np.where(y == i)[0]
+                    if len(idx) > 0:
+                        c = colormap(i)
+                        plt.scatter(qz_hyp[idx, 0], qz_hyp[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
+                plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
+                plt.title(r"$q(\bm{z'}$ at epoch %d" % (epoch))
+                plt.tight_layout()
+                plt.savefig(f"qz_hyp_true_e{epoch}.png")
                 plt.close()
 
                 plt.figure()
