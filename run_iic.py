@@ -141,6 +141,7 @@ def main(args):
                     params["w_pi"].append(w_pi.cpu())
                     params["y_proba"].append(y_proba.cpu())
                     params["w_proba"].append(w_proba.cpu())
+                    params["qz"].append(qz.cpu())
                     num_samples += x.shape[0]
 
             y = torch.cat(params["y"]).numpy().astype(int)
