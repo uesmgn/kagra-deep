@@ -28,6 +28,7 @@ from sklearn.preprocessing import normalize
 import seaborn as sns
 
 
+plt.style.use("dark_background")
 plt.style.use("seaborn-poster")
 plt.rcParams["text.latex.preamble"] = r"\usepackage{bm}"
 plt.rc("legend", fontsize=10)
@@ -168,19 +169,19 @@ def main(args):
                     plt.title("loss %s" % key)
                     plt.xlim((0, len(value) - 1))
                     plt.tight_layout()
-                    plt.savefig(f"loss_{key}_e{epoch}.png")
+                    plt.savefig(f"loss_{key}_e{epoch}.png", transparent=True)
                     plt.close()
 
             plt.imshow(y_proba)
             plt.title("y_proba at epoch %d" % epoch)
             plt.tight_layout()
-            plt.savefig(f"y_proba_e{epoch}.png")
+            plt.savefig(f"y_proba_e{epoch}.png", transparent=True)
             plt.close()
 
             plt.imshow(w_proba)
             plt.title("w_proba at epoch %d" % epoch)
             plt.tight_layout()
-            plt.savefig(f"w_proba_e{epoch}.png")
+            plt.savefig(f"w_proba_e{epoch}.png", transparent=True)
             plt.close()
 
             w_simmat = cosine_similarity(w_hyp)
@@ -188,14 +189,14 @@ def main(args):
             plt.imshow(w_simmat)
             plt.title("cosine similarity matrix at epoch %d" % epoch)
             plt.tight_layout()
-            plt.savefig(f"w_simmat_e{epoch}.png")
+            plt.savefig(f"w_simmat_e{epoch}.png", transparent=True)
             plt.close()
 
             w_simmat_reordered, _, _ = compute_serial_matrix(w_simmat, "complete")
             plt.imshow(w_simmat_reordered)
             plt.title("cosine similarity matrix reordered at epoch %d" % epoch)
             plt.tight_layout()
-            plt.savefig(f"w_simmat_reordered_e{epoch}.png")
+            plt.savefig(f"w_simmat_reordered_e{epoch}.png", transparent=True)
             plt.close()
 
             plt.rcParams["text.usetex"] = True
@@ -220,7 +221,7 @@ def main(args):
             plt.subplots_adjust(wspace=0.05, top=0.92, bottom=0.05, left=0.05, right=0.95)
             fig.suptitle("Random samples with corresponding similar glitches")
             plt.tight_layout()
-            plt.savefig(f"simrank_e{epoch}.png")
+            plt.savefig(f"simrank_e{epoch}.png", transparent=True)
             plt.close()
 
             # y_hyp = torch.mm(y_hyp, y_hyp.transpose(0, 1))
@@ -235,7 +236,7 @@ def main(args):
             plt.yticks(rotation=45)
             plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ ensembled at epoch %d" % epoch)
             plt.tight_layout()
-            plt.savefig(f"cm_y_qz_ensembled_e{epoch}.png")
+            plt.savefig(f"cm_y_qz_ensembled_e{epoch}.png", transparent=True)
             plt.close()
 
             for j in range(0, args.num_heads, 3):
@@ -247,7 +248,7 @@ def main(args):
                 plt.yticks(rotation=45)
                 plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ by head %d at epoch %d" % (j, epoch))
                 plt.tight_layout()
-                plt.savefig(f"cm_y_h{j}_e{epoch}.png")
+                plt.savefig(f"cm_y_h{j}_e{epoch}.png", transparent=True)
                 plt.close()
 
             if epoch % args.embedding_interval == 0:
@@ -266,7 +267,7 @@ def main(args):
                 plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
                 plt.title(r"$q(\bm{z})$ at epoch %d" % (epoch))
                 plt.tight_layout()
-                plt.savefig(f"qz_true_e{epoch}.png")
+                plt.savefig(f"qz_true_e{epoch}.png", transparent=True)
                 plt.close()
 
                 plt.figure()
@@ -278,7 +279,7 @@ def main(args):
                 plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
                 plt.title(r"$q(\bm{z})$ ensembled at epoch %d" % (epoch))
                 plt.tight_layout()
-                plt.savefig(f"qz_ensembled_e{epoch}.png")
+                plt.savefig(f"qz_ensembled_e{epoch}.png", transparent=True)
                 plt.close()
 
                 # plt.figure()
@@ -302,7 +303,7 @@ def main(args):
                     plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
                     plt.title(r"$q(\bm{z})$ labeled by head %d at epoch %d" % (j, epoch))
                     plt.tight_layout()
-                    plt.savefig(f"qz_h{j}_e{epoch}.png")
+                    plt.savefig(f"qz_h{j}_e{epoch}.png", transparent=True)
                     plt.close()
 
         if epoch % args.save_interval == 0:
