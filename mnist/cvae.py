@@ -341,9 +341,8 @@ class M2(nn.Module):
 
 
 class IIC(nn.Module):
-    def __init__(self, ch_in, dim_y, dim_w, dim_z=512, use_z=True, use_multi_heads=False, num_heads=10):
+    def __init__(self, ch_in, dim_y, dim_w, dim_z=512, use_multi_heads=False, num_heads=10):
         super().__init__()
-        self.use_z = use_z
         self.use_multi_heads = use_multi_heads
         self.num_heads = num_heads
         self.encoder = Encoder(ch_in, 1024)
@@ -398,14 +397,15 @@ class IIC(nn.Module):
         return mi_y, mi_w
 
     def get_params(self, x):
-        qz, qz_ = self.embedding(x)
+        assert not self.training
+        qz, qz_ = self.embedding(x, z_detach=False)
         y, w = self.clustering(qz)
         y_, w_ = self.clustering(qz_)
         py = self.proba(y, y_)
         pw = self.proba(w, w_)
         return qz, y, w, py, pw
 
-    def embedding(self, x, z_detach=True):
+    def embedding(self, x, z_detach=False):
         z2, z1, _ = self.qz_x(x)
         if z_detach:
             z1, z2 = z1.detach(), z2.detach()
