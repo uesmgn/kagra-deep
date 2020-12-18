@@ -117,7 +117,7 @@ def main(args):
         model.train()
         total = 0
         total_dict = defaultdict(lambda: 0)
-        for i, (x, _) in tqdm(unlabeled_loader):
+        for (x, _) in tqdm(unlabeled_loader):
             x = x.to(device)
             mi_x, mi_v = model(x, z_detach=args.iic_detach, lam=args.lam)
             (x_, y) = next(labeled_loader)
