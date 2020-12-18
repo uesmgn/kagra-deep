@@ -432,7 +432,7 @@ class IIC(nn.Module):
                 y, w = F.softmax(fc1(x), dim=-1), F.softmax(fc2(x), dim=-1)
                 yy.append(y)
                 ww.append(w)
-            return torch.stack(yy, dim=1), torch.stack(ww, dim=1)
+            return torch.stack(yy, dim=-1), torch.stack(ww, dim=-1)
         else:
             y, w = F.softmax(self.fc1(x), dim=-1), F.softmax(self.fc2(x), dim=-1)
             return y, w

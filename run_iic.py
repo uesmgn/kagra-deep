@@ -144,8 +144,8 @@ def main(args):
                     num_samples += x.shape[0]
 
             y = torch.cat(params["y"]).numpy().astype(int)
-            y_pred = torch.cat(params["y"]).numpy().astype(int)
-            w_pred = torch.cat(params["y"]).numpy().astype(int)
+            y_pred = torch.cat(params["y_pred"]).numpy().astype(int)
+            w_pred = torch.cat(params["w_pred"]).numpy().astype(int)
             y_hyp = torch.cat(params["y_pi"]).view(num_samples, -1)
             w_hyp = torch.cat(params["w_pi"]).view(num_samples, -1)
             y_proba = torch.stack(params["y_proba"], -1).sum(-1).numpy()
