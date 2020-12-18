@@ -5,8 +5,9 @@ import re
 import warnings
 import matplotlib.colors as mc
 import colorsys
+import matplotlib.pyplot as plt
 
-__all__ = ["cosine_similarity", "normalize", "pca", "colormap", "darken", "acronym", "to_device", "flatten", "tensordict"]
+__all__ = ["cosine_similarity", "normalize", "pca", "cwm", "darken", "acronym", "to_device", "flatten", "tensordict"]
 
 
 def cosine_similarity(x):
@@ -30,48 +31,12 @@ def pca(x, k, center=True):
     return components
 
 
-def colormap(i):
-    colors = [
-        "#5A5156",
-        "#E4E1E3",
-        "#F6222E",
-        "#FE00FA",
-        "#16FF32",
-        "#3283FE",
-        "#FEAF16",
-        "#B00068",
-        "#1CFFCE",
-        "#90AD1C",
-        "#2ED9FF",
-        "#DEA0FD",
-        "#AA0DFE",
-        "#F8A19F",
-        "#325A9B",
-        "#C4451C",
-        "#1C8356",
-        "#85660D",
-        "#B10DA1",
-        "#FBE426",
-        "#1CBE4F",
-        "#FA0087",
-        "#FC1CBF",
-        "#F7E1A0",
-        "#C075A6",
-        "#782AB6",
-        "#AAF400",
-        "#BDCDFF",
-        "#822E1C",
-        "#B5EFB5",
-        "#7ED7D1",
-        "#1C7F93",
-        "#D85FF7",
-        "#683B79",
-        "#66B0FF",
-        "#3B00FB",
-    ]
-
-    i = i % len(colors)
-    return colors[i]
+def cwm(i):
+    colors = plt.cm.get_cmap("tab20").colors
+    markers = "o^s*x"
+    c = colors[i % 20]
+    m = markers[int(i / 20)]
+    return c, m
 
 
 def darken(c, amount=0.5):

@@ -14,7 +14,7 @@ from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 from sklearn import cluster as cl
 
-from src.utils.functional import acronym, darken, colormap, pca, cosine_similarity
+from src.utils.functional import acronym, darken, cwm, pca, cosine_similarity
 from src.utils import transforms
 from src.data import datasets
 from src.data import samplers
@@ -247,8 +247,8 @@ def main(args):
                 for i in range(args.num_classes):
                     idx = np.where(y == i)[0]
                     if len(idx) > 0:
-                        c = colormap(i)
-                        plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
+                        c, m = cwm(i)
+                        plt.scatter(qz[idx, 0], qz[idx, 1], c=c, marker=m, label=targets[i], edgecolors=darken(c))
                 plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
                 plt.title(r"$q(\bm{z})$ at epoch %d" % (epoch))
                 plt.tight_layout()
@@ -259,8 +259,8 @@ def main(args):
                 for i in range(args.num_pred_classes):
                     idx = np.where(y_pred_ens == i)[0]
                     if len(idx) > 0:
-                        c = colormap(i)
-                        plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=i, edgecolors=darken(c))
+                        c, m = cwm(i)
+                        plt.scatter(qz[idx, 0], qz[idx, 1], c=c, marker=m, label=i, edgecolors=darken(c))
                 plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
                 plt.title(r"$q(\bm{z})$ ensembled at epoch %d" % (epoch))
                 plt.tight_layout()
@@ -283,8 +283,8 @@ def main(args):
                     for i in np.unique(y):
                         idx = np.where(y_pred[:, j] == i)[0]
                         if len(idx) > 0:
-                            c = colormap(i)
-                            plt.scatter(qz[idx, 0], qz[idx, 1], c=c, label=i, edgecolors=darken(c))
+                            c, m = cwm(i)
+                            plt.scatter(qz[idx, 0], qz[idx, 1], c=c, marker=m, label=i, edgecolors=darken(c))
                     plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
                     plt.title(r"$q(\bm{z})$ labeled by head %d at epoch %d" % (j, epoch))
                     plt.tight_layout()
