@@ -64,12 +64,15 @@ class HDF5(data.Dataset):
 
     def split(self, train_size=0.7, stratify=None):
         idx = list(range(len(self)))
-        train_idx, test_idx = train_test_split(
-            idx, train_size=train_size, random_state=123, stratify=stratify
-        )
+        train_idx, test_idx = train_test_split(idx, train_size=train_size, random_state=123, stratify=stratify)
         train_set = copy.copy(self).__select_indices(train_idx)
         test_set = copy.copy(self).__select_indices(test_idx)
         return train_set, test_set
+
+    def sample(self, num_samples=1000, stratify=None):
+        idx = list(range(len(self)))
+        sample_idx, _ = train_test_split(idx, train_size=num_samples, random_state=123, stratify=stratify)
+        return copy.copy(self).__select_indices(sample_idx)
 
     def __getitem__(self, i):
         ref, target = self.__cache[i]
