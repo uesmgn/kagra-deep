@@ -124,32 +124,40 @@ def main(args):
         if epoch % args.eval_interval == 0:
             print(f"----- evaluating at epoch {epoch} -----")
             model.eval()
-            params = defaultdict(lambda: torch.tensor([]))
-            params["y_proba"] = torch.zeros(args.num_classes, args.num_classes)
-            params["w_proba"] = torch.zeros(args.dim_w, args.dim_w)
+            params = defaultdict(list)
             indices = torch.tensor([]).long()
+            num_samples = 0
             with torch.no_grad():
                 for i, (x, y) in tqdm(enumerate(test_loader)):
                     x = x.to(device)
-                    qz, y, w, y_proba, w_proba = model.get_params(x)
-                    y_pred = torch.argmax(y, -1)
-                    w_pred = torch.argmax(w, -1)
-                    print(y_proba.shape)
-                    print(w_proba.shape)
+                    qz, y_pi, w_pi, y_proba, w_proba = model.get_params(x)
+                    y_pred = torch.argmax(y_pi, -1)
+                    w_pred = torch.argmax(w_pi, -1)
 
-                    params["y"] = torch.cat([params["y"], y])
-                    params["y_pred"] = torch.cat([params["y_pred"], y_pred.cpu()])
-                    params["w_pred"] = torch.cat([params["w_pred"], w_pred.cpu()])
-                    params["y_pi"] = torch.cat([params["y_pi"], y_pi.cpu()])
-                    params["w_pi"] = torch.cat([params["w_pi"], w_pi.cpu()])
-                    params["y_proba"] += y_proba.cpu()
-                    params["w_proba"] += w_proba.cpu()
+                    params["y"].append(y)
+                    params["y_pred"].append(y_pred.cpu())
+                    params["w_pred"].append(w_pred.cpu())
+                    params["y_pi"].append(y_pi.cpu())
+                    params["w_pi"].append(w_pi.cpu())
+                    params["y_proba"].append(y_proba.cpu())
+                    params["w_proba"].append(w_proba.cpu())
+                    num_samples += x.shape[0]
 
-            y = params["y"].numpy().astype(int)
-            y_pred = params["y_pred"].numpy().astype(int)
-            w_pred = params["w_pred"].numpy().astype(int)
-            y_hyp = params["y_pi"].view(params["y_pi"].shape[0], -1)
-            w_hyp = params["w_pi"].view(params["w_pi"].shape[0], -1)
+            y = torch.cat(params["y"]).numpy().astype(int)
+            y_pred = torch.cat(params["y"]).numpy().astype(int)
+            w_pred = torch.cat(params["y"]).numpy().astype(int)
+            y_pi = torch.cat(params["y_pi"]).view(num_samples, -1)
+            w_pi = torch.cat(params["w_pi"]).view(num_samples, -1)
+            y_proba = torch.stack(params["y_proba"], -1).sum(-1).numpy()
+            w_proba = torch.stack(params["w_proba"], -1).sum(-1).numpy()
+
+            plt.imshow(y_proba)
+            plt.savefig(f"y_proba_e{epoch}.png")
+            plt.close()
+
+            plt.imshow(w_proba)
+            plt.savefig(f"w_proba_e{epoch}.png")
+            plt.close()
 
             if epoch > 0:
                 plt.rcParams["text.usetex"] = False
