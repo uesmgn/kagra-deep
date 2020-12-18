@@ -152,16 +152,6 @@ def main(args):
             y_proba = torch.stack(params["y_proba"], -1).sum(-1).numpy()
             w_proba = torch.stack(params["w_proba"], -1).sum(-1).numpy()
 
-            plt.rcParams["text.usetex"] = True
-
-            plt.imshow(y_proba)
-            plt.savefig(f"y_proba_e{epoch}.png")
-            plt.close()
-
-            plt.imshow(w_proba)
-            plt.savefig(f"w_proba_e{epoch}.png")
-            plt.close()
-
             if epoch > 0:
                 plt.rcParams["text.usetex"] = False
                 for key, value in stats.items():
@@ -174,6 +164,20 @@ def main(args):
                     plt.tight_layout()
                     plt.savefig(f"loss_{key}_e{epoch}.png")
                     plt.close()
+
+            plt.rcParams["text.usetex"] = True
+
+            plt.imshow(y_proba)
+            plt.title("y_proba at epoch %d" % epoch)
+            plt.tight_layout()
+            plt.savefig(f"y_proba_e{epoch}.png")
+            plt.close()
+
+            plt.imshow(w_proba)
+            plt.title("w_proba at epoch %d" % epoch)
+            plt.tight_layout()
+            plt.savefig(f"w_proba_e{epoch}.png")
+            plt.close()
 
             w_simmat = cosine_similarity(w_hyp)
             fig = plt.figure(dpi=500)
