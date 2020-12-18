@@ -215,6 +215,12 @@ class Px_z(nn.Module):
         return x
 
 
+def focal_loss(x, target, gamma=2, weight=None):
+    ce = F.cross_entropy(x, target, weight=weight)
+    pt = torch.exp(-ce)
+    return (1 - pt).pow(gamma) * ce
+
+
 class M1(nn.Module):
     def __init__(
         self,
@@ -379,7 +385,7 @@ class IIC(nn.Module):
                 except:
                     continue
 
-    def forward(self, x, y=None, z_detach=False, lam=1.0):
+    def forward(self, x, target=None, z_detach=False, lam=1.0):
         z1, z2 = self.embedding(x, z_detach)
         ce = 0
         if self.use_multi_heads:
@@ -391,7 +397,7 @@ class IIC(nn.Module):
                 mi_y += self.mutual_info(y1, y2, lam=lam) / self.use_multi_heads
                 mi_w += self.mutual_info(w1, w2, lam=lam) / self.use_multi_heads
                 if y is not None:
-                    ce += F.cross_entropy(y1, y, reduction="sum")
+                    ce += focal_loss(y1, target).sum()
 
         else:
             y1, w1 = F.softmax(self.fc1(z1), dim=-1), F.softmax(self.fc2(z1), dim=-1)
@@ -400,7 +406,7 @@ class IIC(nn.Module):
             mi_y = self.mutual_info(y1, y2, lam=lam)
             mi_w = self.mutual_info(w1, w2, lam=lam)
             if y is not None:
-                ce += F.cross_entropy(y1, y, reduction="sum")
+                ce += focal_loss(y1, target).sum()
         if y is not None:
             return mi_y, mi_w, ce
         return mi_y, mi_w
