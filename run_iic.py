@@ -152,6 +152,8 @@ def main(args):
             y_proba = torch.stack(params["y_proba"], -1).sum(-1).numpy()
             w_proba = torch.stack(params["w_proba"], -1).sum(-1).numpy()
 
+            plt.rcParams["text.usetex"] = True
+
             plt.imshow(y_proba)
             plt.savefig(f"y_proba_e{epoch}.png")
             plt.close()
@@ -172,8 +174,6 @@ def main(args):
                     plt.tight_layout()
                     plt.savefig(f"loss_{key}_e{epoch}.png")
                     plt.close()
-
-            plt.rcParams["text.usetex"] = True
 
             w_simmat = cosine_similarity(w_hyp)
             fig = plt.figure(dpi=500)
