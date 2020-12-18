@@ -31,7 +31,7 @@ def seriation(Z, N, cur_index):
         return seriation(Z, N, left) + seriation(Z, N, right)
 
 
-def compute_serial_matrix(dist_mat, method="ward"):
+def compute_serial_matrix(X, method="ward"):
     """
     input:
         - dist_mat is a distance matrix
@@ -49,6 +49,7 @@ def compute_serial_matrix(dist_mat, method="ward"):
     a sorted distance matrix according to the order implied
     by the hierarchical tree (dendrogram)
     """
+    dist_mat = squareform(pdist(X))
     N = len(dist_mat)
     flat_dist_mat = squareform(dist_mat)
     res_linkage = linkage(flat_dist_mat, method=method, preserve_input=True)

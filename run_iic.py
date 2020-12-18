@@ -191,7 +191,7 @@ def main(args):
             plt.savefig(f"w_simmat_e{epoch}.png")
             plt.close()
 
-            w_simmat_reordered, _, _ = compute_serial_matrix(dist_mat, "complete")
+            w_simmat_reordered, _, _ = compute_serial_matrix(w_simmat, "complete")
             plt.imshow(w_simmat_reordered)
             plt.title("cosine similarity matrix reordered at epoch %d" % epoch)
             plt.tight_layout()
@@ -254,8 +254,8 @@ def main(args):
 
                 # latent features
                 qz = torch.cat(params["qz"]).numpy()
-                # qz = TSNE(n_components=2, random_state=args.seed, n_jobs=-1).fit_transform(qz)
-                qz = umap.UMAP(n_components=2, random_state=args.seed).fit(qz).embedding_
+                qz = TSNE(n_components=2, metric="cosine", random_state=args.seed, n_jobs=-1).fit_transform(qz)
+                # qz = umap.UMAP(n_components=2, random_state=args.seed).fit(qz).embedding_
 
                 plt.figure()
                 for i in range(args.num_classes):
