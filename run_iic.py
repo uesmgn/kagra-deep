@@ -59,8 +59,8 @@ def main(args):
     targets = np.array([acronym(target) for target in args.targets])
 
     dataset = datasets.HDF5(args.dataset_root, transform_fn, target_transform_fn)
-    sample_indices = random.sample(range(len(test_set)), 5)
     train_set, test_set = copy.copy(dataset), copy.copy(dataset)
+    sample_indices = random.sample(range(len(test_set)), 5)
     # train_set, test_set = dataset.split(train_size=args.train_size, stratify=dataset.targets)
     train_set.transform = augment_fn
     # train_sampler = samplers.Balancer(train_set, args.batch_size * args.num_train_steps)
