@@ -120,9 +120,9 @@ def main(args):
         for (x, _) in tqdm(unlabeled_loader):
             x = x.to(device)
             mi_x, mi_v = model(x, z_detach=args.iic_detach, lam=args.lam)
-            (x_, y) = next(labeled_loader)
-            x_, y = x_.to(device), y.to(device)
-            mi_x_, mi_v_, ce = model(x_, y=y, z_detach=args.iic_detach, lam=args.lam)
+            (x_, target) = next(labeled_loader)
+            x_, target = x_.to(device), target.to(device)
+            mi_x_, mi_v_, ce = model(x_, target=target, z_detach=args.iic_detach, lam=args.lam)
             loss = sum([mi_x, mi_v, mi_x_, mi_v_, 100.0 * ce])
             optim.zero_grad()
             loss.backward()
