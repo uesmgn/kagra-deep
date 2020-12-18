@@ -8,6 +8,7 @@ import numbers
 from tqdm import tqdm
 import umap
 from itertools import cycle
+import os
 
 from src.utils.functional import acronym, darken, colormap
 from src.utils import transforms
