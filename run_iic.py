@@ -9,6 +9,7 @@ from tqdm import tqdm
 import umap
 import random
 import os
+import copy
 from sklearn.manifold import TSNE
 
 from src.utils.functional import acronym, darken, colormap, pca, cosine_similarity
@@ -58,17 +59,19 @@ def main(args):
     targets = np.array([acronym(target) for target in args.targets])
 
     dataset = datasets.HDF5(args.dataset_root, transform_fn, target_transform_fn)
-    train_set, test_set = dataset.split(train_size=args.train_size, stratify=dataset.targets)
     sample_indices = random.sample(range(len(test_set)), 5)
+    train_set, test_set = copy.copy(dataset), copy.copy(dataset)
+    # train_set, test_set = dataset.split(train_size=args.train_size, stratify=dataset.targets)
     train_set.transform = augment_fn
     # train_sampler = samplers.Balancer(train_set, args.batch_size * args.num_train_steps)
-    train_sampler = samplers.Upsampler(train_set, args.batch_size * args.num_train_steps)
+    def sampler_callback(ds, num_samples):
+        return samplers.Upsampler(ds, num_samples)
 
     train_loader = torch.utils.data.DataLoader(
         train_set,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
-        sampler=train_sampler,
+        sampler=sampler_callback(train_set, args.batch_size * args.num_train_steps),
         pin_memory=True,
         drop_last=True,
     )
@@ -93,10 +96,10 @@ def main(args):
     ).to(device)
 
     if args.load_state_dict:
-        model.load_state_dict_part(torch.load(os.path.join(args.model_dir, "model.pt")))
+        model.load_state_dict_part(torch.load(os.path.join(args.model_dir, "model_m1_usl.pt")))
 
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=2, T_mult=2)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=10, T_mult=2)
     stats = defaultdict(lambda: [])
 
     for epoch in range(args.num_epochs):
