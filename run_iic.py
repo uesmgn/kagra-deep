@@ -12,6 +12,7 @@ import os
 import copy
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
+from sklearn import cluster as cl
 
 from src.utils.functional import acronym, darken, colormap, pca, cosine_similarity
 from src.utils import transforms
@@ -25,7 +26,6 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 from sklearn.preprocessing import normalize
 import seaborn as sns
-from torchcluster.zoo.spectrum import SpectrumClustering
 
 
 plt.style.use("seaborn-poster")
@@ -210,7 +210,7 @@ def main(args):
 
             # y_hyp = torch.mm(y_hyp, y_hyp.transpose(0, 1))
             w_hyp = PCA(n_components=64, random_state=args.seed).fit_transform(w_hyp)
-            y_pred_ens, _ = SpectrumClustering(args.num_pred_classes)(w_hyp)
+            y_pred_ens, _ = cl.SpectrumClustering(n_clusters=args.num_pred_classes, random_state=args.seed, n_jobs=-1)(w_hyp)
 
             plt.figure()
             cm = confusion_matrix(y, y_pred_ens, labels=np.arange(args.num_pred_classes))
