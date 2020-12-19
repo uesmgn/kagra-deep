@@ -163,10 +163,9 @@ def main(args):
             w_simmat_reordered, indices_reordered, _ = compute_serial_matrix(w_simmat, "complete")
             # y_hyp = torch.mm(y_hyp, y_hyp.transpose(0, 1))
             # w_hyp = PCA(n_components=64, random_state=args.seed).fit_transform(w_simmat)
-            print(w_simmat.shape)
             _, eigv = np.linalg.eigh(w_simmat)
-            print(eigv.shape)
-            y_pred_ens = cl.SpectralClustering(n_clusters=args.num_pred_classes, random_state=args.seed, n_jobs=-1).fit(eigv)
+            eigv = eigv[:, -8:]
+            y_pred_ens = cl.SpectralClustering(n_clusters=args.num_pred_classes, random_state=args.seed, n_jobs=-1).fit_predict(eigv)
             y_pred_ens_reordered = y_pred_ens[indices_reordered]
 
             plt.rcParams["text.usetex"] = False
