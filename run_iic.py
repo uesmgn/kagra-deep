@@ -158,6 +158,14 @@ def main(args):
             y_proba = torch.stack(params["y_proba"], -1).sum(-1).numpy()
             w_proba = torch.stack(params["w_proba"], -1).sum(-1).numpy()
 
+            w_simmat = cosine_similarity(w_hyp)
+            w_simmat_reordered, indices_reordered, _ = compute_serial_matrix(w_simmat, "complete")
+            # y_hyp = torch.mm(y_hyp, y_hyp.transpose(0, 1))
+            w_hyp = PCA(n_components=64, random_state=args.seed).fit_transform(w_hyp)
+            y_pred_ens = cl.SpectralClustering(n_clusters=args.num_pred_classes, random_state=args.seed, n_jobs=-1).fit_predict(w_hyp)
+            y_pred_ens_reordered = y_pred_ens[indices_reordered]
+            print(y_pred_ens_reordered)
+
             plt.rcParams["text.usetex"] = False
 
             if epoch > 0:
@@ -186,8 +194,6 @@ def main(args):
             plt.savefig(f"w_proba_e{epoch}.png", transparent=True)
             plt.close()
 
-            w_simmat = cosine_similarity(w_hyp)
-
             plt.figure()
             plt.imshow(w_simmat)
             plt.title("cosine similarity matrix at epoch %d" % epoch)
@@ -195,7 +201,6 @@ def main(args):
             plt.savefig(f"w_simmat_e{epoch}.png", transparent=True)
             plt.close()
 
-            w_simmat_reordered, _, _ = compute_serial_matrix(w_simmat, "complete")
             plt.imshow(w_simmat_reordered)
             plt.title("cosine similarity matrix reordered at epoch %d" % epoch)
             plt.tight_layout()
@@ -226,10 +231,6 @@ def main(args):
             plt.tight_layout()
             plt.savefig(f"simrank_e{epoch}.png", transparent=True)
             plt.close()
-
-            # y_hyp = torch.mm(y_hyp, y_hyp.transpose(0, 1))
-            w_hyp = PCA(n_components=64, random_state=args.seed).fit_transform(w_hyp)
-            y_pred_ens = cl.SpectralClustering(n_clusters=args.num_pred_classes, random_state=args.seed, n_jobs=-1).fit_predict(w_hyp)
 
             plt.figure(dpi=500)
             cm = confusion_matrix(y, y_pred_ens, labels=np.arange(args.num_pred_classes))
