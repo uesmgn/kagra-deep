@@ -9,7 +9,18 @@ import matplotlib.pyplot as plt
 from scipy.spatial.distance import pdist, squareform
 from fastcluster import linkage
 
-__all__ = ["cosine_similarity", "normalize", "pca", "cmap", "darken", "acronym", "to_device", "flatten", "tensordict", "compute_serial_matrix"]
+__all__ = [
+    "cosine_similarity",
+    "normalize",
+    "pca",
+    "cmap_with_marker",
+    "darken",
+    "acronym",
+    "to_device",
+    "flatten",
+    "tensordict",
+    "compute_serial_matrix",
+]
 
 
 def seriation(Z, N, cur_index):
@@ -83,12 +94,11 @@ def pca(x, k, center=True):
     return components
 
 
-def cmap(i=None):
-    cm = mc.ListedColormap(np.random.permutation(mc.CSS4_COLORS.values()))
-    try:
-        return cm(i)
-    except:
-        return cm
+def cmap_with_marker(i, cmap="tab20b", markers="o^sx*"):
+    cmap = plt.cm.get_cmap(cmap)
+    c = cmap.colors[i % cmap.N]
+    m = markers[int(i / cmap.N)]
+    return c, m
 
 
 def darken(c, amount=0.5):
