@@ -164,7 +164,7 @@ def main(args):
             # y_hyp = torch.mm(y_hyp, y_hyp.transpose(0, 1))
             # w_hyp = PCA(n_components=64, random_state=args.seed).fit_transform(w_simmat)
             _, eigv = np.linalg.eigh(w_simmat)
-            eigv = eigv[:, -8:]
+            eigv = eigv[:, -64:]
 
             y_pred_sc = cl.SpectralClustering(n_clusters=args.num_pred_classes, random_state=args.seed, n_jobs=-1).fit(eigv).labels_
             y_pred_db = cl.DBSCAN(eps=0.2, n_jobs=-1).fit(eigv).labels_
