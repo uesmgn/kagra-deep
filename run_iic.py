@@ -14,7 +14,7 @@ from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 from sklearn import cluster as cl
 
-from src.utils.functional import acronym, darken, cwm, pca, cosine_similarity, compute_serial_matrix
+from src.utils.functional import acronym, darken, cmap, pca, cosine_similarity, compute_serial_matrix
 from src.utils import transforms
 from src.data import datasets
 from src.data import samplers
@@ -195,7 +195,7 @@ def main(args):
             plt.close()
 
             fig = plt.figure(dpi=200)
-            axs = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0.0)
+            axs = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0)
             axs[0].imshow(w_simmat, aspect=1)
             axs[0].axis("off")
             axs[1].imshow(y_pred_ens, cmap=cmap, aspect=200)
@@ -205,7 +205,7 @@ def main(args):
             plt.close()
 
             fig = plt.figure(dpi=200)
-            axs = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0.0)
+            axs = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0)
             axs[0].imshow(w_simmat_reordered, aspect=1)
             axs[0].axis("off")
             axs[1].imshow(y_pred_ens_reordered, cmap=cmap, aspect=200)
@@ -273,8 +273,8 @@ def main(args):
                 for i in range(args.num_classes):
                     idx = np.where(y == i)[0]
                     if len(idx) > 0:
-                        c, m = cwm(i)
-                        plt.scatter(qz[idx, 0], qz[idx, 1], color=c, marker=m, label=targets[i], edgecolors=darken(c))
+                        c = cmap(i)
+                        plt.scatter(qz[idx, 0], qz[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
                 plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
                 plt.title(r"$q(\bm{z})$ at epoch %d" % (epoch))
                 plt.tight_layout()
@@ -285,8 +285,8 @@ def main(args):
                 for i in range(args.num_pred_classes):
                     idx = np.where(y_pred_ens == i)[0]
                     if len(idx) > 0:
-                        c, m = cwm(i)
-                        plt.scatter(qz[idx, 0], qz[idx, 1], color=c, marker=m, label=i, edgecolors=darken(c))
+                        c = cmap(i)
+                        plt.scatter(qz[idx, 0], qz[idx, 1], color=c, label=i, edgecolors=darken(c))
                 plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
                 plt.title(r"$q(\bm{z})$ ensembled at epoch %d" % (epoch))
                 plt.tight_layout()
@@ -309,8 +309,8 @@ def main(args):
                     for i in np.unique(y):
                         idx = np.where(y_pred[:, j] == i)[0]
                         if len(idx) > 0:
-                            c, m = cwm(i)
-                            plt.scatter(qz[idx, 0], qz[idx, 1], color=c, marker=m, label=i, edgecolors=darken(c))
+                            c = cmap(i)
+                            plt.scatter(qz[idx, 0], qz[idx, 1], color=c, label=i, edgecolors=darken(c))
                     plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
                     plt.title(r"$q(\bm{z})$ labeled by head %d at epoch %d" % (j, epoch))
                     plt.tight_layout()
