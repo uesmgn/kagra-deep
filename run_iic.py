@@ -167,7 +167,7 @@ def main(args):
             eigv = eigv[:, -64:]
 
             y_pred_sc = cl.SpectralClustering(n_clusters=args.num_pred_classes, random_state=args.seed, n_jobs=-1).fit(eigv).labels_
-            y_pred_db = cl.DBSCAN(eps=0.2, n_jobs=-1).fit(eigv).labels_
+            y_pred_db = cl.DBSCAN(eps=0.1, n_jobs=-1).fit(eigv).labels_
 
             plt.rcParams["text.usetex"] = False
 
