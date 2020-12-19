@@ -26,6 +26,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 from sklearn.preprocessing import normalize
 import seaborn as sns
+from mpl_toolkits.axes_grid1 import ImageGrid
 
 
 plt.style.use("dark_background")
@@ -164,7 +165,6 @@ def main(args):
             w_hyp = PCA(n_components=64, random_state=args.seed).fit_transform(w_hyp)
             y_pred_ens = cl.SpectralClustering(n_clusters=args.num_pred_classes, random_state=args.seed, n_jobs=-1).fit_predict(w_hyp)
             y_pred_ens_reordered = y_pred_ens[indices_reordered]
-            print(y_pred_ens_reordered)
 
             plt.rcParams["text.usetex"] = False
 
@@ -194,16 +194,23 @@ def main(args):
             plt.savefig(f"w_proba_e{epoch}.png", transparent=True)
             plt.close()
 
-            plt.figure()
-            plt.imshow(w_simmat)
-            plt.title("cosine similarity matrix at epoch %d" % epoch)
-            plt.tight_layout()
+            fig = plt.figure(dpi=200)
+            axs = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0.0)
+            axs[0].imshow(w_simmat, aspect=1)
+            axs[0].axis("off")
+            axs[1].imshow(y_pred_ens, cmap=cmap, aspect=200)
+            axs[1].axis("off")
+            fig.suptitle("cosine similarity matrix reordered at epoch %d" % epoch)
             plt.savefig(f"w_simmat_e{epoch}.png", transparent=True)
             plt.close()
 
-            plt.imshow(w_simmat_reordered)
-            plt.title("cosine similarity matrix reordered at epoch %d" % epoch)
-            plt.tight_layout()
+            fig = plt.figure(dpi=200)
+            axs = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0.0)
+            axs[0].imshow(w_simmat_reordered, aspect=1)
+            axs[0].axis("off")
+            axs[1].imshow(y_pred_ens_reordered, cmap=cmap, aspect=200)
+            axs[1].axis("off")
+            fig.suptitle("cosine similarity matrix reordered at epoch %d" % epoch)
             plt.savefig(f"w_simmat_reordered_e{epoch}.png", transparent=True)
             plt.close()
 
