@@ -84,7 +84,7 @@ def pca(x, k, center=True):
 
 
 def cmap(i=None):
-    cm = mc.ListedColormap(mc.CSS4_COLORS.values())
+    cm = mc.ListedColormap(np.random.permutation(mc.CSS4_COLORS.values()))
     try:
         return cm(i)
     except:
