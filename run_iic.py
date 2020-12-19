@@ -199,7 +199,7 @@ def main(args):
 
             fig = plt.figure(dpi=200)
             axs = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0)
-            axs[0].imshow(w_simmat, aspect=1)
+            axs[0].imshow(w_simmat_reordered, aspect=1)
             axs[0].axis("off")
             axs[1].imshow(y_pred_sc[reordered][np.newaxis, :], aspect=200)
             axs[1].axis("off")
@@ -209,7 +209,7 @@ def main(args):
 
             fig = plt.figure(dpi=200)
             axs = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0)
-            axs[0].imshow(w_simmat, aspect=1)
+            axs[0].imshow(w_simmat_reordered, aspect=1)
             axs[0].axis("off")
             axs[1].imshow(y_pred_db[reordered][np.newaxis, :], aspect=200)
             axs[1].axis("off")
