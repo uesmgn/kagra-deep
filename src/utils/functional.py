@@ -83,8 +83,12 @@ def pca(x, k, center=True):
     return components
 
 
-def cmap(i):
-    return mc.ListedColormap(mc.CSS4_COLORS.values())
+def cmap(i=None):
+    cm = mc.ListedColormap(mc.CSS4_COLORS.values())
+    try:
+        return cm(i)
+    except:
+        return cm
 
 
 def darken(c, amount=0.5):
