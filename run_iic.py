@@ -160,13 +160,14 @@ def main(args):
             w_proba = torch.stack(params["w_proba"], -1).sum(-1).numpy()
 
             w_simmat = cosine_similarity(w_hyp)
-            w_simmat_reordered, indices_reordered, _ = compute_serial_matrix(w_simmat, "complete")
+            w_simmat_reordered, reordered, _ = compute_serial_matrix(w_simmat, "complete")
             # y_hyp = torch.mm(y_hyp, y_hyp.transpose(0, 1))
             # w_hyp = PCA(n_components=64, random_state=args.seed).fit_transform(w_simmat)
             _, eigv = np.linalg.eigh(w_simmat)
             eigv = eigv[:, -8:]
-            y_pred_ens = cl.SpectralClustering(n_clusters=args.num_pred_classes, random_state=args.seed, n_jobs=-1).fit_predict(eigv)
-            y_pred_ens_reordered = y_pred_ens[indices_reordered]
+
+            y_pred_sc = cl.SpectralClustering(n_clusters=args.num_pred_classes, random_state=args.seed, n_jobs=-1).fit(eigv).labels_
+            y_pred_db = cl.DBSCAN(n_jobs=-1).fit(eigv).labels_
 
             plt.rcParams["text.usetex"] = False
 
@@ -200,20 +201,20 @@ def main(args):
             axs = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0)
             axs[0].imshow(w_simmat, aspect=1)
             axs[0].axis("off")
-            axs[1].imshow(y_pred_ens[np.newaxis, :], aspect=200)
+            axs[1].imshow(y_pred_sc[reordered][np.newaxis, :], aspect=200)
             axs[1].axis("off")
-            fig.suptitle("cosine similarity matrix reordered at epoch %d" % epoch)
-            plt.savefig(f"w_simmat_e{epoch}.png", transparent=True)
+            fig.suptitle("cosine similarity matrix with SC clusters at epoch %d" % epoch)
+            plt.savefig(f"w_simmat_sc_e{epoch}.png", transparent=True)
             plt.close()
 
             fig = plt.figure(dpi=200)
             axs = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0)
-            axs[0].imshow(w_simmat_reordered, aspect=1)
+            axs[0].imshow(w_simmat, aspect=1)
             axs[0].axis("off")
-            axs[1].imshow(y_pred_ens_reordered[np.newaxis, :], aspect=200)
+            axs[1].imshow(y_pred_db[reordered][np.newaxis, :], aspect=200)
             axs[1].axis("off")
-            fig.suptitle("cosine similarity matrix reordered at epoch %d" % epoch)
-            plt.savefig(f"w_simmat_reordered_e{epoch}.png", transparent=True)
+            fig.suptitle("cosine similarity matrix with DBSCAN clusters at epoch %d" % epoch)
+            plt.savefig(f"w_simmat_db_e{epoch}.png", transparent=True)
             plt.close()
 
             plt.rcParams["text.usetex"] = True
@@ -242,82 +243,93 @@ def main(args):
             plt.close()
 
             plt.figure(dpi=500)
-            cm = confusion_matrix(y, y_pred_ens, labels=np.arange(args.num_pred_classes))
+            cm = confusion_matrix(y, y_pred_sc)
             cm = cm[: args.num_classes, :]
             cmn = normalize(cm, axis=0)
             sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
             plt.yticks(rotation=45)
-            plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ ensembled at epoch %d" % epoch)
+            plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ ensembled with SC at epoch %d" % epoch)
             plt.tight_layout()
-            plt.savefig(f"cm_y_qz_ensembled_e{epoch}.png", transparent=True)
+            plt.savefig(f"cm_y_qz_ensembled_sc_e{epoch}.png", transparent=True)
             plt.close()
 
-            for j in range(0, args.num_heads, 3):
-                plt.figure(dpi=500)
-                cm = confusion_matrix(y, y_pred[:, j], labels=np.arange(args.num_classes))
-                cm = cm[: args.num_classes, :]
-                cmn = normalize(cm, axis=0)
-                sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
-                plt.yticks(rotation=45)
-                plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ by head %d at epoch %d" % (j, epoch))
-                plt.tight_layout()
-                plt.savefig(f"cm_y_h{j}_e{epoch}.png", transparent=True)
-                plt.close()
+            plt.figure(dpi=500)
+            cm = confusion_matrix(y, y_pred_db)
+            cm = cm[: args.num_classes, :]
+            cmn = normalize(cm, axis=0)
+            sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
+            plt.yticks(rotation=45)
+            plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ ensembled with DBSCAN at epoch %d" % epoch)
+            plt.tight_layout()
+            plt.savefig(f"cm_y_qz_ensembled_db_e{epoch}.png", transparent=True)
+            plt.close()
 
-            if epoch % args.embedding_interval == 0:
+            # for j in range(0, args.num_heads, 3):
+            #     plt.figure(dpi=500)
+            #     cm = confusion_matrix(y, y_pred[:, j], labels=np.arange(args.num_classes))
+            #     cm = cm[: args.num_classes, :]
+            #     cmn = normalize(cm, axis=0)
+            #     sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
+            #     plt.yticks(rotation=45)
+            #     plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ by head %d at epoch %d" % (j, epoch))
+            #     plt.tight_layout()
+            #     plt.savefig(f"cm_y_h{j}_e{epoch}.png", transparent=True)
+            #     plt.close()
 
-                # latent features
-                qz = torch.cat(params["qz"]).numpy()
-                qz = TSNE(n_components=2, metric="cosine", random_state=args.seed, n_jobs=-1).fit_transform(qz)
-                # qz = umap.UMAP(n_components=2, random_state=args.seed).fit(qz).embedding_
+        # if epoch % args.embedding_interval == 0:
+        #
+        #     # latent features
+        #     qz = torch.cat(params["qz"]).numpy()
+        #     qz = TSNE(n_components=2, metric="cosine", random_state=args.seed, n_jobs=-1).fit_transform(qz)
+        #     # qz = umap.UMAP(n_components=2, random_state=args.seed).fit(qz).embedding_
+        #
+        #     plt.figure()
+        #     for i in range(args.num_classes):
+        #         idx = np.where(y == i)[0]
+        #         if len(idx) > 0:
+        #             c, m = cmap_with_marker(i)
+        #             plt.scatter(qz[idx, 0], qz[idx, 1], color=c, marker=m, label=targets[i], edgecolors=darken(c))
+        #     plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
+        #     plt.title(r"$q(\bm{z})$ at epoch %d" % (epoch))
+        #     plt.tight_layout()
+        #     plt.savefig(f"qz_true_e{epoch}.png", transparent=True)
+        #     plt.close()
 
-                plt.figure()
-                for i in range(args.num_classes):
-                    idx = np.where(y == i)[0]
-                    if len(idx) > 0:
-                        c, m = cmap_with_marker(i)
-                        plt.scatter(qz[idx, 0], qz[idx, 1], color=c, marker=m, label=targets[i], edgecolors=darken(c))
-                plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-                plt.title(r"$q(\bm{z})$ at epoch %d" % (epoch))
-                plt.tight_layout()
-                plt.savefig(f"qz_true_e{epoch}.png", transparent=True)
-                plt.close()
+        # plt.figure()
+        # for i in range(args.num_pred_classes):
+        #     idx = np.where(y_pred_ens == i)[0]
+        #     if len(idx) > 0:
+        #         c, m = cmap_with_marker(i)
+        #         plt.scatter(qz[idx, 0], qz[idx, 1], color=c, marker=m, label=i, edgecolors=darken(c))
+        # plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
+        # plt.title(r"$q(\bm{z})$ ensembled at epoch %d" % (epoch))
+        # plt.tight_layout()
+        # plt.savefig(f"qz_ensembled_e{epoch}.png", transparent=True)
+        # plt.close()
 
-                plt.figure()
-                for i in range(args.num_pred_classes):
-                    idx = np.where(y_pred_ens == i)[0]
-                    if len(idx) > 0:
-                        c, m = cmap_with_marker(i)
-                        plt.scatter(qz[idx, 0], qz[idx, 1], color=c, marker=m, label=i, edgecolors=darken(c))
-                plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-                plt.title(r"$q(\bm{z})$ ensembled at epoch %d" % (epoch))
-                plt.tight_layout()
-                plt.savefig(f"qz_ensembled_e{epoch}.png", transparent=True)
-                plt.close()
-
-                # plt.figure()
-                # cm = confusion_matrix(y, w_pred[:, j], labels=np.arange(args.dim_w))
-                # cm = cm[: args.num_classes, :]
-                # cmn = normalize(cm, axis=0) * normalize(cm, axis=1)
-                # sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
-                # plt.yticks(rotation=45)
-                # plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{w})$ by head %d at epoch %d" % (j, epoch))
-                # plt.tight_layout()
-                # plt.savefig(f"cm_w_h{j}_e{epoch}.png")
-                # plt.close()
-
-                for j in range(0, args.num_heads, 3):
-                    plt.figure()
-                    for i in np.unique(y):
-                        idx = np.where(y_pred[:, j] == i)[0]
-                        if len(idx) > 0:
-                            c, m = cmap_with_marker(i)
-                            plt.scatter(qz[idx, 0], qz[idx, 1], color=c, marker=m, label=i, edgecolors=darken(c))
-                    plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-                    plt.title(r"$q(\bm{z})$ labeled by head %d at epoch %d" % (j, epoch))
-                    plt.tight_layout()
-                    plt.savefig(f"qz_h{j}_e{epoch}.png", transparent=True)
-                    plt.close()
+        # plt.figure()
+        # cm = confusion_matrix(y, w_pred[:, j], labels=np.arange(args.dim_w))
+        # cm = cm[: args.num_classes, :]
+        # cmn = normalize(cm, axis=0) * normalize(cm, axis=1)
+        # sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
+        # plt.yticks(rotation=45)
+        # plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{w})$ by head %d at epoch %d" % (j, epoch))
+        # plt.tight_layout()
+        # plt.savefig(f"cm_w_h{j}_e{epoch}.png")
+        # plt.close()
+        #
+        # for j in range(0, args.num_heads, 3):
+        #     plt.figure()
+        #     for i in np.unique(y):
+        #         idx = np.where(y_pred[:, j] == i)[0]
+        #         if len(idx) > 0:
+        #             c, m = cmap_with_marker(i)
+        #             plt.scatter(qz[idx, 0], qz[idx, 1], color=c, marker=m, label=i, edgecolors=darken(c))
+        #     plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
+        #     plt.title(r"$q(\bm{z})$ labeled by head %d at epoch %d" % (j, epoch))
+        #     plt.tight_layout()
+        #     plt.savefig(f"qz_h{j}_e{epoch}.png", transparent=True)
+        #     plt.close()
 
         if epoch % args.save_interval == 0:
             torch.save(model.state_dict(), os.path.join(args.model_dir, "model_iic.pt"))
