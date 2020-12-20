@@ -15,7 +15,16 @@ from sklearn.decomposition import PCA
 from sklearn import cluster as cl
 import scipy.linalg
 
-from src.utils.functional import acronym, darken, cmap_with_marker, pca, cosine_similarity, compute_serial_matrix, sample_from_each_class
+from src.utils.functional import (
+    acronym,
+    darken,
+    cmap_with_marker,
+    pca,
+    cosine_similarity,
+    compute_serial_matrix,
+    sample_from_each_class,
+    segmented_cmap,
+)
 from src.utils import transforms
 from src.data import datasets
 from src.data import samplers
@@ -206,7 +215,7 @@ def main(args):
             axs = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0)
             axs[0].imshow(w_simmat_reordered, aspect=1)
             axs[0].axis("off")
-            axs[1].imshow(y_pred_sc[reordered][np.newaxis, :], aspect=500, cmap=plt.cm.get_cmap("tab20b"))
+            axs[1].imshow(y_pred_sc[reordered][np.newaxis, :], aspect=500, cmap=segmented_cmap(args.num_pred_classes, "tab20b"))
             axs[1].axis("off")
             fig.suptitle("cosine similarity matrix with SC clusters at epoch %d" % epoch)
             plt.savefig(f"w_simmat_sc_e{epoch}.png", transparent=True)

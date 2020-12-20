@@ -4,6 +4,7 @@ from collections import abc
 import re
 import warnings
 import matplotlib.colors as mc
+import matplotlib.cm as cmx
 import colorsys
 import matplotlib.pyplot as plt
 from scipy.spatial.distance import pdist, squareform
@@ -21,6 +22,7 @@ __all__ = [
     "tensordict",
     "compute_serial_matrix",
     "sample_from_each_class",
+    "segmented_cmap",
 ]
 
 
@@ -120,6 +122,30 @@ def cmap_with_marker(i, cmap="tab20b", markers="os^*p"):
     c = cmap.colors[i % cmap.N]
     m = markers[int(i / cmap.N)]
     return c, m
+
+
+def segmented_cmap(num_split=10, cmap=None):
+    if cmap is not None:
+        cm = plt.get_cmap(cmap)
+        norm = mc.Normalize(vmin=0, vmax=cm.N)
+        sm = cmx.ScalarMappable(norm=norm, cmap=cm)
+        tmp = []
+        for i in range(cm.N):
+            c = sm.to_rgba(i)
+            tmp.append(c)
+    else:
+        tmp = [
+            (0, 0, 0),
+            (0, 0, 1),
+            (0, 1, 1),
+            (0, 1, 0),
+            (1, 1, 0),
+            (1, 0, 0),
+            (1, 0, 1),
+            (1, 1, 1),
+        ]
+    cmap = mc.LinearSegmentedColormap.from_list("tab50", tmp, N=num_split)
+    return cmap
 
 
 def darken(c, amount=0.5):
