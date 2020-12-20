@@ -13,6 +13,7 @@ import copy
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 from sklearn import cluster as cl
+import scipy.linalg
 
 from src.utils.functional import acronym, darken, cmap_with_marker, pca, cosine_similarity, compute_serial_matrix
 from src.utils import transforms
@@ -144,31 +145,39 @@ def main(args):
                     params["y"].append(y)
                     params["y_pred"].append(y_pred.cpu())
                     params["w_pred"].append(w_pred.cpu())
-                    params["y_pi"].append(y_pi.cpu())
+                    # params["y_pi"].append(y_pi.cpu())
                     params["w_pi"].append(w_pi.cpu())
-                    params["y_proba"].append(y_proba.cpu())
-                    params["w_proba"].append(w_proba.cpu())
+                    # params["y_proba"].append(y_proba.cpu())
+                    # params["w_proba"].append(w_proba.cpu())
                     params["qz"].append(qz.cpu())
                     num_samples += x.shape[0]
 
             y = torch.cat(params["y"]).numpy().astype(int)
             y_pred = torch.cat(params["y_pred"]).numpy().astype(int)
             w_pred = torch.cat(params["w_pred"]).numpy().astype(int)
-            y_hyp = torch.cat(params["y_pi"]).view(num_samples, -1)
+            # y_hyp = torch.cat(params["y_pi"]).view(num_samples, -1)
             w_hyp = torch.cat(params["w_pi"]).view(num_samples, -1)
-            y_proba = torch.stack(params["y_proba"], -1).sum(-1).numpy()
-            w_proba = torch.stack(params["w_proba"], -1).sum(-1).numpy()
+            # y_proba = torch.stack(params["y_proba"], -1).sum(-1).numpy()
+            # w_proba = torch.stack(params["w_proba"], -1).sum(-1).numpy()
 
             w_simmat = cosine_similarity(w_hyp)
             w_simmat_reordered, reordered, _ = compute_serial_matrix(w_simmat, "complete")
             # y_hyp = torch.mm(y_hyp, y_hyp.transpose(0, 1))
             # w_hyp = PCA(n_components=64, random_state=args.seed).fit_transform(w_simmat)
-            _, eigv = np.linalg.eigh(w_simmat)
-            eigv = eigv[:, -64:]
+            eigs, eigv = scipy.linalg.eigh(w_simmat)
 
-            y_pred_sc = cl.SpectralClustering(n_clusters=args.num_pred_classes, random_state=args.seed).fit(eigv).labels_
+            y_pred_sc = cl.SpectralClustering(n_clusters=args.num_pred_classes, random_state=args.seed).fit(eigv[:, -64:]).labels_
 
             plt.rcParams["text.usetex"] = False
+
+            plt.figure()
+            plt.plot(eigs)
+            plt.xlim(0, len(eigs) - 1)
+            plt.title("eigh values of similarity matrix at epoch %d" % epoch)
+            plt.xlim((0, len(eigs) - 1))
+            plt.tight_layout()
+            plt.savefig(f"eigh_e{epoch}.png", transparent=True)
+            plt.close()
 
             if epoch > 0:
                 for key, value in stats.items():
