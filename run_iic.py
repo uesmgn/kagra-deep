@@ -166,7 +166,7 @@ def main(args):
             # w_hyp = PCA(n_components=64, random_state=args.seed).fit_transform(w_simmat)
             eigs, eigv = scipy.linalg.eigh(w_simmat)
 
-            y_pred_sc = cl.SpectralClustering(n_clusters=args.num_pred_classes, random_state=args.seed).fit(eigv[:, -64:]).labels_
+            y_pred_sc = cl.SpectralClustering(n_clusters=args.num_pred_classes, random_state=args.seed).fit(eigv[:, -2:]).labels_
 
             plt.rcParams["text.usetex"] = False
 
