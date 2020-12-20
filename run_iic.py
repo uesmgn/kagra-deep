@@ -161,15 +161,21 @@ def main(args):
             # y_proba = torch.stack(params["y_proba"], -1).sum(-1).numpy()
             # w_proba = torch.stack(params["w_proba"], -1).sum(-1).numpy()
 
+            print("Computing cosine similarity matrix...")
             w_simmat = cosine_similarity(w_hyp)
+            print("Computing cosine distance reordered matrix...")
             w_simmat_reordered, reordered, _ = compute_serial_matrix(w_simmat, "complete")
             # y_hyp = torch.mm(y_hyp, y_hyp.transpose(0, 1))
             # w_hyp = PCA(n_components=64, random_state=args.seed).fit_transform(w_simmat)
+            print("Computing eigen values and vectors...")
             eigs, eigv = scipy.linalg.eigh(w_simmat)
-
+            print("Fitting eigen vectors to Spectral Clustering model...")
             y_pred_sc = sc.fit(eigv[:, -64:]).labels_
+
+            print("Sampling from each predicted classes...")
             samples_fec = sample_from_each_class(y_pred_sc, num_samples=args.num_ranking)
 
+            print("Plotting from each predicted classes...")
             plt.rcParams["text.usetex"] = False
 
             fig, ax = plt.subplots()
@@ -209,20 +215,22 @@ def main(args):
 
             plt.rcParams["text.usetex"] = True
 
-            fig, _ = plt.subplots(dpi=200)
             for i, (label, indices) in enumerate(samples_fec.items()):
+                if i % 5 == 0:
+                    fig, _ = plt.subplots(dpi=200)
                 for n, m in enumerate(indices):
                     x, _ = test_set[m]
-                    ax = plt.subplot(len(np.unique(y_pred_sc)), args.num_ranking, args.num_ranking * i + n + 1)
+                    ax = plt.subplot(5, args.num_ranking, args.num_ranking * i + n + 1)
                     ax.imshow(x[0])
                     ax.axis("off")
                     ax.margins(0)
                     ax.set_title(r"$\bm{x}_{(%d)} \in \bm{y}_{(%d)}$" % (m, label))
-            plt.subplots_adjust(wspace=0.05, top=0.92, bottom=0.05, left=0.05, right=0.95)
-            fig.suptitle("Random samples from each predicted labels")
-            plt.tight_layout()
-            plt.savefig(f"samples_e{epoch}.png", transparent=True)
-            plt.close()
+                if i % 5 == 4:
+                    plt.subplots_adjust(wspace=0.05, top=0.92, bottom=0.05, left=0.05, right=0.95)
+                    fig.suptitle("Random samples from each predicted labels")
+                    plt.tight_layout()
+                    plt.savefig(f"samples_{i // 5}_e{epoch}.png", transparent=True)
+                    plt.close()
 
             fig, _ = plt.subplots(dpi=200)
             for i, j in enumerate(sample_indices):
