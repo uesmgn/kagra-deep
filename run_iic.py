@@ -15,7 +15,7 @@ from sklearn.decomposition import PCA
 from sklearn import cluster as cl
 import scipy.linalg
 
-from src.utils.functional import acronym, darken, cmap_with_marker, pca, cosine_similarity, compute_serial_matrix
+from src.utils.functional import acronym, darken, cmap_with_marker, pca, cosine_similarity, compute_serial_matrix, sample_from_each_class
 from src.utils import transforms
 from src.data import datasets
 from src.data import samplers
@@ -168,6 +168,7 @@ def main(args):
             eigs, eigv = scipy.linalg.eigh(w_simmat)
 
             y_pred_sc = sc.fit(eigv[:, -64:]).labels_
+            samples_fec = sample_from_each_class(y_pred_sc, num_samples=args.num_ranking)
 
             plt.rcParams["text.usetex"] = False
 
@@ -207,6 +208,21 @@ def main(args):
             plt.close()
 
             plt.rcParams["text.usetex"] = True
+
+            fig, _ = plt.subplots(dpi=200)
+            for i, indices in enumerate(samples_fec):
+                for n, m in enumerate(indices):
+                    x, _ = test_set[j]
+                    ax = plt.subplot(len(np.unique(y_pred_sc)), args.num_ranking, args.num_ranking * i + n + 1)
+                    ax.imshow(x[0])
+                    ax.axis("off")
+                    ax.margins(0)
+                    ax.set_title(r"$\bm{x}_{(%d)} \in \bm{y}_{(%d)}$" % (m, i))
+            plt.subplots_adjust(wspace=0.05, top=0.92, bottom=0.05, left=0.05, right=0.95)
+            fig.suptitle("Random samples from each predicted labels")
+            plt.tight_layout()
+            plt.savefig(f"samples_e{epoch}.png", transparent=True)
+            plt.close()
 
             fig, _ = plt.subplots(dpi=200)
             for i, j in enumerate(sample_indices):

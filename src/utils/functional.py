@@ -20,7 +20,28 @@ __all__ = [
     "flatten",
     "tensordict",
     "compute_serial_matrix",
+    "sample_from_each_class",
 ]
+
+
+def sample_from_each_class(y, sample_size=10, random_seed=42, replace=False):
+    uniq_levels = np.unique(y)
+    uniq_counts = {level: sum(y == level) for level in uniq_levels}
+
+    if not random_seed is None:
+        np.random.seed(random_seed)
+
+    # find observation index of each class levels
+    groupby_levels = {}
+    for ii, level in enumerate(uniq_levels):
+        obs_idx = [idx for idx, val in enumerate(y) if val == level]
+        groupby_levels[level] = obs_idx
+    # oversampling on observations of each label
+    balanced = {}
+    for level, gb_idx in groupby_levels.items():
+        indices = np.random.choice(gb_idx, size=sample_size, replace=replace).tolist()
+        balanced[level] = indices
+    return balanced
 
 
 def seriation(Z, N, cur_index):
