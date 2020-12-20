@@ -215,9 +215,9 @@ def main(args):
             axs = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0)
             axs[0].imshow(w_simmat_reordered, aspect=1)
             axs[0].axis("off")
-            axs[1].imshow(y_pred_sc[reordered][np.newaxis, :], aspect=500, cmap=segmented_cmap(args.num_pred_classes, "tab20b"))
+            axs[1].imshow(y_pred_sc[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(args.num_pred_classes, "tab20b"))
             axs[1].axis("off")
-            fig.suptitle("cosine similarity matrix with SC clusters at epoch %d" % epoch)
+            axs[0].set_title("cosine similarity matrix with SC clusters at epoch %d" % epoch)
             plt.savefig(f"w_simmat_sc_e{epoch}.png", transparent=True)
             plt.close()
 
