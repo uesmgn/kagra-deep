@@ -170,32 +170,32 @@ def main(args):
 
             plt.rcParams["text.usetex"] = False
 
-            plt.figure()
-            plt.plot(eigs[::-1])
-            plt.xlim(0, len(eigs) - 1)
-            plt.title("eigh values of similarity matrix at epoch %d" % epoch)
-            plt.xlabel("order")
-            plt.ylabel("eigen values")
-            plt.xlim((0, 100 - 1))
-            plt.yscale("log")
-            plt.ylim((1e-3, None))
+            fig, ax = plt.subplots()
+            ax.plot(eigs[::-1])
+            ax.set_xlim(0, len(eigs) - 1)
+            ax.set_title("eigh values of similarity matrix at epoch %d" % epoch)
+            ax.set_xlabel("order")
+            ax.set_ylabel("eigen values")
+            ax.set_xlim((0, 100 - 1))
+            ax.set_yscale("log")
+            ax.set_ylim((1e-3, None))
             plt.tight_layout()
             plt.savefig(f"eigh_e{epoch}.png", transparent=True)
             plt.close()
 
             if epoch > 0:
                 for key, value in stats.items():
-                    plt.figure()
-                    plt.plot(value)
-                    plt.ylabel(key)
-                    plt.xlabel("epoch")
-                    plt.title("loss %s" % key)
-                    plt.xlim((0, len(value) - 1))
+                    fig, ax = plt.subplots()
+                    ax.plot(value)
+                    ax.set_ylabel(key)
+                    ax.set_xlabel("epoch")
+                    ax.set_title("loss %s" % key)
+                    ax.set_xlim((0, len(value) - 1))
                     plt.tight_layout()
                     plt.savefig(f"loss_{key}_e{epoch}.png", transparent=True)
                     plt.close()
 
-            fig = plt.figure(dpi=200)
+            fig, ax = plt.subplots(dpi=200)
             axs = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0)
             axs[0].imshow(w_simmat_reordered, aspect=1)
             axs[0].axis("off")
@@ -207,7 +207,7 @@ def main(args):
 
             plt.rcParams["text.usetex"] = True
 
-            fig = plt.figure(dpi=200)
+            fig, _ = plt.subplots(dpi=200)
             for i, j in enumerate(sample_indices):
                 x, _ = test_set[j]
                 ax = plt.subplot(len(sample_indices), args.num_ranking + 2, (args.num_ranking + 2) * i + 1)
@@ -230,14 +230,14 @@ def main(args):
             plt.savefig(f"simrank_e{epoch}.png", transparent=True)
             plt.close()
 
-            plt.figure(dpi=200)
+            fig, ax = plt.subplots(dpi=200)
             cm = confusion_matrix(y, y_pred_sc)
             cm = cm[: args.num_classes, :]
             cmn = normalize(cm, axis=0)
-            sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
-            plt.yticks(rotation=45)
-            plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ ensembled with SC at epoch %d" % epoch)
-            plt.axes().set_aspect(cmn.shape[0] / cmn.shape[1])
+            sns.heatmap(cmn, ax=ax, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
+            ax.set_yticks(rotation=45)
+            ax.set_title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ ensembled with SC at epoch %d" % epoch)
+            ax.set_aspect(cmn.shape[0] / cmn.shape[1])
             plt.tight_layout()
             plt.savefig(f"cm_sc_e{epoch}.png", transparent=True)
             plt.close()
@@ -261,42 +261,42 @@ def main(args):
             qz = TSNE(n_components=2, metric="cosine", random_state=args.seed).fit(qz).embedding_
             # qz = umap.UMAP(n_components=2, random_state=args.seed).fit(qz).embedding_
 
-            plt.figure(dpi=200)
+            fig, ax = plt.subplots(dpi=200)
             for i in range(args.num_classes):
                 idx = np.where(y == i)[0]
                 if len(idx) > 0:
                     c, m = cmap_with_marker(i)
-                    plt.scatter(qz[idx, 0], qz[idx, 1], color=c, marker=m, label=targets[i], edgecolors=darken(c))
-            plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-            plt.title(r"$q(\bm{z})$ at epoch %d" % (epoch))
-            plt.axes().set_aspect("equal")
+                    ax.scatter(qz[idx, 0], qz[idx, 1], color=c, marker=m, label=targets[i], edgecolors=darken(c))
+            ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
+            ax.set_title(r"$q(\bm{z})$ at epoch %d" % (epoch))
+            ax.set_aspect("equal")
             plt.tight_layout()
             plt.savefig(f"qz_true_e{epoch}.png", transparent=True)
             plt.close()
 
             for j in range(0, args.num_heads, 3):
-                plt.figure(dpi=200)
+                fig, ax = plt.subplots(dpi=200)
                 for i in np.unique(y):
                     idx = np.where(y_pred[:, j] == i)[0]
                     if len(idx) > 0:
                         c, m = cmap_with_marker(i)
-                        plt.scatter(qz[idx, 0], qz[idx, 1], color=c, marker=m, label=i, edgecolors=darken(c))
-                plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-                plt.title(r"$q(\bm{z})$ labeled by head %d at epoch %d" % (j, epoch))
-                plt.axes().set_aspect("equal")
+                        ax.scatter(qz[idx, 0], qz[idx, 1], color=c, marker=m, label=i, edgecolors=darken(c))
+                ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
+                ax.set_title(r"$q(\bm{z})$ labeled by head %d at epoch %d" % (j, epoch))
+                ax.set_aspect("equal")
                 plt.tight_layout()
                 plt.savefig(f"qz_h{j}_e{epoch}.png", transparent=True)
                 plt.close()
 
-            plt.figure(dpi=200)
+            fig, ax = plt.subplots(dpi=200)
             for i in range(args.num_pred_classes):
                 idx = np.where(y_pred_sc == i)[0]
                 if len(idx) > 0:
                     c, m = cmap_with_marker(i)
-                    plt.scatter(qz[idx, 0], qz[idx, 1], color=c, marker=m, label=i, edgecolors=darken(c))
-            plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=2)
-            plt.title(r"$q(\bm{z})$ ensembled at epoch %d" % (epoch))
-            plt.axes().set_aspect("equal")
+                    ax.scatter(qz[idx, 0], qz[idx, 1], color=c, marker=m, label=i, edgecolors=darken(c))
+            ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=2)
+            ax.set_title(r"$q(\bm{z})$ ensembled at epoch %d" % (epoch))
+            ax.set_aspect("equal")
             plt.tight_layout()
             plt.savefig(f"qz_sc_e{epoch}.png", transparent=True)
             plt.close()
