@@ -208,6 +208,20 @@ def main(args):
 
             plt.rcParams["text.usetex"] = True
 
+            print(f"Plotting confusion matrix with ensembled label...")
+            fig, ax = plt.subplots()
+            cm = confusion_matrix(y, pred_sc)
+            cm = cm[: args.num_classes, :]
+            cmn = normalize(cm, axis=0)
+            sns.heatmap(cmn, ax=ax, annot=cm, fmt="d", linewidths=0.1, cmap="Greens", cbar=False, yticklabels=targets, annot_kws={"fontsize": 8})
+            plt.yticks(rotation=45)
+            ax.set_title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ ensembled with SC at epoch %d" % epoch)
+            plt.tight_layout()
+            plt.savefig(f"cm_sc_e{epoch}.png", transparent=True, dpi=args.dpi)
+            plt.close()
+
+        if epoch % args.embedding_interval == 0:
+
             for i, (label, indices) in enumerate(samples_fec.items()):
                 if i % 5 == 0:
                     fig, _ = plt.subplots()
@@ -249,20 +263,6 @@ def main(args):
             plt.tight_layout()
             plt.savefig(f"simrank_e{epoch}.png", transparent=True, dpi=args.dpi)
             plt.close()
-
-            print(f"Plotting confusion matrix with ensembled label...")
-            fig, ax = plt.subplots()
-            cm = confusion_matrix(y, pred_sc)
-            cm = cm[: args.num_classes, :]
-            cmn = normalize(cm, axis=0)
-            sns.heatmap(cmn, ax=ax, annot=cm, fmt="d", linewidths=0.1, cmap="Greens", cbar=False, yticklabels=targets, annot_kws={"fontsize": 8})
-            plt.yticks(rotation=45)
-            ax.set_title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ ensembled with SC at epoch %d" % epoch)
-            plt.tight_layout()
-            plt.savefig(f"cm_sc_e{epoch}.png", transparent=True, dpi=args.dpi)
-            plt.close()
-
-        if epoch % args.embedding_interval == 0:
 
             print(f"Computing 2D latent features by t-SNE...")
             # latent features
