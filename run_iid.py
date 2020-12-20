@@ -181,7 +181,7 @@ def main(args):
             ax.set_yscale("log")
             ax.set_ylim((1e-3, None))
             plt.tight_layout()
-            plt.savefig(f"eigen_e{epoch}.jpeg", transparent=True, dpi=args.dpi)
+            plt.savefig(f"eigen_e{epoch}.png", transparent=True, dpi=args.dpi)
             plt.close()
 
             if epoch > 0:
@@ -193,7 +193,7 @@ def main(args):
                     ax.set_title("loss %s" % key)
                     ax.set_xlim((0, len(value) - 1))
                     plt.tight_layout()
-                    plt.savefig(f"loss_{key}_e{epoch}.jpeg", transparent=True, dpi=args.dpi)
+                    plt.savefig(f"loss_{key}_e{epoch}.png", transparent=True, dpi=args.dpi)
                     plt.close()
 
             fig = plt.figure()
@@ -203,7 +203,7 @@ def main(args):
             axs[1].imshow(pred_sc[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(args.num_pred_classes, "tab20b"))
             axs[1].axis("off")
             axs[0].set_title("cosine similarity matrix with SC clusters at epoch %d" % epoch)
-            plt.savefig(f"simmat_sc_e{epoch}.jpeg", transparent=True, dpi=args.dpi)
+            plt.savefig(f"simmat_sc_e{epoch}.png", transparent=True, dpi=args.dpi)
             plt.close()
 
             plt.rcParams["text.usetex"] = True
@@ -217,7 +217,7 @@ def main(args):
             plt.yticks(rotation=45)
             ax.set_title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ ensembled with SC at epoch %d" % epoch)
             plt.tight_layout()
-            plt.savefig(f"cm_sc_e{epoch}.jpeg", transparent=True, dpi=args.dpi)
+            plt.savefig(f"cm_sc_e{epoch}.png", transparent=True, dpi=args.dpi)
             plt.close()
 
         if epoch % args.embedding_interval == 0:
@@ -237,7 +237,7 @@ def main(args):
                     plt.subplots_adjust(wspace=0.05, top=0.92, bottom=0.05, left=0.05, right=0.95)
                     fig.suptitle("Random samples from each predicted labels")
                     plt.tight_layout()
-                    plt.savefig(f"samples_{i // 5}_e{epoch}.jpeg", transparent=True, dpi=args.dpi)
+                    plt.savefig(f"samples_{i // 5}_e{epoch}.png", transparent=True, dpi=args.dpi)
                     plt.close()
 
             print(f"Plotting random samples with 5 most similar samples...")
@@ -261,7 +261,7 @@ def main(args):
             plt.subplots_adjust(wspace=0.05, top=0.92, bottom=0.05, left=0.05, right=0.95)
             fig.suptitle("Random samples with corresponding similar glitches")
             plt.tight_layout()
-            plt.savefig(f"simrank_e{epoch}.jpeg", transparent=True, dpi=args.dpi)
+            plt.savefig(f"simrank_e{epoch}.png", transparent=True, dpi=args.dpi)
             plt.close()
 
             print(f"Computing 2D latent features by t-SNE...")
@@ -282,7 +282,7 @@ def main(args):
             ax.set_title(r"$q(\bm{z})$ at epoch %d" % (epoch))
             ax.set_aspect(1.0 / ax.get_data_ratio())
             plt.tight_layout()
-            plt.savefig(f"qz_true_e{epoch}.jpeg", transparent=True, dpi=args.dpi)
+            plt.savefig(f"qz_true_e{epoch}.png", transparent=True, dpi=args.dpi)
             plt.close()
 
             print(f"Plotting 2D latent features with ensembled labels...")
@@ -297,7 +297,7 @@ def main(args):
             ax.set_title(r"$q(\bm{z})$ ensembled at epoch %d" % (epoch))
             ax.set_aspect(1.0 / ax.get_data_ratio())
             plt.tight_layout()
-            plt.savefig(f"qz_sc_e{epoch}.jpeg", transparent=True, dpi=args.dpi)
+            plt.savefig(f"qz_sc_e{epoch}.png", transparent=True, dpi=args.dpi)
             plt.close()
 
         if epoch % args.save_interval == 0:
