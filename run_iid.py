@@ -30,7 +30,7 @@ from src.data import datasets
 from src.data import samplers
 from src import config
 
-from mnist import IIC
+from mnist import IID
 
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
