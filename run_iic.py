@@ -175,7 +175,6 @@ def main(args):
             print("Sampling from each predicted classes...")
             samples_fec = sample_from_each_class(y_pred_sc, num_samples=args.num_ranking)
 
-            print("Plotting from each predicted classes...")
             plt.rcParams["text.usetex"] = False
 
             fig, ax = plt.subplots()
@@ -218,6 +217,7 @@ def main(args):
             for i, (label, indices) in enumerate(samples_fec.items()):
                 if i % 5 == 0:
                     fig, _ = plt.subplots(dpi=200)
+                    print(f"Plotting samples from each predicted classes {i // 5}...")
                 for n, m in enumerate(indices):
                     x, _ = test_set[m]
                     ax = plt.subplot(5, args.num_ranking, args.num_ranking * i + n + 1)
