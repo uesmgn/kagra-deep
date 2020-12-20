@@ -166,7 +166,7 @@ def main(args):
             # w_hyp = PCA(n_components=64, random_state=args.seed).fit_transform(w_simmat)
             eigs, eigv = scipy.linalg.eigh(w_simmat)
 
-            y_pred_sc = cl.SpectralClustering(n_clusters=args.num_pred_classes, random_state=args.seed).fit(eigv[:, -32:]).labels_
+            y_pred_sc = cl.SpectralClustering(n_clusters=args.num_pred_classes, random_state=args.seed).fit(eigv[:, -64:]).labels_
 
             plt.rcParams["text.usetex"] = False
 
@@ -175,6 +175,7 @@ def main(args):
             plt.xlim(0, len(eigs) - 1)
             plt.title("eigh values of similarity matrix at epoch %d" % epoch)
             plt.xlim((0, 100 - 1))
+            plt.yscale("log")
             plt.tight_layout()
             plt.savefig(f"eigh_e{epoch}.png", transparent=True)
             plt.close()
