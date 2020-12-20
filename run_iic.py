@@ -196,7 +196,7 @@ def main(args):
             ax.set_yscale("log")
             ax.set_ylim((1e-3, None))
             plt.tight_layout()
-            plt.savefig(f"eigen_e{epoch}.png", transparent=True)
+            plt.savefig(f"eigen_e{epoch}.png", transparent=True, dpi=100)
             plt.close()
 
             if epoch > 0:
@@ -208,24 +208,24 @@ def main(args):
                     ax.set_title("loss %s" % key)
                     ax.set_xlim((0, len(value) - 1))
                     plt.tight_layout()
-                    plt.savefig(f"loss_{key}_e{epoch}.png", transparent=True)
+                    plt.savefig(f"loss_{key}_e{epoch}.png", transparent=True, dpi=100)
                     plt.close()
 
-            fig = plt.figure(dpi=200)
+            fig = plt.figure()
             axs = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0)
             axs[0].imshow(w_simmat_reordered, aspect=1)
             axs[0].axis("off")
             axs[1].imshow(y_pred_sc[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(args.num_pred_classes, "tab20b"))
             axs[1].axis("off")
             axs[0].set_title("cosine similarity matrix with SC clusters at epoch %d" % epoch)
-            plt.savefig(f"w_simmat_sc_e{epoch}.png", transparent=True)
+            plt.savefig(f"w_simmat_sc_e{epoch}.png", transparent=True, dpi=100)
             plt.close()
 
             plt.rcParams["text.usetex"] = True
 
             for i, (label, indices) in enumerate(samples_fec.items()):
                 if i % 5 == 0:
-                    fig, _ = plt.subplots(dpi=200)
+                    fig, _ = plt.subplots()
                     print(f"Plotting samples from each predicted classes {i // 5}...")
                 for n, m in enumerate(indices):
                     x, _ = test_set[m]
@@ -238,11 +238,11 @@ def main(args):
                     plt.subplots_adjust(wspace=0.05, top=0.92, bottom=0.05, left=0.05, right=0.95)
                     fig.suptitle("Random samples from each predicted labels")
                     plt.tight_layout()
-                    plt.savefig(f"samples_{i // 5}_e{epoch}.png", transparent=True)
+                    plt.savefig(f"samples_{i // 5}_e{epoch}.png", transparent=True, dpi=100)
                     plt.close()
 
             print(f"Plotting random samples with 5 most similar samples...")
-            fig, _ = plt.subplots(dpi=200)
+            fig, _ = plt.subplots()
             for i, j in enumerate(sample_indices):
                 x, _ = test_set[j]
                 ax = plt.subplot(len(sample_indices), args.num_ranking + 2, (args.num_ranking + 2) * i + 1)
@@ -262,11 +262,11 @@ def main(args):
             plt.subplots_adjust(wspace=0.05, top=0.92, bottom=0.05, left=0.05, right=0.95)
             fig.suptitle("Random samples with corresponding similar glitches")
             plt.tight_layout()
-            plt.savefig(f"simrank_e{epoch}.png", transparent=True)
+            plt.savefig(f"simrank_e{epoch}.png", transparent=True, dpi=100)
             plt.close()
 
             print(f"Plotting confusion matrix with ensembled label...")
-            fig, ax = plt.subplots(dpi=200)
+            fig, ax = plt.subplots()
             cm = confusion_matrix(y, y_pred_sc)
             cm = cm[: args.num_classes, :]
             cmn = normalize(cm, axis=0)
@@ -274,20 +274,8 @@ def main(args):
             plt.yticks(rotation=45)
             ax.set_title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ ensembled with SC at epoch %d" % epoch)
             plt.tight_layout()
-            plt.savefig(f"cm_sc_e{epoch}.png", transparent=True)
+            plt.savefig(f"cm_sc_e{epoch}.png", transparent=True, dpi=100)
             plt.close()
-
-            # for j in range(0, args.num_heads, 3):
-            #     plt.figure(dpi=500)
-            #     cm = confusion_matrix(y, y_pred[:, j], labels=np.arange(args.num_classes))
-            #     cm = cm[: args.num_classes, :]
-            #     cmn = normalize(cm, axis=0)
-            #     sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
-            #     plt.yticks(rotation=45)
-            #     plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ by head %d at epoch %d" % (j, epoch))
-            #     plt.tight_layout()
-            #     plt.savefig(f"cm_y_h{j}_e{epoch}.png", transparent=True)
-            #     plt.close()
 
         if epoch % args.embedding_interval == 0:
 
@@ -298,7 +286,7 @@ def main(args):
             # qz = umap.UMAP(n_components=2, random_state=args.seed).fit(qz).embedding_
 
             print(f"Plotting 2D latent features with true labels...")
-            fig, ax = plt.subplots(dpi=200)
+            fig, ax = plt.subplots()
             cmap = segmented_cmap(args.num_classes, "tab20b")
             for i in range(args.num_classes):
                 idx = np.where(y == i)[0]
@@ -309,12 +297,12 @@ def main(args):
             ax.set_title(r"$q(\bm{z})$ at epoch %d" % (epoch))
             ax.set_aspect("equal")
             plt.tight_layout()
-            plt.savefig(f"qz_true_e{epoch}.png", transparent=True)
+            plt.savefig(f"qz_true_e{epoch}.png", transparent=True, dpi=100)
             plt.close()
 
             for j in range(0, args.num_heads, 3):
                 print(f"Plotting 2D latent features with labels by weak classifier-{j}...")
-                fig, ax = plt.subplots(dpi=200)
+                fig, ax = plt.subplots()
                 cmap = segmented_cmap(args.num_classes, "tab20b")
                 for i in np.unique(y):
                     idx = np.where(y_pred[:, j] == i)[0]
@@ -325,11 +313,11 @@ def main(args):
                 ax.set_title(r"$q(\bm{z})$ labeled by head %d at epoch %d" % (j, epoch))
                 ax.set_aspect("equal")
                 plt.tight_layout()
-                plt.savefig(f"qz_h{j}_e{epoch}.png", transparent=True)
+                plt.savefig(f"qz_h{j}_e{epoch}.png", transparent=True, dpi=100)
                 plt.close()
 
             print(f"Plotting 2D latent features with ensembled labels...")
-            fig, ax = plt.subplots(dpi=200)
+            fig, ax = plt.subplots()
             cmap = segmented_cmap(args.num_pred_classes, "tab20b")
             for i in range(args.num_pred_classes):
                 idx = np.where(y_pred_sc == i)[0]
@@ -340,7 +328,7 @@ def main(args):
             ax.set_title(r"$q(\bm{z})$ ensembled at epoch %d" % (epoch))
             ax.set_aspect("equal")
             plt.tight_layout()
-            plt.savefig(f"qz_sc_e{epoch}.png", transparent=True)
+            plt.savefig(f"qz_sc_e{epoch}.png", transparent=True, dpi=100)
             plt.close()
 
         if epoch % args.save_interval == 0:
