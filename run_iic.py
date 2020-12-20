@@ -220,7 +220,7 @@ def main(args):
                     print(f"Plotting samples from each predicted classes {i // 5}...")
                 for n, m in enumerate(indices):
                     x, _ = test_set[m]
-                    ax = plt.subplot(5, args.num_ranking, args.num_ranking * i + n + 1)
+                    ax = plt.subplot(5, args.num_ranking, args.num_ranking * (i % 5) + n + 1)
                     ax.imshow(x[0])
                     ax.axis("off")
                     ax.margins(0)
