@@ -357,10 +357,10 @@ class IIC(nn.Module):
 
     def _fc(self, dim_in, dim_out):
         return nn.Sequential(
-            nn.Linear(dim_in, 512, bias=False),
-            nn.BatchNorm1d(512),
+            nn.Linear(dim_in, 1024, bias=False),
+            nn.BatchNorm1d(1024),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.Linear(512, dim_out),
+            nn.Linear(1024, dim_out),
         )
 
     def load_state_dict_part(self, state_dict):
