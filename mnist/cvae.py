@@ -391,7 +391,7 @@ class IID(nn.Module):
 
     def get_params(self, x):
         assert not self.training
-        z1, z2 = self.embedding(x, z_detach)
+        z1, z2 = self.embedding(x)
         w1, w2 = self.clustering(z1), self.clustering(z2)
         pw = self.proba(w, w_)
         return z1, w1, pw
