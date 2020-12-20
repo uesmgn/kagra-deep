@@ -340,6 +340,107 @@ class M2(nn.Module):
         return -0.5 * torch.sum(logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp())
 
 
+class IID(nn.Module):
+    def __init__(self, ch_in, dim_w, dim_z=512, use_multi_heads=False, num_heads=10):
+        super().__init__()
+        self.use_multi_heads = use_multi_heads
+        self.num_heads = num_heads
+        self.encoder = Encoder(ch_in, 1024)
+        self.qz_x = Qz_x(self.encoder, dim_z)
+        if self.use_multi_heads:
+            self.fc = nn.ModuleList([self._fc(dim_z, dim_w) for _ in range(self.num_heads)])
+        else:
+            self.fc = self._fc(dim_z, dim_w)
+        self.weight_init()
+
+    def _fc(self, dim_in, dim_out):
+        return nn.Sequential(
+            nn.Linear(dim_in, 1024, bias=False),
+            nn.BatchNorm1d(1024),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(1024, dim_out),
+        )
+
+    def load_state_dict_part(self, state_dict):
+        own_state = self.state_dict()
+        for name, param in state_dict.items():
+            if name not in own_state:
+                continue
+            print(f"load state dict: {name}")
+            own_state[name].copy_(param)
+
+    def weight_init(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.xavier_normal_(m.weight)
+            elif isinstance(m, (nn.BatchNorm1d, nn.BatchNorm2d)):
+                nn.init.normal_(m.weight, mean=1, std=0.02)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.xavier_normal_(m.weight)
+                try:
+                    nn.init.zeros_(m.bias)
+                except:
+                    continue
+
+    def forward(self, x, z_detach=False, lam=1.0):
+        z1, z2 = self.embedding(x, z_detach)
+        w1, w2 = self.clustering(z1), self.clustering(z2)
+        mi = self.mutual_info(w1, w2, lam=lam)
+        return mi
+
+    def get_params(self, x):
+        assert not self.training
+        z1, z2 = self.embedding(x, z_detach)
+        w1, w2 = self.clustering(z1), self.clustering(z2)
+        pw = self.proba(w, w_)
+        return z1, w1, pw
+
+    def embedding(self, x, z_detach=False):
+        z2, z1, _ = self.qz_x(x)
+        if z_detach:
+            z1, z2 = z1.detach(), z2.detach()
+        return z1, z2
+
+    def clustering(self, x):
+        if self.use_multi_heads:
+            tmp = []
+            for fc in self.fc:
+                w = F.softmax(fc(x), dim=-1)
+                tmp.append(w)
+            return torch.stack(tmp, dim=-1)
+        else:
+            w = F.softmax(self.fc(x), dim=-1)
+            return w
+
+    def proba(self, x, y):
+        if x.ndim == 2:
+            p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(0)
+            p = ((p + p.t()) / 2) / p.sum()
+        elif x.ndim == 3:
+            p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(0)
+            p = ((p + p.permute(1, 0, 2)) / 2) / p.sum()
+            p = p.mean(-1)
+        return p
+
+    def mutual_info(self, x, y, lam=1.0, eps=1e-8):
+        if x.ndim == 2:
+            p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(0)
+            p = ((p + p.t()) / 2) / p.sum()
+            _, k = x.shape
+            p[(p < eps).data] = eps
+            pi = p.sum(dim=1).view(k, 1).expand(k, k).pow(lam)
+            pj = p.sum(dim=0).view(1, k).expand(k, k).pow(lam)
+        elif x.ndim == 3:
+            p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(0)
+            p = ((p + p.permute(1, 0, 2)) / 2) / p.sum()
+            p[(p < eps).data] = eps
+            _, k, m = x.shape
+            pi = p.sum(dim=1).view(k, -1).expand(k, k, m)
+            pj = p.sum(dim=0).view(k, -1).expand(k, k, m)
+        return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
+
+
 class IIC(nn.Module):
     def __init__(self, ch_in, dim_y, dim_w, dim_z=512, use_multi_heads=False, num_heads=10):
         super().__init__()
@@ -449,28 +550,6 @@ class IIC(nn.Module):
             pi = p.sum(dim=1).view(k, -1).expand(k, k, m)
             pj = p.sum(dim=0).view(k, -1).expand(k, k, m)
         return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
-
-
-class ClusterHeads(nn.Module):
-    def __init__(self, dim_in, dim_y, dim_w):
-        super().__init__()
-        self.fc1 = nn.Sequential(
-            nn.Linear(dim_in, 1024, bias=False),
-            nn.BatchNorm1d(1024),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Linear(1024, dim_y),
-        )
-        self.fc2 = nn.Sequential(
-            nn.Linear(dim_in, 1024, bias=False),
-            nn.BatchNorm1d(1024),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Linear(1024, dim_w),
-        )
-
-    def forward(self, x):
-        y = F.softmax(self.fc1(x), -1)
-        w = F.softmax(self.fc2(x), -1)
-        return y, w
 
 
 class M3(nn.Module):

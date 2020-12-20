@@ -14,6 +14,7 @@ lam: 1.5
 use_multi_heads: True
 num_ranking: 5
 num_heads: 10
+dpi: 200
 seed: 1234
 thres: 0.9
 num_epochs: 10000
