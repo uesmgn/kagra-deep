@@ -207,7 +207,7 @@ def main(args):
 
             plt.rcParams["text.usetex"] = True
 
-            fig = plt.figure(dpi=500)
+            fig = plt.figure(dpi=200)
             for i, j in enumerate(sample_indices):
                 x, _ = test_set[j]
                 ax = plt.subplot(len(sample_indices), args.num_ranking + 2, (args.num_ranking + 2) * i + 1)
@@ -230,13 +230,14 @@ def main(args):
             plt.savefig(f"simrank_e{epoch}.png", transparent=True)
             plt.close()
 
-            plt.figure(dpi=500)
+            plt.figure(dpi=200)
             cm = confusion_matrix(y, y_pred_sc)
             cm = cm[: args.num_classes, :]
             cmn = normalize(cm, axis=0)
             sns.heatmap(cmn, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
             plt.yticks(rotation=45)
             plt.title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ ensembled with SC at epoch %d" % epoch)
+            plt.axes().set_aspect(cmn.shape[0] / cmn.shape[1])
             plt.tight_layout()
             plt.savefig(f"cm_sc_e{epoch}.png", transparent=True)
             plt.close()
@@ -257,10 +258,10 @@ def main(args):
 
             # latent features
             qz = torch.cat(params["qz"]).numpy()
-            qz = TSNE(n_components=2, metric="l2", random_state=args.seed).fit(qz).embedding_
+            qz = TSNE(n_components=2, metric="cosine", random_state=args.seed).fit(qz).embedding_
             # qz = umap.UMAP(n_components=2, random_state=args.seed).fit(qz).embedding_
 
-            plt.figure()
+            plt.figure(dpi=200)
             for i in range(args.num_classes):
                 idx = np.where(y == i)[0]
                 if len(idx) > 0:
@@ -268,12 +269,13 @@ def main(args):
                     plt.scatter(qz[idx, 0], qz[idx, 1], color=c, marker=m, label=targets[i], edgecolors=darken(c))
             plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
             plt.title(r"$q(\bm{z})$ at epoch %d" % (epoch))
+            plt.axes().set_aspect("equal")
             plt.tight_layout()
             plt.savefig(f"qz_true_e{epoch}.png", transparent=True)
             plt.close()
 
             for j in range(0, args.num_heads, 3):
-                plt.figure()
+                plt.figure(dpi=200)
                 for i in np.unique(y):
                     idx = np.where(y_pred[:, j] == i)[0]
                     if len(idx) > 0:
@@ -281,18 +283,20 @@ def main(args):
                         plt.scatter(qz[idx, 0], qz[idx, 1], color=c, marker=m, label=i, edgecolors=darken(c))
                 plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
                 plt.title(r"$q(\bm{z})$ labeled by head %d at epoch %d" % (j, epoch))
+                plt.axes().set_aspect("equal")
                 plt.tight_layout()
                 plt.savefig(f"qz_h{j}_e{epoch}.png", transparent=True)
                 plt.close()
 
-            plt.figure()
+            plt.figure(dpi=200)
             for i in range(args.num_pred_classes):
                 idx = np.where(y_pred_sc == i)[0]
                 if len(idx) > 0:
                     c, m = cmap_with_marker(i)
                     plt.scatter(qz[idx, 0], qz[idx, 1], color=c, marker=m, label=i, edgecolors=darken(c))
-            plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
+            plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=2)
             plt.title(r"$q(\bm{z})$ ensembled at epoch %d" % (epoch))
+            plt.axes().set_aspect("equal")
             plt.tight_layout()
             plt.savefig(f"qz_sc_e{epoch}.png", transparent=True)
             plt.close()
