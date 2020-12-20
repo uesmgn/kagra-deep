@@ -210,7 +210,7 @@ def main(args):
             plt.rcParams["text.usetex"] = True
 
             fig, _ = plt.subplots(dpi=200)
-            for i, indices in enumerate(samples_fec):
+            for i, indices in samples_fec.items():
                 for n, m in enumerate(indices):
                     x, _ = test_set[j]
                     ax = plt.subplot(len(np.unique(y_pred_sc)), args.num_ranking, args.num_ranking * i + n + 1)
