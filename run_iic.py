@@ -210,14 +210,14 @@ def main(args):
             plt.rcParams["text.usetex"] = True
 
             fig, _ = plt.subplots(dpi=200)
-            for i, indices in samples_fec.items():
+            for i, (label, indices) in enumerate(samples_fec.items()):
                 for n, m in enumerate(indices):
-                    x, _ = test_set[j]
+                    x, _ = test_set[m]
                     ax = plt.subplot(len(np.unique(y_pred_sc)), args.num_ranking, args.num_ranking * i + n + 1)
                     ax.imshow(x[0])
                     ax.axis("off")
                     ax.margins(0)
-                    ax.set_title(r"$\bm{x}_{(%d)} \in \bm{y}_{(%d)}$" % (m, i))
+                    ax.set_title(r"$\bm{x}_{(%d)} \in \bm{y}_{(%d)}$" % (m, label))
             plt.subplots_adjust(wspace=0.05, top=0.92, bottom=0.05, left=0.05, right=0.95)
             fig.suptitle("Random samples from each predicted labels")
             plt.tight_layout()
