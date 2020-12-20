@@ -164,7 +164,7 @@ def main(args):
             print("Computing cosine similarity matrix...")
             w_simmat = cosine_similarity(w_hyp)
             print("Computing cosine distance reordered matrix...")
-            w_simmat_reordered, reordered, _ = compute_serial_matrix(w_simmat, "complete")
+            w_simmat_reordered, reordered, _ = compute_serial_matrix(w_simmat)
             # y_hyp = torch.mm(y_hyp, y_hyp.transpose(0, 1))
             # w_hyp = PCA(n_components=64, random_state=args.seed).fit_transform(w_simmat)
             print("Computing eigen values and vectors...")
