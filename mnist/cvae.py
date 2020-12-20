@@ -384,23 +384,22 @@ class IID(nn.Module):
                     continue
 
     def forward(self, x, z_detach=False, lam=1.0):
-        z1, z2 = self.embedding(x, z_detach)
-        w1, w2 = self.clustering(z1), self.clustering(z2)
-        mi = self.mutual_info(w1, w2, lam=lam)
-        return mi
+        z, z_ = self.embedding(x, z_detach)
+        w, w_ = self.clustering(z), self.clustering(z_)
+        return self.mutual_info(w, w_, lam=lam)
 
     def get_params(self, x):
         assert not self.training
-        z1, z2 = self.embedding(x)
-        w1, w2 = self.clustering(z1), self.clustering(z2)
+        z, z_ = self.embedding(x)
+        w, w_ = self.clustering(z), self.clustering(z_)
         pw = self.proba(w, w_)
-        return z1, w1, pw
+        return z, w, pw
 
     def embedding(self, x, z_detach=False):
-        z2, z1, _ = self.qz_x(x)
+        z_, z, _ = self.qz_x(x)
         if z_detach:
-            z1, z2 = z1.detach(), z2.detach()
-        return z1, z2
+            z, z_ = z.detach(), z_.detach()
+        return z, z_
 
     def clustering(self, x):
         if self.use_multi_heads:
