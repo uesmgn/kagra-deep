@@ -8,7 +8,7 @@ targets: [1080Lines, 1400Ripples, Air_Compressor, Blip,
           Wandering_Line, Whistle]
 use_other: False
 load_state_dict: True
-z_detach: False
+z_detach: True
 num_test_samples: 3000
 lam: 1.5
 use_multi_heads: True
@@ -23,10 +23,10 @@ dim_w: 1000
 dim_z: 512
 train_size: 0.7
 labeled_size: 0.1
-batch_size: 256
+batch_size: 64
 num_workers: 4
 lr: 1e-4
-num_train_steps: 100
+num_train_steps: 500
 eval_interval: 10
 embedding_interval: 50
 save_interval: 50
