@@ -24,7 +24,7 @@ __all__ = [
 ]
 
 
-def sample_from_each_class(y, sample_size=10, random_seed=42, replace=False):
+def sample_from_each_class(y, num_samples=10, random_seed=42, replace=False):
     uniq_levels = np.unique(y)
     uniq_counts = {level: sum(y == level) for level in uniq_levels}
 
@@ -39,7 +39,7 @@ def sample_from_each_class(y, sample_size=10, random_seed=42, replace=False):
     # oversampling on observations of each label
     balanced = {}
     for level, gb_idx in groupby_levels.items():
-        indices = np.random.choice(gb_idx, size=sample_size, replace=replace).tolist()
+        indices = np.random.choice(gb_idx, size=num_samples, replace=replace).tolist()
         balanced[level] = indices
     return balanced
 

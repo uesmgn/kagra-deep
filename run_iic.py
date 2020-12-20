@@ -106,7 +106,7 @@ def main(args):
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=10, T_mult=2)
     stats = defaultdict(lambda: [])
-    sc = cl.SpectralClustering(n_clusters=args.num_pred_classes, affinity="nearest_neighbors", assign_labels="discretize", random_state=args.seed)
+    sc = cl.SpectralClustering(n_clusters=args.num_pred_classes, affinity="nearest_neighbors", random_state=args.seed)
 
     for epoch in range(args.num_epochs):
         print(f"----- training at epoch {epoch} -----")
