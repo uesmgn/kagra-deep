@@ -176,6 +176,7 @@ def main(args):
             plt.title("eigh values of similarity matrix at epoch %d" % epoch)
             plt.xlim((0, 100 - 1))
             plt.yscale("log")
+            plt.ylim((1e-3, None))
             plt.tight_layout()
             plt.savefig(f"eigh_e{epoch}.png", transparent=True)
             plt.close()
