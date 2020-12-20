@@ -94,7 +94,7 @@ def pca(x, k, center=True):
     return components
 
 
-def cmap_with_marker(i, cmap="tab20b", markers="ox^s*p"):
+def cmap_with_marker(i, cmap="tab20b", markers="os^*p"):
     cmap = plt.cm.get_cmap(cmap)
     c = cmap.colors[i % cmap.N]
     m = markers[int(i / cmap.N)]

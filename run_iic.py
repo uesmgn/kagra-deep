@@ -234,10 +234,9 @@ def main(args):
             cm = confusion_matrix(y, y_pred_sc)
             cm = cm[: args.num_classes, :]
             cmn = normalize(cm, axis=0)
-            sns.heatmap(cmn, ax=ax, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
+            sns.heatmap(cmn, ax=ax, annot=cm, fmt="d", linewidths=0.1, cmap="Greens", cbar=False, yticklabels=targets, annot_kws={"fontsize": 8})
             plt.yticks(rotation=45)
             ax.set_title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ ensembled with SC at epoch %d" % epoch)
-            ax.set_aspect(cmn.shape[0] / cmn.shape[1])
             plt.tight_layout()
             plt.savefig(f"cm_sc_e{epoch}.png", transparent=True)
             plt.close()
