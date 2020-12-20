@@ -24,17 +24,14 @@ class Balancer(data.sampler.Sampler):
         self.weights = torch.DoubleTensor(weights)
 
     def __iter__(self):
-        return (
-            self.indices[i]
-            for i in torch.multinomial(self.weights, self.num_samples, replacement=True)
-        )
+        return (self.indices[i] for i in torch.multinomial(self.weights, self.num_samples, replacement=True))
 
     def __len__(self):
         return self.num_samples
 
 
 class Upsampler(data.sampler.Sampler):
-    def __init__(self, dataset, num_samples=10000, max_num_samples=100000):
+    def __init__(self, dataset, num_samples=10000, max_num_samples=1000000):
         self.dataset = dataset
         if isinstance(num_samples, numbers.Number):
             self.num_samples = max(len(self.dataset), min(num_samples, max_num_samples))
@@ -45,10 +42,7 @@ class Upsampler(data.sampler.Sampler):
         self.weights = weights.double()
 
     def __iter__(self):
-        return (
-            self.indices[i]
-            for i in torch.multinomial(self.weights, self.num_samples, replacement=True)
-        )
+        return (self.indices[i] for i in torch.multinomial(self.weights, self.num_samples, replacement=True))
 
     def __len__(self):
         return self.num_samples
