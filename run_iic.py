@@ -174,7 +174,7 @@ def main(args):
             plt.plot(eigs)
             plt.xlim(0, len(eigs) - 1)
             plt.title("eigh values of similarity matrix at epoch %d" % epoch)
-            plt.xlim((0, len(eigs) - 1))
+            plt.xlim((len(eigs) - 100, len(eigs) - 1))
             plt.tight_layout()
             plt.savefig(f"eigh_e{epoch}.png", transparent=True)
             plt.close()
