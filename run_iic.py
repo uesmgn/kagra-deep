@@ -232,6 +232,7 @@ def main(args):
                     plt.savefig(f"samples_{i // 5}_e{epoch}.png", transparent=True)
                     plt.close()
 
+            print(f"Plotting random samples with 5 most similar samples...")
             fig, _ = plt.subplots(dpi=200)
             for i, j in enumerate(sample_indices):
                 x, _ = test_set[j]
@@ -255,6 +256,7 @@ def main(args):
             plt.savefig(f"simrank_e{epoch}.png", transparent=True)
             plt.close()
 
+            print(f"Plotting confusion matrix with ensembled label...")
             fig, ax = plt.subplots(dpi=200)
             cm = confusion_matrix(y, y_pred_sc)
             cm = cm[: args.num_classes, :]
@@ -280,11 +282,13 @@ def main(args):
 
         if epoch % args.embedding_interval == 0:
 
+            print(f"Computing 2D latent features by t-SNE...")
             # latent features
             qz = torch.cat(params["qz"]).numpy()
             qz = TSNE(n_components=2, metric="cosine", random_state=args.seed).fit(qz).embedding_
             # qz = umap.UMAP(n_components=2, random_state=args.seed).fit(qz).embedding_
 
+            print(f"Plotting 2D latent features with true labels...")
             fig, ax = plt.subplots(dpi=200)
             for i in range(args.num_classes):
                 idx = np.where(y == i)[0]
@@ -299,6 +303,7 @@ def main(args):
             plt.close()
 
             for j in range(0, args.num_heads, 3):
+                print(f"Plotting 2D latent features with labels by weak classifier-{j}...")
                 fig, ax = plt.subplots(dpi=200)
                 for i in np.unique(y):
                     idx = np.where(y_pred[:, j] == i)[0]
@@ -312,6 +317,7 @@ def main(args):
                 plt.savefig(f"qz_h{j}_e{epoch}.png", transparent=True)
                 plt.close()
 
+            print(f"Plotting 2D latent features with ensembled labels...")
             fig, ax = plt.subplots(dpi=200)
             for i in range(args.num_pred_classes):
                 idx = np.where(y_pred_sc == i)[0]
@@ -326,7 +332,9 @@ def main(args):
             plt.close()
 
         if epoch % args.save_interval == 0:
-            torch.save(model.state_dict(), os.path.join(args.model_dir, "model_iic.pt"))
+            save_path = os.path.join(args.model_dir, "model_iic.pt")
+            print(f"Saving state dict to {save_path}...")
+            torch.save(model.state_dict(), save_path)
 
 
 if __name__ == "__main__":
