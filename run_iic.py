@@ -174,6 +174,8 @@ def main(args):
             plt.plot(eigs[::-1])
             plt.xlim(0, len(eigs) - 1)
             plt.title("eigh values of similarity matrix at epoch %d" % epoch)
+            plt.xlabel("order")
+            plt.ylabel("eigen values")
             plt.xlim((0, 100 - 1))
             plt.yscale("log")
             plt.ylim((1e-3, None))
