@@ -303,7 +303,8 @@ def main(args):
             for i in range(args.num_classes):
                 idx = np.where(y == i)[0]
                 if len(idx) > 0:
-                    ax.scatter(qz[idx, 0], qz[idx, 1], cmap=cmap, label=targets[i], edgecolors="b")
+                    c = cmap(i)
+                    ax.scatter(qz[idx, 0], qz[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
             ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
             ax.set_title(r"$q(\bm{z})$ at epoch %d" % (epoch))
             ax.set_aspect("equal")
@@ -317,7 +318,8 @@ def main(args):
                 for i in np.unique(y):
                     idx = np.where(y_pred[:, j] == i)[0]
                     if len(idx) > 0:
-                        ax.scatter(qz[idx, 0], qz[idx, 1], cmap=cmap, label=i, edgecolors="b")
+                        c = cmap(i)
+                        ax.scatter(qz[idx, 0], qz[idx, 1], color=c, label=i, edgecolors=darken(c))
                 ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
                 ax.set_title(r"$q(\bm{z})$ labeled by head %d at epoch %d" % (j, epoch))
                 ax.set_aspect("equal")
@@ -330,7 +332,8 @@ def main(args):
             for i in range(args.num_pred_classes):
                 idx = np.where(y_pred_sc == i)[0]
                 if len(idx) > 0:
-                    ax.scatter(qz[idx, 0], qz[idx, 1], cmap=cmap, label=i, edgecolors="b")
+                    c = cmap(i)
+                    ax.scatter(qz[idx, 0], qz[idx, 1], color=c, label=i, edgecolors=darken(c))
             ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=2)
             ax.set_title(r"$q(\bm{z})$ ensembled at epoch %d" % (epoch))
             ax.set_aspect("equal")
