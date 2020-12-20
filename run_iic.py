@@ -180,7 +180,7 @@ def main(args):
             ax.set_yscale("log")
             ax.set_ylim((1e-3, None))
             plt.tight_layout()
-            plt.savefig(f"eigh_e{epoch}.png", transparent=True)
+            plt.savefig(f"eigen_e{epoch}.png", transparent=True)
             plt.close()
 
             if epoch > 0:
@@ -195,7 +195,7 @@ def main(args):
                     plt.savefig(f"loss_{key}_e{epoch}.png", transparent=True)
                     plt.close()
 
-            fig, ax = plt.subplots(dpi=200)
+            fig = plt.figure(dpi=200)
             axs = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0)
             axs[0].imshow(w_simmat_reordered, aspect=1)
             axs[0].axis("off")
@@ -235,7 +235,7 @@ def main(args):
             cm = cm[: args.num_classes, :]
             cmn = normalize(cm, axis=0)
             sns.heatmap(cmn, ax=ax, annot=cm, fmt="d", cmap="Blues", cbar=False, yticklabels=targets)
-            ax.set_yticks(rotation=45)
+            plt.yticks(rotation=45)
             ax.set_title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ ensembled with SC at epoch %d" % epoch)
             ax.set_aspect(cmn.shape[0] / cmn.shape[1])
             plt.tight_layout()
