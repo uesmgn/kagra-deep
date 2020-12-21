@@ -237,7 +237,8 @@ def main(args):
             print(f"Plotting confusion matrix with ensembled label...")
             fig, ax = plt.subplots()
             cm = confusion_matrix(y, pred_sc)
-            cm = cm[: args.num_classes, :]
+            cm_labels = np.unique(np.concatenate([y, pred_sc]))
+            cm = cm[np.nonzero(np.isin(cm_labels, y))[0], :]
             cmn = normalize(cm, axis=0)
             sns.heatmap(
                 cmn,
@@ -248,7 +249,7 @@ def main(args):
                 cmap="Greens",
                 cbar=False,
                 yticklabels=targets,
-                xticklabels=np.unique(np.concatenate([y, pred_sc])),
+                xticklabels=cm_labels,
                 annot_kws={"fontsize": 8},
             )
             plt.yticks(rotation=45)
