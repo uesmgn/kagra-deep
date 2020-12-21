@@ -162,7 +162,7 @@ def main(args):
             print("Computing cosine distance reordered matrix...")
             simmat_reordered, reordered, _ = compute_serial_matrix(simmat)
             print("Computing eigen values and vectors...")
-            eigs, eigv = scipy.linalg.eigh(simmat)
+            eigs, eigv = scipy.linalg.eigh(hg)
             print("Fitting eigen vectors to Spectral Clustering model...")
             pred_sc = sc.fit(eigv[:, -64:]).labels_
 
