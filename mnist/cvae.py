@@ -388,7 +388,7 @@ class IIGC(nn.Module):
                 except:
                     continue
 
-    def forward(self, x, z_detach=False, lam=1.0):
+    def forward(self, x, lam=1.0):
         z, z_mean, z_logvar = self.qz_x(x)
         w, w_ = self.clustering(z.detach()), self.clustering(z_mean.detach())
         x_ = self.px_z(z)
@@ -435,7 +435,7 @@ class IIGC(nn.Module):
             return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum() / self.num_heads
 
     def kl_gauss(self, mean_p, logvar_p, mean_q, logvar_q, reduction="mean"):
-        b, _ = mean_p.shape
+        b = mean_p.shape[0]
         kl = -0.5 * torch.sum(logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp())
         if reduction == "sum":
             return kl
@@ -445,7 +445,7 @@ class IIGC(nn.Module):
             raise ValueError("reduction must be 'sum' or 'mean'.")
 
     def bce(self, x, x_recon, reduction="mean"):
-        b, _, _ = x.shape
+        b = x.shape[0]
         bce = F.binary_cross_entropy(x_recon, x, reduction="sum")
         if reduction == "sum":
             return bce

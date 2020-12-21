@@ -122,7 +122,7 @@ def main(args):
         total_dict = defaultdict(lambda: 0)
         for i, (x, y) in tqdm(enumerate(train_loader)):
             x = x.to(device)
-            bce, kl, mi = model(x, z_detach=args.z_detach, lam=args.lam)
+            bce, kl, mi = model(x, lam=args.lam)
             loss = bce + kl + mi
             optim.zero_grad()
             loss.backward()
