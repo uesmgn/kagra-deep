@@ -156,15 +156,18 @@ def main(args):
             y = torch.cat(params["y"]).numpy().astype(int)
             pred = torch.cat(params["pred"]).numpy().astype(int)
             hg = torch.cat(params["pi"]).view(num_samples, -1)
+            max_values, _ = torch.max(hg, -1)
+            imp_indices = torch.nonzero((max_values > args.thres)).squeeze()
 
             print("Computing cosine similarity matrix...")
             simmat = cosine_similarity(hg)
             print("Computing cosine distance reordered matrix...")
             simmat_reordered, reordered, _ = compute_serial_matrix(simmat)
             print("Computing eigen values and vectors...")
-            eigs, eigv = scipy.linalg.eigh(hg)
+            eigs, eigv = scipy.linalg.eigh(simmat)
             print("Fitting eigen vectors to Spectral Clustering model...")
             pred_sc = sc.fit(eigv[:, -64:]).labels_
+            pred_sc[imp_indices] = -1
 
             print("Sampling from each predicted classes...")
             samples_fec = sample_from_each_class(pred_sc, num_samples=args.num_ranking)
