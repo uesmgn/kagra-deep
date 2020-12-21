@@ -122,13 +122,14 @@ def main(args):
         total_dict = defaultdict(lambda: 0)
         for i, (x, y) in tqdm(enumerate(train_loader)):
             x = x.to(device)
-            kl, mi = model(x, z_detach=args.z_detach, lam=args.lam)
-            loss = kl + mi
+            bce, kl, mi = model(x, z_detach=args.z_detach, lam=args.lam)
+            loss = bce + kl + mi
             optim.zero_grad()
             loss.backward()
             optim.step()
             total += loss.item()
             total_dict["total"] += loss.item()
+            total_dict["bce"] += bce.item()
             total_dict["kl"] += kl.item()
             total_dict["mi"] += mi.item()
         for key, value in total_dict.items():

@@ -347,7 +347,9 @@ class IIGC(nn.Module):
         self.num_heads = num_heads
 
         encoder = Encoder(ch_in, 1024)
+        decoder = Decoder(ch_in, dim_z)
         self.qz_x = Qz_x(encoder, dim_z)
+        self.px_z = Px_z(decoder)
 
         if self.use_multi_heads:
             self.fc = nn.ModuleList([self._fc(dim_z, dim_w) for _ in range(self.num_heads)])
@@ -388,10 +390,12 @@ class IIGC(nn.Module):
 
     def forward(self, x, z_detach=False, lam=1.0):
         z, z_mean, z_logvar = self.qz_x(x)
-        kl = self.kl_gauss(z_mean, z_logvar, torch.zeros_like(z_mean), torch.ones_like(z_logvar))
         w, w_ = self.clustering(z.detach()), self.clustering(z_mean.detach())
+        x_ = self.px_z(z)
+        bce = self.bce(x, x_)
+        kl = self.kl_gauss(z_mean, z_logvar, torch.zeros_like(z_mean), torch.ones_like(z_logvar))
         mi = self.mutual_info(w, w_, lam=lam)
-        return kl, mi
+        return bce, kl, mi
 
     def get_params(self, x):
         assert not self.training
@@ -437,6 +441,16 @@ class IIGC(nn.Module):
             return kl
         elif reduction == "mean":
             return kl / b
+        else:
+            raise ValueError("reduction must be 'sum' or 'mean'.")
+
+    def bce(self, x, x_recon, reduction="mean"):
+        b, _, _ = x.shape
+        bce = F.binary_cross_entropy(x_recon, x, reduction="sum")
+        if reduction == "sum":
+            return bce
+        elif reduction == "mean":
+            return bce / b
         else:
             raise ValueError("reduction must be 'sum' or 'mean'.")
 
