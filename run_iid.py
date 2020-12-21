@@ -114,7 +114,14 @@ def main(args):
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=10, T_mult=2)
     stats = defaultdict(lambda: [])
-    sc = cl.SpectralClustering(n_clusters=args.num_pred_classes, eigen_solver="arpack", affinity="rbf", gamma=10.0, random_state=args.seed)
+    sc = cl.SpectralClustering(
+        n_clusters=args.num_pred_classes,
+        n_components=args.n_components,
+        eigen_solver="amg",
+        affinity="rbf",
+        gamma=10.0,
+        random_state=args.seed,
+    )
 
     for epoch in range(args.num_epochs):
         print(f"----- training at epoch {epoch} -----")
@@ -189,7 +196,7 @@ def main(args):
             print("Computing eigen values and vectors...")
             eigs, eigv = scipy.linalg.eigh(simmat)
             print("Fitting eigen vectors to Spectral Clustering model...")
-            pred_sc = sc.fit(eigv[:, -100:]).labels_
+            pred_sc = sc.fit(eigv[:, -args.n_components :]).labels_
             # pred_sc[imp_indices] = -1
 
             print("Sampling from each predicted classes...")
