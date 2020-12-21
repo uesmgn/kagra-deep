@@ -99,7 +99,7 @@ def main(args):
     model = IIC(
         ch_in=args.ch_in,
         dim_y=args.num_classes,
-        dim_w=args.dim_w,
+        dim_w_min=args.dim_w,
         dim_z=args.dim_z,
         use_multi_heads=args.use_multi_heads,
         num_heads=args.num_heads,
