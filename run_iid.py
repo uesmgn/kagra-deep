@@ -189,8 +189,8 @@ def main(args):
             print("Computing eigen values and vectors...")
             eigs, eigv = scipy.linalg.eigh(simmat)
             print("Fitting eigen vectors to Spectral Clustering model...")
-            pred_sc = sc.fit(eigv[:, -64:]).labels_
-            pred_sc[imp_indices] = -1
+            pred_sc = sc.fit(eigv[:, -100:]).labels_
+            # pred_sc[imp_indices] = -1
 
             print("Sampling from each predicted classes...")
             samples_fec = sample_from_each_class(pred_sc, num_samples=args.num_ranking)
