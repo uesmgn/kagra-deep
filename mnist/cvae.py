@@ -340,6 +340,107 @@ class M2(nn.Module):
         return -0.5 * torch.sum(logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp())
 
 
+class IIGC(nn.Module):
+    def __init__(self, ch_in, dim_w=100, dim_z=512, num_heads=10):
+        super().__init__()
+        self.use_multi_heads = num_heads > 1
+        self.num_heads = num_heads
+
+        encoder = Encoder(ch_in, 1024)
+        self.qz_x = Qz_x(encoder, dim_z)
+
+        if self.use_multi_heads:
+            self.fc = nn.ModuleList([self._fc(dim_z, dim_w) for _ in range(self.num_heads)])
+        else:
+            self.fc = self._fc(dim_z, dim_w)
+
+        self.weight_init()
+
+    def _fc(self, dim_in, dim_out):
+        return nn.Sequential(
+            nn.Linear(dim_in, 1024, bias=False),
+            nn.BatchNorm1d(1024),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(1024, dim_out),
+        )
+
+    def load_state_dict_part(self, state_dict):
+        own_state = self.state_dict()
+        for name, param in state_dict.items():
+            if name not in own_state:
+                continue
+            print(f"load state dict: {name}")
+            own_state[name].copy_(param)
+
+    def weight_init(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.xavier_normal_(m.weight)
+            elif isinstance(m, (nn.BatchNorm1d, nn.BatchNorm2d)):
+                nn.init.normal_(m.weight, mean=1, std=0.02)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.xavier_normal_(m.weight)
+                try:
+                    nn.init.zeros_(m.bias)
+                except:
+                    continue
+
+    def forward(self, x, z_detach=False, lam=1.0):
+        z, z_mean, z_logvar = self.qz_x(x)
+        kl = self.kl_gauss(z_mean, z_logvar, torch.zeros_like(z_mean), torch.ones_like(z_logvar))
+        w, w_ = self.clustering(z), self.clustering(z_mean)
+        mi = self.mutual_info(w, w_, lam=lam)
+        return kl, mi
+
+    def get_params(self, x):
+        assert not self.training
+        _, z_mean, _ = self.qz_x(x)
+        w = self.clustering(z_mean)
+        return z_mean, w
+
+    def clustering(self, x):
+        if self.use_multi_heads:
+            tmp = []
+            for fc in self.fc:
+                w = F.softmax(fc(x), dim=-1)
+                tmp.append(w)
+            return torch.stack(tmp, dim=-1)
+        else:
+            w = F.softmax(self.fc(x), dim=-1)
+            return w
+
+    def mutual_info(self, x, y, lam=1.0, eps=1e-8):
+        if x.ndim == y.ndim == 2:
+            # use single heads
+            p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(0)
+            p = ((p + p.t()) / 2) / p.sum()
+            _, k = x.shape
+            p[(p < eps).data] = eps
+            pi = p.sum(dim=1).view(k, 1).expand(k, k).pow(lam)
+            pj = p.sum(dim=0).view(1, k).expand(k, k).pow(lam)
+            return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
+        elif x.ndim == y.ndim == 3:
+            # use multi heads
+            p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(0)
+            p = ((p + p.permute(1, 0, 2)) / 2) / p.sum()
+            p[(p < eps).data] = eps
+            _, k, m = x.shape
+            pi = p.sum(dim=1).view(k, -1).expand(k, k, m).pow(lam)
+            pj = p.sum(dim=0).view(k, -1).expand(k, k, m).pow(lam)
+            return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum() / self.num_heads
+
+    def kl_gauss(self, mean_p, logvar_p, mean_q, logvar_q, reduction="mean"):
+        b, _ = mean_p.shape
+        kl = -0.5 * torch.sum(logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp())
+        if reduction == "sum":
+            return kl
+        elif reduction == "mean":
+            return kl / b
+        else:
+            raise ValueError("reduction must be 'sum' or 'mean'.")
+
+
 class IID(nn.Module):
     def __init__(self, ch_in, dim_w, dim_z=512, use_multi_heads=False, num_heads=10):
         super().__init__()
