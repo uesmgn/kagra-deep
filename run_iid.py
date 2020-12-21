@@ -226,7 +226,7 @@ def main(args):
                 cmap="Greens",
                 cbar=False,
                 yticklabels=targets,
-                xticklabels=pred_labels,
+                xticklabels=np.unique(np.concatenate([y, pred_sc])),
                 annot_kws={"fontsize": 8},
             )
             plt.yticks(rotation=45)
