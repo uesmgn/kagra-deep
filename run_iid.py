@@ -168,6 +168,7 @@ def main(args):
             print("Fitting eigen vectors to Spectral Clustering model...")
             pred_sc = sc.fit(eigv[:, -64:]).labels_
             pred_sc[imp_indices] = -1
+            pred_labels = np.unique(pred_sc)
 
             print("Sampling from each predicted classes...")
             samples_fec = sample_from_each_class(pred_sc, num_samples=args.num_ranking)
@@ -216,7 +217,18 @@ def main(args):
             cm = confusion_matrix(y, pred_sc)
             cm = cm[: args.num_classes, :]
             cmn = normalize(cm, axis=0)
-            sns.heatmap(cmn, ax=ax, annot=cm, fmt="d", linewidths=0.1, cmap="Greens", cbar=False, yticklabels=targets, annot_kws={"fontsize": 8})
+            sns.heatmap(
+                cmn,
+                ax=ax,
+                annot=cm,
+                fmt="d",
+                linewidths=0.1,
+                cmap="Greens",
+                cbar=False,
+                yticklabels=targets,
+                xticklabels=pred_labels,
+                annot_kws={"fontsize": 8},
+            )
             plt.yticks(rotation=45)
             ax.set_title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ ensembled with SC at epoch %d" % epoch)
             plt.tight_layout()
@@ -290,12 +302,12 @@ def main(args):
 
             print(f"Plotting 2D latent features with ensembled labels...")
             fig, ax = plt.subplots()
-            cmap = segmented_cmap(args.num_pred_classes, "tab20b")
-            for i in range(args.num_pred_classes):
-                idx = np.where(pred_sc == i)[0]
+            cmap = segmented_cmap(len(pred_labels), "tab20b")
+            for i, label in enumerate(pred_labels):
+                idx = np.where(pred_sc == label)[0]
                 if len(idx) > 0:
                     c = cmap(i)
-                    ax.scatter(qz[idx, 0], qz[idx, 1], color=c, label=i, edgecolors=darken(c))
+                    ax.scatter(qz[idx, 0], qz[idx, 1], color=c, label=label, edgecolors=darken(c))
             ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=2)
             ax.set_title(r"$q(\bm{z})$ ensembled at epoch %d" % (epoch))
             ax.set_aspect(1.0 / ax.get_data_ratio())
