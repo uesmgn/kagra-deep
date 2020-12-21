@@ -157,7 +157,7 @@ def main(args):
             pred = torch.cat(params["pred"]).numpy().astype(int)
             hg = torch.cat(params["pi"]).view(num_samples, -1)
             max_values, _ = torch.max(hg, -1)
-            imp_indices = torch.nonzero((max_values > args.thres)).squeeze()
+            imp_indices = torch.nonzero(max_values < args.thres).squeeze()
 
             print("Plotting histgram with values of hypergraph...")
             plt.figure()
