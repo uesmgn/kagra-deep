@@ -159,6 +159,13 @@ def main(args):
             max_values, _ = torch.max(hg, -1)
             imp_indices = torch.nonzero((max_values > args.thres)).squeeze()
 
+            print("Plotting histgram with values of hypergraph...")
+            plt.figure()
+            plt.hist(hg.flatten(), bins=200, log=True)
+            plt.tight_layout()
+            plt.savefig(f"hist_hg_e{epoch}.png", transparent=True, dpi=args.dpi)
+            plt.close()
+
             print("Computing cosine similarity matrix...")
             simmat = cosine_similarity(hg)
             print("Computing cosine distance reordered matrix...")
