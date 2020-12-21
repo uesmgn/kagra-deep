@@ -390,7 +390,7 @@ class IIGC(nn.Module):
 
     def forward(self, x, lam=1.0):
         z, z_mean, z_logvar = self.qz_x(x)
-        w, w_ = self.clustering(z.detach()), self.clustering(z_mean.detach())
+        w, w_ = self.clustering(z), self.clustering(z_mean)
         x_ = self.px_z(z)
         bce = self.bce(x, x_)
         kl = self.kl_gauss(z_mean, z_logvar, torch.zeros_like(z_mean), torch.ones_like(z_logvar))
