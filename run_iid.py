@@ -161,7 +161,7 @@ def main(args):
 
             print("Plotting histgram with values of hypergraph...")
             plt.figure()
-            plt.hist(hg.flatten(), bins=200, log=True)
+            plt.hist(hg.flatten().numpy(), bins=500, log=True)
             plt.tight_layout()
             plt.savefig(f"hist_hg_e{epoch}.png", transparent=True, dpi=args.dpi)
             plt.close()
