@@ -168,7 +168,6 @@ def main(args):
             print("Fitting eigen vectors to Spectral Clustering model...")
             pred_sc = sc.fit(eigv[:, -64:]).labels_
             pred_sc[imp_indices] = -1
-            pred_labels = np.unique(pred_sc)
 
             print("Sampling from each predicted classes...")
             samples_fec = sample_from_each_class(pred_sc, num_samples=args.num_ranking)
@@ -302,8 +301,8 @@ def main(args):
 
             print(f"Plotting 2D latent features with ensembled labels...")
             fig, ax = plt.subplots()
-            cmap = segmented_cmap(len(pred_labels), "tab20b")
-            for i, label in enumerate(pred_labels):
+            cmap = segmented_cmap(len(np.unique(pred_sc)), "tab20b")
+            for i, label in enumerate(np.unique(pred_sc)):
                 idx = np.where(pred_sc == label)[0]
                 if len(idx) > 0:
                     c = cmap(i)
