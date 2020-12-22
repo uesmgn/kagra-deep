@@ -116,7 +116,6 @@ def main(args):
     stats = defaultdict(lambda: [])
     sc = cl.SpectralClustering(
         n_clusters=args.num_pred_classes,
-        n_components=args.n_components,
         eigen_solver="amg",
         affinity="rbf",
         gamma=10.0,
@@ -196,8 +195,7 @@ def main(args):
             print("Computing eigen values and vectors...")
             eigs, eigv = scipy.linalg.eigh(simmat)
             print("Fitting eigen vectors to Spectral Clustering model...")
-            # pred_sc = sc.fit(eigv[:, -args.n_components :]).labels_
-            pred_sc = sc.fit(simmat).labels_
+            pred_sc = sc.fit(eigv[:, -args.n_components :]).labels_
             # pred_sc[imp_indices] = -1
 
             print("Sampling from each predicted classes...")
