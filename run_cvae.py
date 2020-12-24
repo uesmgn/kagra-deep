@@ -173,11 +173,11 @@ def main(args):
                 print(f"Plotting 2D latent features with pred labels...")
                 fig, ax = plt.subplots()
                 cmap = segmented_cmap(len(np.unique(pred)), "tab20b")
-                for i in np.unique(pred):
-                    idx = np.where(pred == i)[0]
+                for i, label in enumerate(np.unique(pred)):
+                    idx = np.where(pred == label)[0]
                     if len(idx) > 0:
                         c = cmap(i)
-                        ax.scatter(qz[idx, 0], qz[idx, 1], color=c, label=i, edgecolors=darken(c))
+                        ax.scatter(qz[idx, 0], qz[idx, 1], color=c, label=label, edgecolors=darken(c))
                 ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=np.ceil(len(np.unique(pred)) / 20).astype(int))
                 ax.set_title(r"$q(\bm{z})$ with pred labels at epoch %d" % (epoch))
                 ax.set_aspect(1.0 / ax.get_data_ratio())
