@@ -160,7 +160,7 @@ class Qz_xy(nn.Module):
             nn.BatchNorm1d(dim_y),
             nn.LeakyReLU(0.2, inplace=True),
         )
-        self.gaussian = Gaussian(512 + dim_y, dim_z)
+        self.gaussian = Gaussian(dim_y + dim_y, dim_z)
 
     def forward(self, x, y):
         x = self.encoder(x)
