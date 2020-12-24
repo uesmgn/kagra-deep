@@ -2,4 +2,5 @@
 
 # from .vae import *
 # from .vae_gw import *
-from .cvae import *
+# from .cvae import *
+from .models import CVAE

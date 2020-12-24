@@ -340,14 +340,15 @@ class M2(nn.Module):
         return -0.5 * torch.sum(logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp())
 
 
-class IIGC(nn.Module):
+# Conditional Variational Clustering
+class CVC(nn.Module):
     def __init__(self, ch_in, dim_w=100, dim_z=512, num_heads=10):
         super().__init__()
         self.use_multi_heads = num_heads > 1
         self.num_heads = num_heads
 
         encoder = Encoder(ch_in, 1024)
-        decoder = Decoder(ch_in, dim_z)
+        self.qy_x = Qy_x(encoder, dim_w)
         self.qz_x = Qz_x(encoder, dim_z)
         self.px_z = Px_z(decoder)
 
