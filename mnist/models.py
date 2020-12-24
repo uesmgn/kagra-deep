@@ -281,6 +281,11 @@ class CVAE(nn.Module):
 
         return bce, kl_gauss, kl_cat
 
+    def get_params(self, x):
+        y, y_pi = self.qy_x(x)
+        z, z_mean, z_logvar = self.qz_xy(x, y)
+        return z_mean
+
     def bce(self, x, x_recon):
         return F.binary_cross_entropy(x_recon, x, reduction="sum")
 

@@ -126,7 +126,7 @@ def main(args):
             with torch.no_grad():
                 for i, (x, y) in tqdm(enumerate(test_loader)):
                     x = x.to(device)
-                    _, qz, _ = model.qz_x(x)
+                    qz = model.get_params(x)
 
                     params["y"] = torch.cat([params["y"], y])
                     params["qz"] = torch.cat([params["qz"], qz.cpu()])
