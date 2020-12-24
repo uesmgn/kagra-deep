@@ -10,7 +10,7 @@ use_other: False
 load_state_dict: True
 z_detach: True
 num_test_samples: 3000
-lam: 1.5
+lam: 1.0
 use_multi_heads: True
 num_ranking: 5
 num_heads: 10
@@ -21,7 +21,7 @@ thres: 0.95
 num_epochs: 10000
 num_classes: 22
 num_pred_classes: 50
-dim_w: 200
+dim_w: 100
 dim_w_min: 500
 dim_w_max: 500
 dim_z: 512
