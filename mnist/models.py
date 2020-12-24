@@ -272,7 +272,7 @@ class CVAE(nn.Module):
         b = x.shape[0]
         y, y_pi, y_logits = self.qy_x(x)
         z, z_mean, z_logvar = self.qz_xy(x, y)
-        z_, z_mean_, z_logvar_ = self.pz_y(y)
+        z_, z_mean_, z_logvar_ = self.pz_y(y_logits)
         # y_pi_ = self.qy_z(z)
         x_ = self.px_yz(torch.cat([y_logits, z], -1))
 
