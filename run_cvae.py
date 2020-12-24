@@ -121,18 +121,21 @@ def main(args):
         if epoch % args.eval_interval == 0:
             print(f"----- evaluating at epoch {epoch} -----")
             model.eval()
-            params = defaultdict(lambda: torch.tensor([]))
+            params = defaultdict(list)
 
             with torch.no_grad():
                 for i, (x, y) in tqdm(enumerate(test_loader)):
                     x = x.to(device)
-                    qz = model.get_params(x)
+                    qz, pi = model.get_params(x)
+                    pred = torch.argmax(pi, -1)
 
-                    params["y"] = torch.cat([params["y"], y])
-                    params["qz"] = torch.cat([params["qz"], qz.cpu()])
+                    params["y"].append(y)
+                    params["pred"].append(pred.cpu())
+                    params["qz"].append(qz.cpu())
 
-                y = params["y"].numpy().astype(int)
-                qz = params["qz"].numpy()
+                y = torch.cat(params["y"]).numpy().astype(int)
+                pred = torch.cat(params["pred"]).numpy().astype(int)
+                qz = torch.cat(params["qz"]).numpy()
 
                 print(f"Computing 2D latent features by t-SNE...")
                 # latent features
@@ -150,6 +153,7 @@ def main(args):
                         plt.close()
 
                 plt.rcParams["text.usetex"] = True
+
                 print(f"Plotting 2D latent features with true labels...")
                 fig, ax = plt.subplots()
                 cmap = segmented_cmap(args.num_classes, "tab20b")
@@ -159,10 +163,25 @@ def main(args):
                         c = cmap(i)
                         ax.scatter(qz[idx, 0], qz[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
                 ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-                ax.set_title(r"$q(\bm{z})$ at epoch %d" % (epoch))
+                ax.set_title(r"$q(\bm{z})$ with true labels at epoch %d" % (epoch))
                 ax.set_aspect(1.0 / ax.get_data_ratio())
                 plt.tight_layout()
                 plt.savefig(f"qz_true_e{epoch}.png", transparent=True, dpi=args.dpi)
+                plt.close()
+
+                print(f"Plotting 2D latent features with pred labels...")
+                fig, ax = plt.subplots()
+                cmap = segmented_cmap(len(np.unique(pred)), "tab20b")
+                for i in np.unique(pred):
+                    idx = np.where(pred == i)[0]
+                    if len(idx) > 0:
+                        c = cmap(i)
+                        ax.scatter(qz[idx, 0], qz[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
+                ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
+                ax.set_title(r"$q(\bm{z})$ with pred labels at epoch %d" % (epoch))
+                ax.set_aspect(1.0 / ax.get_data_ratio())
+                plt.tight_layout()
+                plt.savefig(f"qz_pred_e{epoch}.png", transparent=True, dpi=args.dpi)
                 plt.close()
 
         if epoch % args.save_interval == 0:
