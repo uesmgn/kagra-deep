@@ -12,7 +12,16 @@ from itertools import cycle
 import os
 from sklearn.manifold import TSNE
 
-from src.utils.functional import acronym, darken, colormap
+from src.utils.functional import (
+    acronym,
+    darken,
+    cmap_with_marker,
+    pca,
+    cosine_similarity,
+    compute_serial_matrix,
+    sample_from_each_class,
+    segmented_cmap,
+)
 from src.utils import transforms
 from src.data import datasets
 from src.data import samplers
@@ -125,28 +134,24 @@ def main(args):
                 y = params["y"].numpy().astype(int)
                 qz = params["qz"].numpy()
 
-                qz_tsne = TSNE(n_components=2, random_state=args.seed).fit_transform(qz)
-                plt.figure()
-                for i in np.unique(y):
-                    idx = np.where(y == i)
-                    c = colormap(i)
-                    plt.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
-                plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-                plt.title(f"2d qz using t-sne at epoch {epoch}")
-                plt.tight_layout()
-                plt.savefig(f"qz_tsne_e{epoch}.png")
-                plt.close()
+                print(f"Computing 2D latent features by t-SNE...")
+                # latent features
+                qz = torch.cat(params["qz"]).numpy()
+                qz = TSNE(n_components=2, metric="cosine", random_state=args.seed).fit(qz).embedding_
 
-                qz_umap = umap.UMAP(n_components=2, random_state=args.seed).fit_transform(qz)
-                plt.figure()
-                for i in np.unique(y):
-                    idx = np.where(y == i)
-                    c = colormap(i)
-                    plt.scatter(qz_umap[idx, 0], qz_umap[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
-                plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-                plt.title(f"2d qz using umap at epoch {epoch}")
+                print(f"Plotting 2D latent features with true labels...")
+                fig, ax = plt.subplots()
+                cmap = segmented_cmap(args.num_classes, "tab20b")
+                for i in range(args.num_classes):
+                    idx = np.where(y == i)[0]
+                    if len(idx) > 0:
+                        c = cmap(i)
+                        ax.scatter(qz[idx, 0], qz[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
+                ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
+                ax.set_title(r"$q(\bm{z})$ at epoch %d" % (epoch))
+                ax.set_aspect(1.0 / ax.get_data_ratio())
                 plt.tight_layout()
-                plt.savefig(f"qz_umap_e{epoch}.png")
+                plt.savefig(f"qz_true_e{epoch}.png", transparent=True, dpi=args.dpi)
                 plt.close()
 
                 if epoch > 0:
