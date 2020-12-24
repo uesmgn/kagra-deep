@@ -272,8 +272,8 @@ class CVAE(nn.Module):
         y, y_pi = self.qy_x(x)
         z, z_mean, z_logvar = self.qz_xy(x, y)
         z_, z_mean_, z_logvar_ = self.pz_y(y)
-        y_pi_ = self.qy_z(z_xy)
-        x_ = self.px_z(z_xy)
+        y_pi_ = self.qy_z(z)
+        x_ = self.px_z(z)
 
         bce = self.bce(x, x_) / b
         kl_gauss = self.kl_gauss(z_mean, z_logvar, z_mean_, z_logvar_) / b
