@@ -136,7 +136,6 @@ def main(args):
 
                 print(f"Computing 2D latent features by t-SNE...")
                 # latent features
-                qz = torch.cat(params["qz"]).numpy()
                 qz = TSNE(n_components=2, metric="cosine", random_state=args.seed).fit(qz).embedding_
 
                 print(f"Plotting 2D latent features with true labels...")
