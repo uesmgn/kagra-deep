@@ -180,6 +180,7 @@ class Qy_x(nn.Module):
         )
 
     def forward(self, x, tau=0.5):
+        hard = not self.training
         x = self.encoder(x)
         logits = self.fc(x)
         qy = F.gumbel_softmax(logits, tau=tau, hard=False, dim=-1)
@@ -282,7 +283,7 @@ class CVAE(nn.Module):
         return bce, kl_gauss, kl_cat
 
     def get_params(self, x):
-        y, y_pi = self.qy_x(x)
+        y, y_pi, y_logits = self.qy_x(x)
         z, z_mean, z_logvar = self.qz_xy(x, y)
         return z_mean, y_pi
 
