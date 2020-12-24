@@ -102,7 +102,7 @@ def main(args):
         total_dict = defaultdict(lambda: 0)
         for x, _ in tqdm(train_loader):
             x = x.to(device)
-            bce, kl_gauss, kl_cat, mi = model(x)
+            bce, kl_gauss, kl_cat = model(x)
             loss = sum([bce, kl_gauss, kl_cat, mi])
             optim.zero_grad()
             loss.backward()
@@ -112,7 +112,6 @@ def main(args):
             total_dict["bce"] += bce.item()
             total_dict["kl_gauss"] += kl_gauss.item()
             total_dict["kl_cat"] += kl_cat.item()
-            total_dict["mi"] += mi.item()
         for key, value in total_dict.items():
             print("loss_{}: {:.3f} at epoch: {}".format(key, value, epoch))
             stats[key].append(value)

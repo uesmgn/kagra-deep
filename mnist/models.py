@@ -241,7 +241,7 @@ class CVAE(nn.Module):
         decoder = Decoder(ch_in, dim_y + dim_z)
         self.qy_x = Qy_x(encoder, dim_y)
         self.qz_xy = Qz_xy(encoder, dim_y, dim_z)
-        self.qy_z = Qy_z(dim_y, dim_z)
+        # self.qy_z = Qy_z(dim_y, dim_z)
         self.pz_y = Pz_y(dim_y, dim_z)
         self.px_yz = Px_z(decoder)
         self.weight_init()
@@ -273,15 +273,15 @@ class CVAE(nn.Module):
         y, y_pi, y_logits = self.qy_x(x)
         z, z_mean, z_logvar = self.qz_xy(x, y)
         z_, z_mean_, z_logvar_ = self.pz_y(y)
-        y_pi_ = self.qy_z(z)
+        # y_pi_ = self.qy_z(z)
         x_ = self.px_yz(torch.cat([y_logits, z], -1))
 
         bce = self.bce(x, x_) / b
         kl_gauss = self.kl_gauss(z_mean, z_logvar, z_mean_, z_logvar_) / b
         kl_cat = self.kl_cat(y_pi, F.softmax(torch.ones_like(y_pi), dim=-1)) / b
-        mi = self.mutual_info(y_pi, y_pi_) / b
+        # mi = self.mutual_info(y_pi, y_pi_) / b
 
-        return bce, kl_gauss, kl_cat, mi
+        return bce, kl_gauss, kl_cat
 
     def get_params(self, x):
         y, y_pi, y_logits = self.qy_x(x)
