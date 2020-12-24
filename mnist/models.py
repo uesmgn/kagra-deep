@@ -201,6 +201,23 @@ class Qy_z(nn.Module):
         return pi
 
 
+class Pz_y(nn.Module):
+    def __init__(self, dim_y, dim_z):
+        super().__init__()
+
+        self.fc = nn.Sequential(
+            nn.Linear(dim_y, 1024, bias=False),
+            nn.BatchNorm1d(1024),
+            nn.LeakyReLU(0.2, inplace=True),
+        )
+        self.gaussian = Gaussian(1024, dim_z)
+
+    def forward(self, y):
+        y = self.fc(y)
+        z, mean, logvar = self.gaussian(y)
+        return z, mean, logvar
+
+
 class Px_z(nn.Module):
     def __init__(self, decoder):
         super().__init__()
@@ -224,6 +241,7 @@ class CVAE(nn.Module):
         self.qy_x = Qy_x(encoder, dim_y)
         self.qz_xy = Qz_xy(encoder, dim_y, dim_z)
         self.qy_z = Qy_z(dim_y, dim_z)
+        self.pz_y = Pz_y(dim_y, dim_z)
         self.px_z = Px_z(decoder)
         self.weight_init()
 
