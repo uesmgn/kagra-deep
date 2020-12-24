@@ -176,7 +176,7 @@ def main(args):
                     idx = np.where(pred == i)[0]
                     if len(idx) > 0:
                         c = cmap(i)
-                        ax.scatter(qz[idx, 0], qz[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
+                        ax.scatter(qz[idx, 0], qz[idx, 1], color=c, label=i, edgecolors=darken(c))
                 ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
                 ax.set_title(r"$q(\bm{z})$ with pred labels at epoch %d" % (epoch))
                 ax.set_aspect(1.0 / ax.get_data_ratio())
