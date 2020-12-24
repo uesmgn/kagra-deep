@@ -138,6 +138,18 @@ def main(args):
                 # latent features
                 qz = TSNE(n_components=2, metric="cosine", random_state=args.seed).fit(qz).embedding_
 
+                plt.rcParams["text.usetex"] = False
+                if epoch > 0:
+                    for key, value in stats.items():
+                        plt.plot(value)
+                        plt.ylabel(key)
+                        plt.xlabel("epoch")
+                        plt.title(key)
+                        plt.xlim((0, len(value) - 1))
+                        plt.savefig(f"loss_{key}_e{epoch}.png")
+                        plt.close()
+
+                plt.rcParams["text.usetex"] = True
                 print(f"Plotting 2D latent features with true labels...")
                 fig, ax = plt.subplots()
                 cmap = segmented_cmap(args.num_classes, "tab20b")
@@ -152,16 +164,6 @@ def main(args):
                 plt.tight_layout()
                 plt.savefig(f"qz_true_e{epoch}.png", transparent=True, dpi=args.dpi)
                 plt.close()
-
-                if epoch > 0:
-                    for key, value in stats.items():
-                        plt.plot(value)
-                        plt.ylabel(key)
-                        plt.xlabel("epoch")
-                        plt.title(key)
-                        plt.xlim((0, len(value) - 1))
-                        plt.savefig(f"loss_{key}_e{epoch}.png")
-                        plt.close()
 
         if epoch % args.save_interval == 0:
             torch.save(model.state_dict(), os.path.join(args.model_dir, "model_m1_usl.pt"))
