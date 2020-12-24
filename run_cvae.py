@@ -102,8 +102,8 @@ def main(args):
         total_dict = defaultdict(lambda: 0)
         for x, _ in tqdm(train_loader):
             x = x.to(device)
-            bce, kl_gauss, kl_cat = model(x)
-            loss = sum([bce, kl_gauss, kl_cat])
+            bce, kl_gauss, kl_cat, mi = model(x)
+            loss = sum([bce, kl_gauss, kl_cat, mi])
             optim.zero_grad()
             loss.backward()
             optim.step()
@@ -112,6 +112,7 @@ def main(args):
             total_dict["bce"] += bce.item()
             total_dict["kl_gauss"] += kl_gauss.item()
             total_dict["kl_cat"] += kl_cat.item()
+            total_dict["mi"] += mi.item()
         for key, value in total_dict.items():
             print("loss_{}: {:.3f} at epoch: {}".format(key, value, epoch))
             stats[key].append(value)
@@ -177,7 +178,7 @@ def main(args):
                     if len(idx) > 0:
                         c = cmap(i)
                         ax.scatter(qz[idx, 0], qz[idx, 1], color=c, label=i, edgecolors=darken(c))
-                ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
+                ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=np.ceil(len(np.unique(pred)) / 20).astype(int))
                 ax.set_title(r"$q(\bm{z})$ with pred labels at epoch %d" % (epoch))
                 ax.set_aspect(1.0 / ax.get_data_ratio())
                 plt.tight_layout()

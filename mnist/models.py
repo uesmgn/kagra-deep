@@ -279,8 +279,9 @@ class CVAE(nn.Module):
         bce = self.bce(x, x_) / b
         kl_gauss = self.kl_gauss(z_mean, z_logvar, z_mean_, z_logvar_) / b
         kl_cat = self.kl_cat(y_pi, F.softmax(torch.ones_like(y_pi), dim=-1)) / b
+        mi = self.mutual_info(y_pi, y_pi_) / b
 
-        return bce, kl_gauss, kl_cat
+        return bce, kl_gauss, kl_cat, mi
 
     def get_params(self, x):
         y, y_pi, y_logits = self.qy_x(x)
@@ -295,3 +296,12 @@ class CVAE(nn.Module):
 
     def kl_cat(self, q, p, eps=1e-8):
         return torch.sum(q * (torch.log(q + eps) - torch.log(p + eps)))
+
+    def mutual_info(self, x, y, lam=1.0, eps=1e-8):
+        p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(0)
+        p = ((p + p.t()) / 2) / p.sum()
+        _, k = x.shape
+        p[(p < eps).data] = eps
+        pi = p.sum(dim=1).view(k, 1).expand(k, k).pow(lam)
+        pj = p.sum(dim=0).view(1, k).expand(k, k).pow(lam)
+        return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
