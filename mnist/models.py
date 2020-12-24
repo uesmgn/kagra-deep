@@ -35,6 +35,31 @@ class ResBlock(nn.Module):
         return self.activation(x)
 
 
+class TransposeBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, activation=None):
+        super().__init__()
+        self.block = self.block = nn.Sequential(
+            nn.ConvTranspose2d(in_channels, in_channels, stride=2, kernel_size=4, padding=1, bias=False),
+            nn.BatchNorm2d(in_channels),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.ConvTranspose2d(in_channels, out_channels, kernel_size=1, bias=False),
+            nn.BatchNorm2d(out_channels),
+        )
+        self.connection = nn.Sequential(
+            nn.ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2, bias=False),
+            nn.BatchNorm2d(out_channels),
+        )
+        if activation is None:
+            self.activation = nn.LeakyReLU(0.2, inplace=True)
+        else:
+            self.activation = activation
+
+    def forward(self, x):
+        identity = self.connection(x)
+        x = self.block(x) + identity
+        return self.activation(x)
+
+
 class Encoder(nn.Module):
     def __init__(self, ch_in=3, dim_out=512):
         super().__init__()
