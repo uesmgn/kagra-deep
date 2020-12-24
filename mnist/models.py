@@ -184,7 +184,7 @@ class Qy_x(nn.Module):
         logits = self.fc(x)
         qy = F.gumbel_softmax(logits, tau=tau, hard=False, dim=-1)
         pi = F.softmax(logits, dim=-1)
-        return qy, pi
+        return qy, pi, logits
 
 
 class Qy_z(nn.Module):
@@ -237,12 +237,12 @@ class CVAE(nn.Module):
     ):
         super().__init__()
         encoder = Encoder(ch_in, 1024)
-        decoder = Decoder(ch_in, dim_z)
+        decoder = Decoder(ch_in, dim_y + dim_z)
         self.qy_x = Qy_x(encoder, dim_y)
         self.qz_xy = Qz_xy(encoder, dim_y, dim_z)
         self.qy_z = Qy_z(dim_y, dim_z)
         self.pz_y = Pz_y(dim_y, dim_z)
-        self.px_z = Px_z(decoder)
+        self.px_yz = Px_z(decoder)
         self.weight_init()
 
     def load_state_dict_part(self, state_dict):
@@ -269,22 +269,22 @@ class CVAE(nn.Module):
 
     def forward(self, x):
         b = x.shape[0]
-        y, y_pi = self.qy_x(x)
+        y, y_pi, y_logits = self.qy_x(x)
         z, z_mean, z_logvar = self.qz_xy(x, y)
         z_, z_mean_, z_logvar_ = self.pz_y(y)
         y_pi_ = self.qy_z(z)
-        x_ = self.px_z(z)
+        x_ = self.px_yz(torch.cat([y_logits, z], -1))
 
         bce = self.bce(x, x_) / b
         kl_gauss = self.kl_gauss(z_mean, z_logvar, z_mean_, z_logvar_) / b
-        kl_cat = self.kl_cat(y_pi, F.softmax(torch.ones_like(y_pi), dim=-1))
+        kl_cat = self.kl_cat(y_pi, F.softmax(torch.ones_like(y_pi), dim=-1)) / b
 
         return bce, kl_gauss, kl_cat
 
     def get_params(self, x):
         y, y_pi = self.qy_x(x)
         z, z_mean, z_logvar = self.qz_xy(x, y)
-        return z_mean
+        return z_mean, y_pi
 
     def bce(self, x, x_recon):
         return F.binary_cross_entropy(x_recon, x, reduction="sum")
