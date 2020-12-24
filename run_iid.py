@@ -104,7 +104,6 @@ def main(args):
         ch_in=args.ch_in,
         dim_w=args.dim_w,
         dim_z=args.dim_z,
-        use_multi_heads=args.use_multi_heads,
         num_heads=args.num_heads,
     ).to(device)
 
@@ -129,7 +128,7 @@ def main(args):
         total_dict = defaultdict(lambda: 0)
         for i, (x, y) in tqdm(enumerate(train_loader)):
             x = x.to(device)
-            loss = model(x, z_detach=args.z_detach, lam=args.lam)
+            loss = model(x, lam=args.lam)
             optim.zero_grad()
             loss.backward()
             optim.step()
@@ -150,7 +149,7 @@ def main(args):
             with torch.no_grad():
                 for i, (x, y) in tqdm(enumerate(test_loader)):
                     x = x.to(device)
-                    qz, pi, proba = model.get_params(x)
+                    qz, pi = model.get_params(x)
                     pred = torch.argmax(pi, -1)
 
                     params["y"].append(y)
@@ -337,7 +336,7 @@ def main(args):
                 if len(idx) > 0:
                     c = cmap(i)
                     ax.scatter(qz[idx, 0], qz[idx, 1], color=c, label=label, edgecolors=darken(c))
-            ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=2)
+            ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=np.ceil(len(np.unique(pred_sc)) / 20).astype(int))
             ax.set_title(r"$q(\bm{z})$ ensembled at epoch %d" % (epoch))
             ax.set_aspect(1.0 / ax.get_data_ratio())
             plt.tight_layout()
