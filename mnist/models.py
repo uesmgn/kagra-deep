@@ -36,7 +36,7 @@ class ResBlock(nn.Module):
 
 
 class Encoder(nn.Module):
-    def __init__(self, ch_in=3):
+    def __init__(self, ch_in=3, dim_out=512):
         super().__init__()
         self.blocks = nn.Sequential(
             nn.Conv2d(ch_in, 32, kernel_size=7, stride=2, padding=3, bias=False),
@@ -50,7 +50,7 @@ class Encoder(nn.Module):
         self.fc = nn.Sequential(
             nn.Flatten(),
             nn.Linear(256 * 7 * 7, dim_out, bias=False),
-            nn.BatchNorm1d(1024),
+            nn.BatchNorm1d(dim_out),
             nn.LeakyReLU(0.2, inplace=True),
         )
 
