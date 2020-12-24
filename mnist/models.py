@@ -305,3 +305,59 @@ class CVAE(nn.Module):
         pi = p.sum(dim=1).view(k, 1).expand(k, k).pow(lam)
         pj = p.sum(dim=0).view(1, k).expand(k, k).pow(lam)
         return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
+
+
+class VAE(nn.Module):
+    def __init__(
+        self,
+        ch_in=3,
+        dim_z=512,
+    ):
+        super().__init__()
+        encoder = Encoder(ch_in, 1024)
+        decoder = Decoder(ch_in, dim_z)
+        self.qz_x = Qz_x(encoder, dim_z)
+        self.px_z = Px_z(decoder)
+        self.weight_init()
+
+    def load_state_dict_part(self, state_dict):
+        own_state = self.state_dict()
+        for name, param in state_dict.items():
+            if name not in own_state:
+                continue
+            print(f"load state dict: {name}")
+            own_state[name].copy_(param)
+
+    def weight_init(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.xavier_normal_(m.weight)
+            elif isinstance(m, (nn.BatchNorm1d, nn.BatchNorm2d)):
+                nn.init.normal_(m.weight, mean=1, std=0.02)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.xavier_normal_(m.weight)
+                try:
+                    nn.init.zeros_(m.bias)
+                except:
+                    continue
+
+    def forward(self, x):
+        b = x.shape[0]
+        z, z_mean, z_logvar = self.qz_x(x)
+        x_ = self.px_z(z)
+
+        bce = self.bce(x, x_) / b
+        kl_gauss = self.kl_gauss(z_mean, z_logvar, torch.zeros_like(z_mean), torch.ones_like(z_logvar)) / b
+
+        return bce, kl_gauss
+
+    def get_params(self, x):
+        z, z_mean, z_logvar = self.qz_x(x)
+        return z_mean
+
+    def bce(self, x, x_recon):
+        return F.binary_cross_entropy(x_recon, x, reduction="sum")
+
+    def kl_gauss(self, mean_p, logvar_p, mean_q, logvar_q):
+        return -0.5 * torch.sum(logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp())
