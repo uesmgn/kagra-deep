@@ -15,10 +15,11 @@ from sklearn.decomposition import PCA
 from sklearn import cluster as cl
 import scipy.linalg
 import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, silhouette_samples
 from sklearn.preprocessing import normalize
 import seaborn as sns
 from mpl_toolkits.axes_grid1 import ImageGrid
+import matplotlib.cm as mc
 
 from src.utils.functional import (
     acronym,
@@ -358,6 +359,38 @@ def main(args):
             ax.set_aspect(1.0 / ax.get_data_ratio())
             plt.tight_layout()
             plt.savefig(f"qz_sc_e{epoch}.png", transparent=True, dpi=args.dpi)
+            plt.close()
+
+            fig, ax = plt.subplots()
+            ax.set_xlim([-0.2, 1])
+            ax.set_ylim([0, len(qz) + (args.num_classes + 1) * 10])
+
+            sample_silhouette_values = silhouette_samples(qz, y)
+            y_lower = 10
+
+            for i, label in enumerate(targets):
+                ith_cluster_silhouette_values = sample_silhouette_values[y == i]
+                ith_cluster_silhouette_values.sort()
+                size_cluster_i = ith_cluster_silhouette_values.shape[0]
+                y_upper = y_lower + size_cluster_i
+                color = mc.nipy_spectral(float(i) / args.num_classes)
+                ax.fill_betweenx(np.arange(y_lower, y_upper), 0, ith_cluster_silhouette_values, facecolor=color, edgecolor=color, alpha=0.7)
+
+                # Label the silhouette plots with their cluster numbers at the middle
+                ax.text(-0.1, y_lower + 0.5 * size_cluster_i, label)
+
+                # Compute the new y_lower for next plot
+                y_lower = y_upper + 10  # 10 for the 0 samples
+
+                ax.set_title("The silhouette plot for the various clusters.")
+                ax.set_xlabel("The silhouette coefficient values")
+                ax.set_ylabel("Cluster label")
+
+                ax.set_yticks([])  # Clear the yaxis labels / ticks
+                ax.set_xticks([-0.1, 0, 0.2, 0.4, 0.6, 0.8, 1])
+
+            plt.tight_layout()
+            plt.savefig(f"silhouette_e{epoch}.png", transparent=True, dpi=args.dpi)
             plt.close()
 
         if epoch % args.save_interval == 0:
