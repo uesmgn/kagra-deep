@@ -27,7 +27,7 @@ from src.data import datasets
 from src.data import samplers
 from src import config
 
-from mnist import CVAE
+from mnist import IICVAE
 
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
@@ -87,7 +87,7 @@ def main(args):
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
-    model = CVAE(ch_in=args.ch_in, dim_y=100, dim_z=512).to(device)
+    model = IICVAE(ch_in=args.ch_in, dim_w=100, dim_z=512, num_heads=10).to(device)
     if args.load_state_dict:
         model.load_state_dict_part(torch.load(args.model_path))
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
@@ -123,14 +123,14 @@ def main(args):
                 for i, (x, y) in tqdm(enumerate(test_loader)):
                     x = x.to(device)
                     qz, pi = model.get_params(x)
-                    pred = torch.argmax(pi, -1)
+                    # pred = torch.argmax(pi, -1)
 
                     params["y"].append(y)
-                    params["pred"].append(pred.cpu())
+                    # params["pred"].append(pred.cpu())
                     params["qz"].append(qz.cpu())
 
                 y = torch.cat(params["y"]).numpy().astype(int)
-                pred = torch.cat(params["pred"]).numpy().astype(int)
+                # pred = torch.cat(params["pred"]).numpy().astype(int)
                 qz = torch.cat(params["qz"]).numpy()
 
                 print(f"Computing 2D latent features by t-SNE...")
@@ -165,20 +165,20 @@ def main(args):
                 plt.savefig(f"qz_true_e{epoch}.png", transparent=True, dpi=args.dpi)
                 plt.close()
 
-                print(f"Plotting 2D latent features with pred labels...")
-                fig, ax = plt.subplots()
-                cmap = segmented_cmap(len(np.unique(pred)), "tab20b")
-                for i, label in enumerate(np.unique(pred)):
-                    idx = np.where(pred == label)[0]
-                    if len(idx) > 0:
-                        c = cmap(i)
-                        ax.scatter(qz[idx, 0], qz[idx, 1], color=c, label=label, edgecolors=darken(c))
-                ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=np.ceil(len(np.unique(pred)) / 20).astype(int))
-                ax.set_title(r"$q(\bm{z})$ with pred labels at epoch %d" % (epoch))
-                ax.set_aspect(1.0 / ax.get_data_ratio())
-                plt.tight_layout()
-                plt.savefig(f"qz_pred_e{epoch}.png", transparent=True, dpi=args.dpi)
-                plt.close()
+                # print(f"Plotting 2D latent features with pred labels...")
+                # fig, ax = plt.subplots()
+                # cmap = segmented_cmap(len(np.unique(pred)), "tab20b")
+                # for i, label in enumerate(np.unique(pred)):
+                #     idx = np.where(pred == label)[0]
+                #     if len(idx) > 0:
+                #         c = cmap(i)
+                #         ax.scatter(qz[idx, 0], qz[idx, 1], color=c, label=label, edgecolors=darken(c))
+                # ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=np.ceil(len(np.unique(pred)) / 20).astype(int))
+                # ax.set_title(r"$q(\bm{z})$ with pred labels at epoch %d" % (epoch))
+                # ax.set_aspect(1.0 / ax.get_data_ratio())
+                # plt.tight_layout()
+                # plt.savefig(f"qz_pred_e{epoch}.png", transparent=True, dpi=args.dpi)
+                # plt.close()
 
         if epoch % args.save_interval == 0:
             torch.save(model.state_dict(), os.path.join(args.model_dir, "model_m1_usl.pt"))

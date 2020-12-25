@@ -229,22 +229,29 @@ class Px_z(nn.Module):
         return x
 
 
-class CVAE(nn.Module):
-    def __init__(
-        self,
-        ch_in=3,
-        dim_y=100,
-        dim_z=512,
-    ):
+class IICVAE(nn.Module):
+    def __init__(self, ch_in, dim_w=100, dim_z=512, num_heads=10):
         super().__init__()
+        self.use_multi_heads = num_heads > 1
+        self.num_heads = num_heads
         encoder = Encoder(ch_in, 1024)
-        decoder = Decoder(ch_in, dim_y + dim_z)
-        self.qy_x = Qy_x(encoder, dim_y)
-        self.qz_xy = Qz_xy(encoder, dim_y, dim_z)
-        # self.qy_z = Qy_z(dim_y, dim_z)
-        self.pz_y = Pz_y(dim_y, dim_z)
-        self.px_yz = Px_z(decoder)
+        self.qz_x = Qz_x(encoder, dim_z)
+        if self.use_multi_heads:
+            self.classifier = nn.ModuleList([self.gen_classifier(dim_z, dim_w) for _ in range(self.num_heads)])
+        else:
+            self.classifier = self.gen_classifier(dim_z, dim_w)
+        self.pz_w = Pz_y(dim_y=dim_w * num_heads, dim_z=dim_z)
+        decoder = Decoder(ch_in, dim_z)
+        self.px_z = Px_z(decoder)
         self.weight_init()
+
+    def gen_classifier(self, dim_in, dim_out):
+        return nn.Sequential(
+            nn.Linear(dim_in, 1024, bias=False),
+            nn.BatchNorm1d(1024),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(1024, dim_out),
+        )
 
     def load_state_dict_part(self, state_dict):
         own_state = self.state_dict()
@@ -268,42 +275,57 @@ class CVAE(nn.Module):
                 except:
                     continue
 
-    def forward(self, x):
+    def forward(self, x, lam=1.0):
         b = x.shape[0]
-        y, y_pi, y_logits = self.qy_x(x)
-        z, z_mean, z_logvar = self.qz_xy(x, y)
-        z_, z_mean_, z_logvar_ = self.pz_y(y_logits)
-        # y_pi_ = self.qy_z(z)
-        x_ = self.px_yz(torch.cat([y_logits, z], -1))
-
+        z, z_mean, z_logvar = self.qz_x(x)
+        w, w_ = self.clustering(z), self.clustering(z_mean)
+        mi = self.mutual_info(w, w_, lam=lam)
+        z_, z_mean_, z_logvar_ = self.pz_w(w.view(b, -1))
+        kl = self.kl_gauss(z_mean, z_logvar, z_mean_, z_logvar_) / b
+        x_ = self.px_z(z)
         bce = self.bce(x, x_) / b
-        kl_gauss = self.kl_gauss(z_mean, z_logvar, z_mean_, z_logvar_) / b
-        kl_cat = self.kl_cat(y_pi, F.softmax(torch.ones_like(y_pi), dim=-1)) / b
-        # mi = self.mutual_info(y_pi, y_pi_) / b
-
-        return bce, kl_gauss, kl_cat
+        return bce + kl + mi
 
     def get_params(self, x):
-        y, y_pi, y_logits = self.qy_x(x)
-        z, z_mean, z_logvar = self.qz_xy(x, y)
-        return z_mean, y_pi
+        assert not self.training
+        _, z_mean, _ = self.qz_x(x)
+        w = self.clustering(z_mean)
+        w_pi = F.softmax(w, dim=1)
+        return z_mean, w_pi
 
-    def bce(self, x, x_recon):
-        return F.binary_cross_entropy(x_recon, x, reduction="sum")
+    def clustering(self, x):
+        if self.use_multi_heads:
+            tmp = []
+            for classifier in self.classifier:
+                w = classifier(x)
+                tmp.append(w)
+            return torch.stack(tmp, dim=-1)
+        else:
+            w = self.classifier(x)
+            return w
+
+    def bce(self, x, y):
+        return F.binary_cross_entropy(y, x, reduction="sum")
 
     def kl_gauss(self, mean_p, logvar_p, mean_q, logvar_q):
         return -0.5 * torch.sum(logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp())
 
-    def kl_cat(self, q, p, eps=1e-8):
-        return torch.sum(q * (torch.log(q + eps) - torch.log(p + eps)))
-
     def mutual_info(self, x, y, lam=1.0, eps=1e-8):
-        p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(0)
-        p = ((p + p.t()) / 2) / p.sum()
-        _, k = x.shape
-        p[(p < eps).data] = eps
-        pi = p.sum(dim=1).view(k, 1).expand(k, k).pow(lam)
-        pj = p.sum(dim=0).view(1, k).expand(k, k).pow(lam)
+        x, y = F.softmax(x, dim=1), F.softmax(y, dim=1)
+        if x.ndim == 2:
+            p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(0)
+            p = ((p + p.t()) / 2) / p.sum()
+            _, k = x.shape
+            p[(p < eps).data] = eps
+            pi = p.sum(dim=1).view(k, 1).expand(k, k).pow(lam)
+            pj = p.sum(dim=0).view(1, k).expand(k, k).pow(lam)
+        elif x.ndim == 3:
+            p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(0)
+            p = ((p + p.permute(1, 0, 2)) / 2) / p.sum()
+            p[(p < eps).data] = eps
+            _, k, m = x.shape
+            pi = p.sum(dim=1).view(k, -1).expand(k, k, m)
+            pj = p.sum(dim=0).view(k, -1).expand(k, k, m)
         return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
 
 
