@@ -282,8 +282,6 @@ def main(args):
                 plt.savefig(f"cm_sc_h{i}_e{epoch}.png", transparent=True, dpi=args.dpi)
                 plt.close()
 
-        if epoch % args.embedding_interval == 0:
-
             for i, (label, indices) in enumerate(samples_fec.items()):
                 if i % 5 == 0:
                     fig, _ = plt.subplots()
