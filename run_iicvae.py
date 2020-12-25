@@ -362,8 +362,9 @@ def main(args):
             plt.close()
 
             fig, ax = plt.subplots()
-            ax.set_xlim([-0.2, 1])
+            ax.set_xlim([-0.12, 1])
             ax.set_ylim([0, len(qz) + (args.num_classes + 1) * 10])
+            cmap = segmented_cmap(len(targets), "tab20b")
 
             sample_silhouette_values = silhouette_samples(qz, y)
             y_lower = 10
@@ -373,11 +374,11 @@ def main(args):
                 ith_cluster_silhouette_values.sort()
                 size_cluster_i = ith_cluster_silhouette_values.shape[0]
                 y_upper = y_lower + size_cluster_i
-                color = mc.nipy_spectral(float(i) / args.num_classes)
+                color = cmap(i)
                 ax.fill_betweenx(np.arange(y_lower, y_upper), 0, ith_cluster_silhouette_values, facecolor=color, edgecolor=color, alpha=0.7)
 
                 # Label the silhouette plots with their cluster numbers at the middle
-                ax.text(-0.1, y_lower + 0.5 * size_cluster_i, label)
+                ax.text(-0.1, y_lower + 0.5 * size_cluster_i, str(label))
 
                 # Compute the new y_lower for next plot
                 y_lower = y_upper + 10  # 10 for the 0 samples
@@ -391,6 +392,39 @@ def main(args):
 
             plt.tight_layout()
             plt.savefig(f"silhouette_e{epoch}.png", transparent=True, dpi=args.dpi)
+            plt.close()
+
+            fig, ax = plt.subplots()
+            ax.set_xlim([-0.12, 1])
+            ax.set_ylim([0, len(qz) + (len(np.unique(pred_sc)) + 1) * 10])
+            cmap = segmented_cmap(len(np.unique(pred_sc)), "tab20b")
+
+            sample_silhouette_values = silhouette_samples(qz, pred_sc)
+            y_lower = 10
+
+            for i, label in enumerate(np.unique(pred_sc)):
+                ith_cluster_silhouette_values = sample_silhouette_values[pred_sc == i]
+                ith_cluster_silhouette_values.sort()
+                size_cluster_i = ith_cluster_silhouette_values.shape[0]
+                y_upper = y_lower + size_cluster_i
+                color = cmap(i)
+                ax.fill_betweenx(np.arange(y_lower, y_upper), 0, ith_cluster_silhouette_values, facecolor=color, edgecolor=color, alpha=0.7)
+
+                # Label the silhouette plots with their cluster numbers at the middle
+                ax.text(-0.1, y_lower + 0.5 * size_cluster_i, str(label))
+
+                # Compute the new y_lower for next plot
+                y_lower = y_upper + 10  # 10 for the 0 samples
+
+                ax.set_title("The silhouette plot for the various clusters.")
+                ax.set_xlabel("The silhouette coefficient values")
+                ax.set_ylabel("Cluster label")
+
+                ax.set_yticks([])  # Clear the yaxis labels / ticks
+                ax.set_xticks([-0.1, 0, 0.2, 0.4, 0.6, 0.8, 1])
+
+            plt.tight_layout()
+            plt.savefig(f"silhouette_sc_e{epoch}.png", transparent=True, dpi=args.dpi)
             plt.close()
 
         if epoch % args.save_interval == 0:
