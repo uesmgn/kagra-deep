@@ -14,6 +14,11 @@ from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 from sklearn import cluster as cl
 import scipy.linalg
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
+from sklearn.preprocessing import normalize
+import seaborn as sns
+from mpl_toolkits.axes_grid1 import ImageGrid
 
 from src.utils.functional import (
     acronym,
@@ -32,9 +37,6 @@ from src import config
 
 from mnist import IICVAE
 
-import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix
-import seaborn as sns
 
 plt.style.use("seaborn-poster")
 plt.rcParams["text.latex.preamble"] = r"\usepackage{bm}"
@@ -253,7 +255,8 @@ def main(args):
             plt.savefig(f"cm_sc_e{epoch}.png", transparent=True, dpi=args.dpi)
             plt.close()
 
-            for i, p in enumerate():
+            for i in range(0, pred.shape[-1], 3):
+                p = pred[:, i]
                 print(f"Plotting confusion matrix with head {i} label...")
                 fig, ax = plt.subplots()
                 cm = confusion_matrix(y, p)
