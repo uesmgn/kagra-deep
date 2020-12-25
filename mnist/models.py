@@ -235,14 +235,13 @@ class IICVAE(nn.Module):
         self.use_multi_heads = num_heads > 1
         self.num_heads = num_heads
         encoder = Encoder(ch_in, 1024)
+        decoder = Decoder(ch_in, dim_z)
         self.qz_x = Qz_x(encoder, dim_z)
+        self.px_z = Px_z(decoder)
         if self.use_multi_heads:
             self.classifier = nn.ModuleList([self.gen_classifier(dim_z, dim_w) for _ in range(self.num_heads)])
         else:
             self.classifier = self.gen_classifier(dim_z, dim_w)
-        self.pz_w = Pz_y(dim_y=dim_w * num_heads, dim_z=dim_z)
-        decoder = Decoder(ch_in, dim_z)
-        self.px_z = Px_z(decoder)
         self.weight_init()
 
     def gen_classifier(self, dim_in, dim_out):
@@ -280,28 +279,26 @@ class IICVAE(nn.Module):
         z, z_mean, z_logvar = self.qz_x(x)
         w, w_ = self.clustering(z), self.clustering(z_mean)
         mi = self.mutual_info(w, w_, lam=lam)
-        z_, z_mean_, z_logvar_ = self.pz_w(w.view(b, -1))
-        kl = self.kl_gauss(z_mean, z_logvar, z_mean_, z_logvar_) / b
+        kl = self.kl_gauss(z_mean, z_logvar, torch.zeros_like(z_mean), torch.ones_like(z_mean)) / b
         x_ = self.px_z(z)
         bce = self.bce(x, x_) / b
-        return bce + kl + mi
+        return bce, kl, mi
 
     def get_params(self, x):
         assert not self.training
         _, z_mean, _ = self.qz_x(x)
         w = self.clustering(z_mean)
-        w_pi = F.softmax(w, dim=1)
-        return z_mean, w_pi
+        return z_mean, w
 
     def clustering(self, x):
         if self.use_multi_heads:
             tmp = []
             for classifier in self.classifier:
-                w = classifier(x)
+                w = F.softmax(classifier(x), dim=-1)
                 tmp.append(w)
             return torch.stack(tmp, dim=-1)
         else:
-            w = self.classifier(x)
+            w = F.softmax(self.classifier(x), dim=-1)
             return w
 
     def bce(self, x, y):
@@ -311,7 +308,6 @@ class IICVAE(nn.Module):
         return -0.5 * torch.sum(logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp())
 
     def mutual_info(self, x, y, lam=1.0, eps=1e-8):
-        x, y = F.softmax(x, dim=1), F.softmax(y, dim=1)
         if x.ndim == 2:
             p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(0)
             p = ((p + p.t()) / 2) / p.sum()
