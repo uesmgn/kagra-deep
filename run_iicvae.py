@@ -6,11 +6,14 @@ import numpy as np
 from collections import abc, defaultdict
 import numbers
 from tqdm import tqdm
-import copy
 import umap
-from itertools import cycle
+import random
 import os
+import copy
 from sklearn.manifold import TSNE
+from sklearn.decomposition import PCA
+from sklearn import cluster as cl
+import scipy.linalg
 
 from src.utils.functional import (
     acronym,
@@ -94,6 +97,13 @@ def main(args):
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=10, T_mult=2)
 
     stats = defaultdict(lambda: [])
+    sc = cl.SpectralClustering(
+        n_clusters=args.num_pred_classes,
+        eigen_solver="amg",
+        affinity="rbf",
+        gamma=10.0,
+        random_state=args.seed,
+    )
 
     for epoch in range(args.num_epochs):
         print(f"----- training at epoch {epoch} -----")
