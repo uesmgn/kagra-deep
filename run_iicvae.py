@@ -37,7 +37,7 @@ from src import config
 
 from mnist import IICVAE
 
-
+plt.style.use("dark_background")
 plt.style.use("seaborn-poster")
 plt.rcParams["text.latex.preamble"] = r"\usepackage{bm}"
 plt.rc("legend", fontsize=10)
