@@ -96,7 +96,7 @@ def main(args):
         torch.backends.cudnn.benchmark = True
     model = IICVAE(ch_in=args.ch_in, dim_w=100, dim_z=512, num_heads=10).to(device)
     if args.load_state_dict:
-        model.load_state_dict_part(torch.load(args.model_path))
+        model.load_state_dict_part(torch.load(os.path.join(args.model_dir, "model_m1_usl.pt")))
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=10, T_mult=2)
 
