@@ -219,25 +219,25 @@ def main(args):
 
         if epoch % args.embedding_interval == 0:
 
-            for i, (label, indices) in enumerate(samples_fec.items()):
-                if i % 5 == 0:
-                    fig, _ = plt.subplots()
-                    print(f"Plotting samples from each predicted classes {i // 5}...")
-                for n, m in enumerate(indices):
-                    x, _ = test_set[m]
-                    ax = plt.subplot(5, args.num_ranking, args.num_ranking * (i % 5) + n + 1)
-                    ax.imshow(x[0])
-                    ax.axis("off")
-                    ax.margins(0)
-                    ax.set_title(r"$\bm{x}_{(%d)} \in \bm{y}_{(%d)}$" % (m, label))
-                if i % 5 == 4:
-                    plt.subplots_adjust(wspace=0.05, top=0.92, bottom=0.05, left=0.05, right=0.95)
-                    fig.suptitle("Random samples from each predicted labels")
-                    plt.tight_layout()
-                    plt.savefig(f"samples_{i // 5}_e{epoch}.png", transparent=False, dpi=args.dpi)
-                    plt.close()
+            # for i, (label, indices) in enumerate(samples_fec.items()):
+            #     if i % 5 == 0:
+            #         fig, _ = plt.subplots()
+            #         print(f"Plotting samples from each predicted classes {i // 5}...")
+            #     for n, m in enumerate(indices):
+            #         x, _ = test_set[m]
+            #         ax = plt.subplot(5, args.num_ranking, args.num_ranking * (i % 5) + n + 1)
+            #         ax.imshow(x[0])
+            #         ax.axis("off")
+            #         ax.margins(0)
+            #         ax.set_title(r"$\bm{x}_{(%d)} \in \bm{y}_{(%d)}$" % (m, label))
+            #     if i % 5 == 4:
+            #         plt.subplots_adjust(wspace=0.05, top=0.92, bottom=0.05, left=0.05, right=0.95)
+            #         fig.suptitle("Random samples from each predicted labels")
+            #         plt.tight_layout()
+            #         plt.savefig(f"samples_{i // 5}_e{epoch}.png", transparent=False, dpi=args.dpi)
+            #         plt.close()
 
-            print(f"Plotting random samples with 5 most similar samples...")
+            print(f"Plotting random samples with 3 most similar samples...")
             fig, _ = plt.subplots()
             for i, j in enumerate(sample_indices):
                 x, _ = test_set[j]
