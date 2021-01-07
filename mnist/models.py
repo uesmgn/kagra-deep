@@ -238,9 +238,7 @@ class IICVAE(nn.Module):
         self.use_multi_heads = num_heads > 1
         self.num_heads = num_heads
         encoder = Encoder(ch_in, 1024)
-        decoder = Decoder(ch_in, dim_z)
         self.qz_x = Qz_x(encoder, dim_z)
-        self.px_z = Px_z(decoder)
         if self.use_multi_heads:
             self.classifier = nn.ModuleList([self.gen_classifier(dim_z, dim_w) for _ in range(self.num_heads)])
         else:
