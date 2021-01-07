@@ -103,7 +103,7 @@ def main(args):
         for x, _ in tqdm(train_loader):
             x = x.to(device)
             bce, kl_gauss = model(x)
-            loss = sum([bce, 5.0 * kl_gauss])
+            loss = sum([bce, kl_gauss])
             optim.zero_grad()
             loss.backward()
             optim.step()
@@ -148,7 +148,6 @@ def main(args):
 
         if epoch % args.embedding_interval == 0 and epoch > 0:
             qz_tsne = TSNE(n_components=2, metric="cosine", random_state=args.seed).fit(qz).embedding_
-            qz_umap = umap.UMAP(n_components=2, random_state=args.seed).fit(qz).embedding_
 
             plt.figure()
             cmap = segmented_cmap(len(args.targets), "tab20b")
@@ -160,18 +159,6 @@ def main(args):
             plt.title(f"2d qz using t-sne at epoch {epoch}")
             plt.tight_layout()
             plt.savefig(f"qz_tsne_e{epoch}.png")
-            plt.close()
-
-            plt.figure()
-            cmap = segmented_cmap(len(args.targets), "tab20b")
-            for i in np.unique(y):
-                idx = np.where(y == i)
-                c = cmap(i)
-                plt.scatter(qz_umap[idx, 0], qz_umap[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
-            plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-            plt.title(f"2d qz using umap at epoch {epoch}")
-            plt.tight_layout()
-            plt.savefig(f"qz_umap_e{epoch}.png")
             plt.close()
 
 
