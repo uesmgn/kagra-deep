@@ -243,7 +243,7 @@ def main(args):
             #         plt.savefig(f"samples_{i // 5}_e{epoch}.png", transparent=False, dpi=args.dpi)
             #         plt.close()
 
-            print(f"Plotting random samples with 3 most similar samples...")
+            print(f"Plotting random samples with 5 most similar samples...")
             fig, _ = plt.subplots()
             for i, j in enumerate(sample_indices):
                 x, _ = test_set[j]

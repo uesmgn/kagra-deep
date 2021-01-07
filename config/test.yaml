@@ -12,7 +12,7 @@ z_detach: True
 num_test_samples: 2000
 lam: 1.0
 use_multi_heads: True
-num_ranking: 3
+num_ranking: 5
 num_heads: 10
 n_components: 64
 dpi: 100
