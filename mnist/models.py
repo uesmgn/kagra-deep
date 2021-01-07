@@ -35,7 +35,7 @@ class ResBlock(nn.Module):
         return self.activation(x)
 
 
-class TransposeBlock(nn.Module):
+class ResBlockDec(nn.Module):
     def __init__(self, in_channels, out_channels, activation=None):
         super().__init__()
         self.block = self.block = nn.Sequential(
@@ -50,7 +50,7 @@ class TransposeBlock(nn.Module):
             nn.BatchNorm2d(out_channels),
         )
         if activation is None:
-            self.activation = nn.LeakyReLU(0.2, inplace=True)
+            self.activation = nn.ReLU(inplace=True)
         else:
             self.activation = activation
 
@@ -277,12 +277,9 @@ class IICVAE(nn.Module):
     def forward(self, x, lam=1.0):
         b = x.shape[0]
         z, z_mean, z_logvar = self.qz_x(x)
-        w, w_ = self.clustering(z), self.clustering(z_mean)
+        w, w_ = self.clustering(z.detach()), self.clustering(z_mean.detach())
         mi = self.mutual_info(w, w_, lam=lam)
-        kl = self.kl_gauss(z_mean, z_logvar, torch.zeros_like(z_mean), torch.ones_like(z_mean)) / b
-        x_ = self.px_z(z)
-        bce = self.bce(x, x_) / b
-        return bce, kl, mi
+        return mi
 
     def get_params(self, x):
         assert not self.training
