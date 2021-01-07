@@ -271,38 +271,7 @@ def main(args):
             # latent features
             qz = torch.cat(params["qz"]).numpy()
             qz = TSNE(n_components=2, metric="cosine", random_state=args.seed).fit(qz).embedding_
-            eigv = TSNE(n_components=2, metric="cosine", random_state=args.seed).fit(eigv).embedding_
             # qz = umap.UMAP(n_components=2, random_state=args.seed).fit(qz).embedding_
-
-            print(f"Plotting 2D eigv with true labels...")
-            fig, ax = plt.subplots()
-            cmap = segmented_cmap(args.num_classes, "tab20b")
-            for i in range(args.num_classes):
-                idx = np.where(y == i)[0]
-                if len(idx) > 0:
-                    c = cmap(i)
-                    ax.scatter(eigv[idx, 0], eigv[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
-            ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-            ax.set_title(r"$q(\bm{z})$ at epoch %d" % (epoch))
-            ax.set_aspect(1.0 / ax.get_data_ratio())
-            plt.tight_layout()
-            plt.savefig(f"eigv_true_e{epoch}.png", transparent=False, dpi=args.dpi)
-            plt.close()
-
-            print(f"Plotting 2D eigv with ensembled labels...")
-            fig, ax = plt.subplots()
-            cmap = segmented_cmap(args.num_pred_classes, "tab20b")
-            for i in range(args.num_pred_classes):
-                idx = np.where(pred_sc == i)[0]
-                if len(idx) > 0:
-                    c = cmap(i)
-                    ax.scatter(eigv[idx, 0], eigv[idx, 1], color=c, label=i, edgecolors=darken(c))
-            ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=2)
-            ax.set_title(r"$q(\bm{z})$ ensembled at epoch %d" % (epoch))
-            ax.set_aspect(1.0 / ax.get_data_ratio())
-            plt.tight_layout()
-            plt.savefig(f"eigv_sc_e{epoch}.png", transparent=False, dpi=args.dpi)
-            plt.close()
 
             print(f"Plotting 2D latent features with true labels...")
             fig, ax = plt.subplots()
