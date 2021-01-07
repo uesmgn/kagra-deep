@@ -152,7 +152,7 @@ def main(args):
 
             y = torch.cat(params["y"]).numpy().astype(int)
             pred = torch.cat(params["pred"]).numpy().astype(int)
-            hg = torch.cat(params["pi"]).view(num_samples, -1)
+            hg = torch.cat(params["pred"]).view(num_samples, -1)
 
             print("Computing cosine similarity matrix...")
             simmat = cosine_similarity(hg)
