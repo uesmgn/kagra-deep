@@ -27,7 +27,7 @@ from src.data import datasets
 from src.data import samplers
 from src import config
 
-from mnist import VAE
+from src.nn.models import M1
 
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
@@ -87,9 +87,7 @@ def main(args):
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
-    model = VAE(ch_in=args.ch_in, dim_z=512).to(device)
-    if args.load_state_dict:
-        model.load_state_dict_part(torch.load(args.model_path))
+    model = M1(dim_x=1024, dim_z=512, pretrained=True).to(device)
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=10, T_mult=2)
 

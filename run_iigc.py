@@ -30,7 +30,7 @@ from src.data import datasets
 from src.data import samplers
 from src import config
 
-from mnist import IIGC
+from mnist import IICVAE
 
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
@@ -38,8 +38,6 @@ from sklearn.preprocessing import normalize
 import seaborn as sns
 from mpl_toolkits.axes_grid1 import ImageGrid
 
-
-plt.style.use("dark_background")
 plt.style.use("seaborn-poster")
 plt.rcParams["text.latex.preamble"] = r"\usepackage{bm}"
 plt.rc("legend", fontsize=10)
@@ -74,7 +72,7 @@ def main(args):
 
     dataset = datasets.HDF5(args.dataset_root, transform_fn, target_transform_fn)
     train_set, test_set = copy.copy(dataset), dataset.sample(args.num_test_samples)
-    sample_indices = random.sample(range(len(test_set)), 5)
+    sample_indices = random.sample(range(len(test_set)), 3)
     # train_set, test_set = dataset.split(train_size=args.train_size, stratify=dataset.targets)
     train_set.transform = augment_fn
     # train_sampler = samplers.Balancer(train_set, args.batch_size * args.num_train_steps)
@@ -100,7 +98,7 @@ def main(args):
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
-    model = IIGC(
+    model = IICVAE(
         ch_in=args.ch_in,
         dim_w=args.dim_w,
         dim_z=args.dim_z,
@@ -113,7 +111,7 @@ def main(args):
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=10, T_mult=2)
     stats = defaultdict(lambda: [])
-    sc = cl.SpectralClustering(n_clusters=args.num_pred_classes, eigen_solver="arpack", affinity="rbf", gamma=10.0, random_state=args.seed)
+    sc = cl.SpectralClustering(n_clusters=args.num_pred_classes, random_state=args.seed)
 
     for epoch in range(args.num_epochs):
         print(f"----- training at epoch {epoch} -----")
@@ -122,16 +120,12 @@ def main(args):
         total_dict = defaultdict(lambda: 0)
         for i, (x, y) in tqdm(enumerate(train_loader)):
             x = x.to(device)
-            bce, kl, mi = model(x, lam=args.lam)
-            loss = bce + kl + mi
+            loss = model(x, lam=args.lam)
             optim.zero_grad()
             loss.backward()
             optim.step()
             total += loss.item()
             total_dict["total"] += loss.item()
-            total_dict["bce"] += bce.item()
-            total_dict["kl"] += kl.item()
-            total_dict["mi"] += mi.item()
         for key, value in total_dict.items():
             print("loss_{}: {:.3f} at epoch: {}".format(key, value, epoch))
             stats[key].append(value)
@@ -184,7 +178,7 @@ def main(args):
             ax.set_yscale("log")
             ax.set_ylim((1e-3, None))
             plt.tight_layout()
-            plt.savefig(f"eigen_e{epoch}.png", transparent=True, dpi=args.dpi)
+            plt.savefig(f"eigen_e{epoch}.png", transparent=False, dpi=args.dpi)
             plt.close()
 
             if epoch > 0:
@@ -196,7 +190,7 @@ def main(args):
                     ax.set_title("loss %s" % key)
                     ax.set_xlim((0, len(value) - 1))
                     plt.tight_layout()
-                    plt.savefig(f"loss_{key}_e{epoch}.png", transparent=True, dpi=args.dpi)
+                    plt.savefig(f"loss_{key}_e{epoch}.png", transparent=False, dpi=args.dpi)
                     plt.close()
 
             fig = plt.figure()
@@ -206,7 +200,7 @@ def main(args):
             axs[1].imshow(pred_sc[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(args.num_pred_classes, "tab20b"))
             axs[1].axis("off")
             axs[0].set_title("cosine similarity matrix with SC clusters at epoch %d" % epoch)
-            plt.savefig(f"simmat_sc_e{epoch}.png", transparent=True, dpi=args.dpi)
+            plt.savefig(f"simmat_sc_e{epoch}.png", transparent=False, dpi=args.dpi)
             plt.close()
 
             plt.rcParams["text.usetex"] = True
@@ -220,7 +214,7 @@ def main(args):
             plt.yticks(rotation=45)
             ax.set_title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ ensembled with SC at epoch %d" % epoch)
             plt.tight_layout()
-            plt.savefig(f"cm_sc_e{epoch}.png", transparent=True, dpi=args.dpi)
+            plt.savefig(f"cm_sc_e{epoch}.png", transparent=False, dpi=args.dpi)
             plt.close()
 
         if epoch % args.embedding_interval == 0:
@@ -240,7 +234,7 @@ def main(args):
                     plt.subplots_adjust(wspace=0.05, top=0.92, bottom=0.05, left=0.05, right=0.95)
                     fig.suptitle("Random samples from each predicted labels")
                     plt.tight_layout()
-                    plt.savefig(f"samples_{i // 5}_e{epoch}.png", transparent=True, dpi=args.dpi)
+                    plt.savefig(f"samples_{i // 5}_e{epoch}.png", transparent=False, dpi=args.dpi)
                     plt.close()
 
             print(f"Plotting random samples with 5 most similar samples...")
@@ -264,7 +258,7 @@ def main(args):
             plt.subplots_adjust(wspace=0.05, top=0.92, bottom=0.05, left=0.05, right=0.95)
             fig.suptitle("Random samples with corresponding similar glitches")
             plt.tight_layout()
-            plt.savefig(f"simrank_e{epoch}.png", transparent=True, dpi=args.dpi)
+            plt.savefig(f"simrank_e{epoch}.png", transparent=False, dpi=args.dpi)
             plt.close()
 
             print(f"Computing 2D latent features by t-SNE...")
@@ -285,7 +279,7 @@ def main(args):
             ax.set_title(r"$q(\bm{z})$ at epoch %d" % (epoch))
             ax.set_aspect(1.0 / ax.get_data_ratio())
             plt.tight_layout()
-            plt.savefig(f"qz_true_e{epoch}.png", transparent=True, dpi=args.dpi)
+            plt.savefig(f"qz_true_e{epoch}.png", transparent=False, dpi=args.dpi)
             plt.close()
 
             print(f"Plotting 2D latent features with ensembled labels...")
@@ -300,7 +294,7 @@ def main(args):
             ax.set_title(r"$q(\bm{z})$ ensembled at epoch %d" % (epoch))
             ax.set_aspect(1.0 / ax.get_data_ratio())
             plt.tight_layout()
-            plt.savefig(f"qz_sc_e{epoch}.png", transparent=True, dpi=args.dpi)
+            plt.savefig(f"qz_sc_e{epoch}.png", transparent=False, dpi=args.dpi)
             plt.close()
 
         if epoch % args.save_interval == 0:
