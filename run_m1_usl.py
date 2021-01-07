@@ -12,7 +12,16 @@ from itertools import cycle
 import os
 from sklearn.manifold import TSNE
 
-from src.utils.functional import acronym, darken, colormap
+from src.utils.functional import (
+    acronym,
+    darken,
+    cmap_with_marker,
+    pca,
+    cosine_similarity,
+    compute_serial_matrix,
+    sample_from_each_class,
+    segmented_cmap,
+)
 from src.utils import transforms
 from src.data import datasets
 from src.data import samplers
@@ -139,9 +148,10 @@ def main(args):
 
             qz_tsne = TSNE(n_components=2, random_state=args.seed).fit_transform(qz)
             plt.figure()
+            cmap = segmented_cmap(len(args.targets), "tab20b")
             for i in np.unique(y):
                 idx = np.where(y == i)
-                c = colormap(i)
+                c = cmap(i)
                 plt.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
             plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
             plt.title(f"2d qz using t-sne at epoch {epoch}")
