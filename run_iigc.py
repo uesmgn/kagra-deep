@@ -149,16 +149,19 @@ def main(args):
                     x = x.to(device)
                     qz, pi = model.get_params(x)
                     pred = torch.argmax(pi, -1)
+                    pred_oh = F.one_hot(pred, num_classes=args.dim_w)
 
                     params["y"].append(y)
                     params["pred"].append(pred.cpu())
+                    params["pred_oh"].append(pred_oh.cpu())
                     params["pi"].append(pi.cpu())
                     params["qz"].append(qz.cpu())
                     num_samples += x.shape[0]
 
             y = torch.cat(params["y"]).numpy().astype(int)
             pred = torch.cat(params["pred"]).numpy().astype(int)
-            hg = torch.cat(params["pi"]).view(num_samples, -1).float()
+            # hg = torch.cat(params["pi"]).view(num_samples, -1).float()
+            hg = torch.cat(params["pred_oh"]).view(num_samples, -1).float()
 
             print("Computing cosine similarity matrix...")
             simmat = cosine_similarity(hg)
@@ -167,7 +170,7 @@ def main(args):
             print("Computing eigen values and vectors...")
             eigs, eigv = scipy.linalg.eigh(simmat)
             print("Fitting eigen vectors to Spectral Clustering model...")
-            pred_sc = sc.fit(eigv[:, -64:]).labels_
+            pred_sc = sc.fit(eigv[:, -100:]).labels_
 
             print("Sampling from each predicted classes...")
             samples_fec = sample_from_each_class(pred_sc, num_samples=args.num_ranking)
