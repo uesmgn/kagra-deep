@@ -16,7 +16,7 @@ num_ranking: 3
 num_heads: 10
 n_components: 64
 dpi: 100
-seed: 1233
+seed: 1231
 thres: 0.95
 num_epochs: 10000
 num_classes: 22
