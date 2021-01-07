@@ -9,7 +9,7 @@ targets: [1080Lines, 1400Ripples, Air_Compressor, Blip,
 use_other: False
 load_state_dict: True
 z_detach: True
-num_test_samples: 3000
+num_test_samples: 2000
 lam: 1.0
 use_multi_heads: True
 num_ranking: 3
