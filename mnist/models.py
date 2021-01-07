@@ -95,10 +95,10 @@ class Decoder(nn.Module):
         )
         self.blocks = nn.Sequential(
             nn.Upsample(scale_factor=2),
-            TransposeBlock(256, 128),
-            TransposeBlock(128, 64),
-            TransposeBlock(64, 32),
-            TransposeBlock(32, ch_in, activation=nn.Sigmoid()),
+            ResBlockDec(256, 128),
+            ResBlockDec(128, 64),
+            ResBlockDec(64, 32),
+            ResBlockDec(32, ch_in, activation=nn.Sigmoid()),
         )
 
     def forward(self, x):

@@ -18,7 +18,7 @@ from src.data import datasets
 from src.data import samplers
 from src import config
 
-from mnist import M1
+from mnist import VAE
 
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
@@ -78,7 +78,7 @@ def main(args):
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
-    model = M1(ch_in=args.ch_in, dim_z=args.dim_z).to(device)
+    model = VAE(ch_in=args.ch_in, dim_z=args.dim_z).to(device)
     if args.load_state_dict:
         model.load_state_dict_part(torch.load(args.model_path))
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
@@ -124,30 +124,6 @@ def main(args):
                 y = params["y"].numpy().astype(int)
                 qz = params["qz"].numpy()
 
-                qz_tsne = TSNE(n_components=2, random_state=args.seed).fit_transform(qz)
-                plt.figure()
-                for i in np.unique(y):
-                    idx = np.where(y == i)
-                    c = colormap(i)
-                    plt.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
-                plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-                plt.title(f"2d qz using t-sne at epoch {epoch}")
-                plt.tight_layout()
-                plt.savefig(f"qz_tsne_e{epoch}.png")
-                plt.close()
-
-                qz_umap = umap.UMAP(n_components=2, random_state=args.seed).fit_transform(qz)
-                plt.figure()
-                for i in np.unique(y):
-                    idx = np.where(y == i)
-                    c = colormap(i)
-                    plt.scatter(qz_umap[idx, 0], qz_umap[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
-                plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-                plt.title(f"2d qz using umap at epoch {epoch}")
-                plt.tight_layout()
-                plt.savefig(f"qz_umap_e{epoch}.png")
-                plt.close()
-
                 if epoch > 0:
                     for key, value in stats.items():
                         plt.plot(value)
@@ -160,6 +136,18 @@ def main(args):
 
         if epoch % args.save_interval == 0:
             torch.save(model.state_dict(), os.path.join(args.model_dir, "model_m1_usl.pt"))
+
+            qz_tsne = TSNE(n_components=2, random_state=args.seed).fit_transform(qz)
+            plt.figure()
+            for i in np.unique(y):
+                idx = np.where(y == i)
+                c = colormap(i)
+                plt.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], c=c, label=targets[i], edgecolors=darken(c))
+            plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
+            plt.title(f"2d qz using t-sne at epoch {epoch}")
+            plt.tight_layout()
+            plt.savefig(f"qz_tsne_e{epoch}.png")
+            plt.close()
 
 
 if __name__ == "__main__":
