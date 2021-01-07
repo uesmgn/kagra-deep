@@ -264,9 +264,8 @@ def main(args):
                     ax.axis("off")
                     ax.margins(0)
                     ax.set_title(r"%.2f" % sim[n])
-            plt.subplots_adjust(wspace=0, hspace=0, top=0.92, bottom=0.05, left=0.05, right=0.95)
+            plt.subplots_adjust(wspace=0, hspace=0.2, top=0.92, bottom=0.05, left=0.05, right=0.95)
             fig.suptitle("Random samples with corresponding similar glitches")
-            plt.tight_layout()
             plt.savefig(f"simrank_e{epoch}.png", transparent=False, dpi=args.dpi)
             plt.close()
 
