@@ -7,7 +7,7 @@ targets: [1080Lines, 1400Ripples, Air_Compressor, Blip,
           Scattered_Light, Scratchy, Tomte, Violin_Mode,
           Wandering_Line, Whistle]
 use_other: False
-load_state_dict: True
+load_state_dict: False
 z_detach: True
 num_test_samples: 2000
 lam: 1.0
@@ -25,7 +25,7 @@ dim_w: 100
 dim_z: 512
 train_size: 0.7
 labeled_size: 0.1
-batch_size: 256
+batch_size: 128
 num_workers: 4
 lr: 3e-4
 num_train_steps: 100
