@@ -180,18 +180,18 @@ def main(args):
 
             plt.rcParams["text.usetex"] = False
 
-            fig, ax = plt.subplots()
-            ax.plot(eigs[::-1])
-            ax.set_xlim(0, len(eigs) - 1)
-            ax.set_title("eigh values of similarity matrix at epoch %d" % epoch)
-            ax.set_xlabel("order")
-            ax.set_ylabel("eigen values")
-            ax.set_xlim((0, 200 - 1))
-            ax.set_yscale("log")
-            ax.set_ylim((1e-3, None))
-            plt.tight_layout()
-            plt.savefig(f"eigen_e{epoch}.png", transparent=False, dpi=args.dpi)
-            plt.close()
+            # fig, ax = plt.subplots()
+            # ax.plot(eigs[::-1])
+            # ax.set_xlim(0, len(eigs) - 1)
+            # ax.set_title("eigh values of similarity matrix at epoch %d" % epoch)
+            # ax.set_xlabel("order")
+            # ax.set_ylabel("eigen values")
+            # ax.set_xlim((0, 200 - 1))
+            # ax.set_yscale("log")
+            # ax.set_ylim((1e-3, None))
+            # plt.tight_layout()
+            # plt.savefig(f"eigen_e{epoch}.png", transparent=False, dpi=args.dpi)
+            # plt.close()
 
             if epoch > 0:
                 for key, value in stats.items():
@@ -205,15 +205,15 @@ def main(args):
                     plt.savefig(f"loss_{key}_e{epoch}.png", transparent=False, dpi=args.dpi)
                     plt.close()
 
-            fig = plt.figure()
-            axs = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0)
-            axs[0].imshow(simmat_reordered, aspect=1)
-            axs[0].axis("off")
-            axs[1].imshow(pred_sc[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(args.num_pred_classes, "tab20b"))
-            axs[1].axis("off")
-            axs[0].set_title("cosine similarity matrix with SC clusters at epoch %d" % epoch)
-            plt.savefig(f"simmat_sc_e{epoch}.png", transparent=False, dpi=args.dpi)
-            plt.close()
+            # fig = plt.figure()
+            # axs = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0)
+            # axs[0].imshow(simmat_reordered, aspect=1)
+            # axs[0].axis("off")
+            # axs[1].imshow(pred_sc[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(args.num_pred_classes, "tab20b"))
+            # axs[1].axis("off")
+            # axs[0].set_title("cosine similarity matrix with SC clusters at epoch %d" % epoch)
+            # plt.savefig(f"simmat_sc_e{epoch}.png", transparent=False, dpi=args.dpi)
+            # plt.close()
 
             plt.rcParams["text.usetex"] = True
 
