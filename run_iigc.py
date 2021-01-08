@@ -251,7 +251,7 @@ def main(args):
             for i, j in enumerate(sample_indices):
                 x, _ = test_set[j]
                 ax = plt.subplot(len(sample_indices), args.num_ranking + 2, (args.num_ranking + 2) * i + 1)
-                ax.imshow(x[0])
+                ax.imshow(x[2])
                 ax.axis("off")
                 ax.margins(0)
                 ax.set_title(r"$\bm{x}_{(%d)}$" % j)
