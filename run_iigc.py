@@ -161,11 +161,12 @@ def main(args):
 
             y = torch.cat(params["y"]).numpy().astype(int)
             pred = torch.cat(params["pred"]).numpy().astype(int)
+            qz = torch.cat(params["qz"]).numpy().astype(float)
             # hg = torch.cat(params["pi"]).view(num_samples, -1).float()
             # hg = torch.cat(params["pred_oh"]).view(num_samples, -1).float()
             #
             # print("Computing cosine similarity matrix...")
-            # simmat = cosine_similarity(hg)
+            simmat = cosine_similarity(qz)
             # print("Computing cosine distance reordered matrix...")
             # simmat_reordered, reordered, _ = compute_serial_matrix(simmat)
             # print("Computing eigen values and vectors...")
@@ -173,7 +174,7 @@ def main(args):
             # print("Fitting eigen vectors to Spectral Clustering model...")
             # pred_sc = sc.fit(eigv[:, -100:]).labels_
 
-            pred_sc = MCLA.MCLA(pred, args.num_pred_classes)
+            pred_sc = MCLA.MCLA(pred.T, args.num_pred_classes)
 
             print("Sampling from each predicted classes...")
             samples_fec = sample_from_each_class(pred_sc, num_samples=args.num_ranking)
@@ -274,8 +275,7 @@ def main(args):
 
             print(f"Computing 2D latent features by t-SNE...")
             # latent features
-            qz = torch.cat(params["qz"]).numpy()
-            qz = TSNE(n_components=2, metric="cosine", random_state=args.seed).fit(qz).embedding_
+            qz_tsne = TSNE(n_components=2, metric="cosine", random_state=args.seed).fit(qz).embedding_
             # qz = umap.UMAP(n_components=2, random_state=args.seed).fit(qz).embedding_
 
             print(f"Plotting 2D latent features with true labels...")
@@ -285,7 +285,7 @@ def main(args):
                 idx = np.where(y == i)[0]
                 if len(idx) > 0:
                     c = cmap(i)
-                    ax.scatter(qz[idx, 0], qz[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
+                    ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
             ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
             ax.set_title(r"$q(\bm{z})$ at epoch %d" % (epoch))
             ax.set_aspect(1.0 / ax.get_data_ratio())
@@ -300,7 +300,7 @@ def main(args):
                 idx = np.where(pred_sc == i)[0]
                 if len(idx) > 0:
                     c = cmap(i)
-                    ax.scatter(qz[idx, 0], qz[idx, 1], color=c, label=i, edgecolors=darken(c))
+                    ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=i, edgecolors=darken(c))
             ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=2)
             ax.set_title(r"$q(\bm{z})$ ensembled at epoch %d" % (epoch))
             ax.set_aspect(1.0 / ax.get_data_ratio())
