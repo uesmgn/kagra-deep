@@ -260,8 +260,9 @@ def main(args):
                 for n, m in enumerate(sim_indices):
                     ax = plt.subplot(len(sample_indices), args.num_ranking + 2, (args.num_ranking + 2) * i + 3 + n)
                     x, _ = test_set[m]
-                    ax.imshow(x[0])
+                    ax.imshow(x[2])
                     ax.axis("off")
+                    ax.set_title(r"$\bm{x}_{(%d)}$" % m)
                     ax.margins(0)
             plt.subplots_adjust(wspace=0.05, hspace=0, top=0.95, bottom=0.01, left=0.01, right=0.99)
             fig.suptitle("Random samples with corresponding similar glitches")
