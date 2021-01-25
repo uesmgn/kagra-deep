@@ -326,6 +326,54 @@ class IICVAE(nn.Module):
         return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
 
 
+class AE(nn.Module):
+    def __init__(
+        self,
+        ch_in=3,
+        dim_z=512,
+    ):
+        super().__init__()
+        encoder = Encoder(ch_in, dim_z)
+        decoder = Decoder(ch_in, dim_z)
+        self.weight_init()
+
+    def load_state_dict_part(self, state_dict):
+        own_state = self.state_dict()
+        for name, param in state_dict.items():
+            if name not in own_state:
+                continue
+            print(f"load state dict: {name}")
+            own_state[name].copy_(param)
+
+    def weight_init(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.xavier_normal_(m.weight)
+            elif isinstance(m, (nn.BatchNorm1d, nn.BatchNorm2d)):
+                nn.init.normal_(m.weight, mean=1, std=0.02)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.xavier_normal_(m.weight)
+                try:
+                    nn.init.zeros_(m.bias)
+                except:
+                    continue
+
+    def forward(self, x):
+        b = x.shape[0]
+        z = self.encoder(x)
+        x_ = self.decoder(z)
+        bce = self.bce(x, x_) / b
+        return bce
+
+    def get_params(self, x):
+        z = self.encoder(x)
+        return z
+
+    def bce(self, x, x_recon):
+        return F.binary_cross_entropy(x_recon, x, reduction="sum")
+
+
 class VAE(nn.Module):
     def __init__(
         self,
