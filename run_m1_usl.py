@@ -161,6 +161,18 @@ def main(args):
                     plt.savefig(f"{fbase}_e{epoch}.png")
                     plt.close()
 
+                for key, value in stats.items():
+                    plt.plot(value)
+                    plt.ylabel(key)
+                    plt.yscale("log")
+                    plt.xlabel("epoch")
+                    plt.title(key)
+                    plt.xlim((0, len(value) - 1))
+                    fbase = key.replace(" ", "_")
+                    plt.tight_layout()
+                    plt.savefig(f"{fbase}_e{epoch}_log.png")
+                    plt.close()
+
             y_lower = 10
             cmap = segmented_cmap(len(args.targets), "tab20b")
             fig, ax = plt.subplots(figsize=[12, 18])
