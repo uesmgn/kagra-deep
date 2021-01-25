@@ -134,6 +134,7 @@ def main(args):
                 y = params["y"].numpy().astype(int)
                 qz = params["qz"].numpy()
 
+                plt.rcParams["text.usetex"] = False
                 if epoch > 0:
                     for key, value in stats.items():
                         plt.plot(value)
@@ -146,6 +147,8 @@ def main(args):
 
         if epoch % args.save_interval == 0:
             torch.save(model.state_dict(), os.path.join(args.model_dir, "model_m1_usl.pt"))
+
+        plt.rcParams["text.usetex"] = True
 
         if epoch % args.embedding_interval == 0 and epoch > 0:
             print("t-SNE decomposing...")
