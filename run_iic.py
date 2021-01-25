@@ -37,6 +37,7 @@ from mnist import IIC
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
+from mpl_toolkits.axes_grid1 import ImageGrid
 
 plt.style.use("seaborn-poster")
 plt.rcParams["text.latex.preamble"] = r"\usepackage{bm}"
@@ -162,6 +163,16 @@ def main(args):
                 simmat = cosine_similarity(torch.from_numpy(hg))
                 print("Computing cosine distance reordered matrix...")
                 simmat_reordered, reordered, _ = compute_serial_matrix(simmat)
+
+                fig = plt.figure()
+                axs = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0)
+                axs[0].imshow(simmat_reordered, aspect=1)
+                axs[0].axis("off")
+                axs[1].imshow(y[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(len(targets), "tab20b"))
+                axs[1].axis("off")
+                axs[0].set_title("cosine similarity matrix at epoch %d" % epoch)
+                plt.savefig(f"simmat_e{epoch}.png")
+                plt.close()
 
             if epoch > 0:
                 for key, value in stats.items():
