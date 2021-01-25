@@ -150,7 +150,7 @@ def main(args):
         silhouette_vals = silhouette_samples(qz, y)
         y_lower = 10
         cmap = segmented_cmap(len(args.targets), "tab20b")
-        fig, ax = plt.subplots(figsize=[12, 24])
+        fig, ax = plt.subplots(figsize=[12, 18])
         y_ax_lower, y_ax_upper = 0, 0
         yticks = []
         silhouette_means = []
@@ -175,7 +175,7 @@ def main(args):
             silhouette_positions.append(pos)
             silhouette_colors.append(darken(c))
 
-            y_ax_lower = y_ax_upper + 10  # 10 for the 0 samples
+            y_ax_lower = y_ax_upper + 50  # 10 for the 0 samples
 
             ax.set_title("Silhouette coefficient for each label")
             ax.set_xlabel("silhouette coefficient")
