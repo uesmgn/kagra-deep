@@ -72,25 +72,17 @@ class RandomMaximizedResizeCrop(object):
         else:
             self.target_size = target_size
 
-    def get_params(self, x, output_size):
+    def get_params(self, x, output_size=None):
         w, h = _get_image_size(x)
-        th, tw = output_size
-        if w == tw and h == th:
-            return 0, 0, h, w
-
-        i = random.randint(0, h - th)
-        j = random.randint(0, w - tw)
-        return i, j, th, tw
+        th, tw = output_size or (min(w, h), min(w, h))
+        j = random.randint(-w + tw, w - tw) // 2
+        return h, w, 0, j, th, tw
 
     def __call__(self, x):
-        w, h = _get_image_size(x)
-        tw, th = self.target_size
+        h, w, i, j, th, tw = self.get_params(x)
         x = _to_pil_image(x)
-        if w > tw and h > th:
-            ratio = max(tw, th) / min(w, h)
-            x = ttf.resize(x, (int(h * ratio), int(w * ratio)))
-        i, j, h, w = self.get_params(x, self.target_size)
-        x = ttf.crop(x, i, j, h, w)
+        x = ttf.crop(x, i, ((w - tw) // 2) - j, th, tw)
+        x = ttf.resize(x, self.target_size)
         x = ttf.to_tensor(x)
         return x
 
