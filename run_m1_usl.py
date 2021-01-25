@@ -13,6 +13,7 @@ import os
 from sklearn.manifold import TSNE
 from umap import UMAP
 from sklearn.metrics import silhouette_samples
+from matplotlib.lines import Line2D
 
 from src.utils.functional import (
     acronym,
@@ -184,6 +185,13 @@ def main(args):
         ax.plot(silhouette_means, silhouette_positions, c="k", linestyle="dashed", linewidth=2.0, zorder=2)
         ax.scatter(silhouette_means, silhouette_positions, c=silhouette_colors, zorder=4)
         ax.axvline(np.mean(silhouette_vals), c="r", linestyle="dashed", linewidth=2.0, zorder=3)
+        ax.legend(
+            [
+                Line2D([0], [0], c="r", linestyle="dashed", linewidth=2.0),
+                Line2D([0], [0], color="k", linestyle="dashed", linewidth=2.0),
+            ],
+            ["average", "average for each label"],
+        )
         plt.yticks(silhouette_positions, targets, rotation=45)
         plt.tight_layout()
         plt.savefig(f"silhouette_e{epoch}.png")
