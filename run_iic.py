@@ -168,14 +168,13 @@ def main(args):
                 simmat = cosine_similarity(torch.from_numpy(hg))
                 print("Computing cosine distance reordered matrix...")
                 _, reordered, _ = compute_serial_matrix(simmat)
-                simmat_reordered = simmat[reordered]
+                simmat_reordered = simmat[reordered][:, reordered]
 
                 fig = plt.figure()
                 axs = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0)
                 axs[0].imshow(simmat_reordered, aspect=1)
-                axs[0].axis("off")
                 axs[1].imshow(y[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(len(targets), "tab20b"))
-                axs[1].axis("off")
+                axs[1].set_ylabel("label")
                 axs[0].set_title("cosine similarity matrix at epoch %d" % epoch)
                 plt.savefig(f"simmat_e{epoch}.png")
                 plt.close()
