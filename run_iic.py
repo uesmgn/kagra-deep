@@ -182,13 +182,12 @@ def main(args):
                 axs[1].set_xticklabels([])
                 axs[1].set_yticklabels([])
                 axs[1].set_ylabel("label")
-                axs[0].set_title("cosine similarity matrix with label at epoch %d" % epoch)
 
-                cax0 = make_axes_locatable(axs[0]).append_axes("top", size="7%", pad="2%")
+                cax0 = make_axes_locatable(axs[0]).append_axes("top", size=1.0, pad=0.2)
                 cb0 = plt.colorbar(im0, cax=cax0, orientation="horizontal")
                 cax0.xaxis.set_ticks_position("top")
 
-                cax1 = make_axes_locatable(axs[1]).append_axes("bottom", size="7%", pad="2%")
+                cax1 = make_axes_locatable(axs[1]).append_axes("bottom", size=1.0, pad=0.2)
                 cb1 = plt.colorbar(im1, cax=cax1, orientation="horizontal")
                 cax1.xaxis.set_ticks_position("bottom")
 
