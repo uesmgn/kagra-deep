@@ -203,7 +203,7 @@ def main(args):
 
                 # Label the silhouette plots with their cluster numbers at the middle
                 silhouette_pos = y_lower + 0.5 * size_cluster_i
-                ax.text(-0.1, silhouette_pos, targets[i], color=c)
+                ax.text(-0.1, silhouette_pos - 6, targets[i], color=c, fontsize=12)
                 silhouette_positions.append(silhouette_pos)
                 silhouette_colors.append(c)
 
