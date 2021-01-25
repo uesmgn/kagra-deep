@@ -35,7 +35,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
 
-plt.style.use("seaborn-poster")
+plt.style.use("seaborn-paper")
 plt.rcParams["text.latex.preamble"] = r"\usepackage{bm}"
 plt.rc("legend", fontsize=10)
 plt.rc("axes", titlesize=10)
@@ -202,9 +202,9 @@ def main(args):
                 c = cmap(i)
                 plt.barh(
                     range(y_ax_lower, y_ax_upper),
-                    silhouette_vals_i,  # 棒の幅
-                    height=1.0,  # 棒の高さ
-                    edgecolor="none",  # 棒の端の色
+                    silhouette_vals_i,
+                    height=1.0,
+                    edgecolor="none",
                     color=c,
                     alpha=0.8,
                 )
@@ -220,7 +220,7 @@ def main(args):
 
             ax.plot(silhouette_means, silhouette_positions, c="k", linestyle="dashed")
             ax.scatter(silhouette_means, silhouette_positions, c=silhouette_colors)
-            ax.axvline(np.mean(sample_silhouette_values), c="r", linestyle="dashed")
+            ax.axvline(np.mean(silhouette_vals), c="r", linestyle="dashed")
             ax.set_yticks(silhouette_positions, targets, rotation=45)
 
             plt.tight_layout()
