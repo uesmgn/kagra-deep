@@ -188,7 +188,7 @@ def main(args):
             sample_silhouette_values = silhouette_samples(qz, y)
             y_lower = 10
             cmap = segmented_cmap(len(args.targets), "tab20b")
-
+            fig, ax = plt.subplots()
             for i in np.unique(y):
                 ith_cluster_silhouette_values = sample_silhouette_values[y == i]
                 ith_cluster_silhouette_values.sort()
