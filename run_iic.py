@@ -182,10 +182,8 @@ def main(args):
                 axs[1].set_yticklabels([])
                 axs[1].set_ylabel("label")
                 axs[0].set_title("cosine similarity matrix with label at epoch %d" % epoch)
-                cb0 = plt.colorbar(im0, ax=axs[0], location="top")
-                cb1 = plt.colorbar(im1, ax=axs[1], location="bottom")
-                # modify_cax(axs[0], cb0, orientation="horizontal")
-                # modify_cax(axs[1], cb1, orientation="horizontal")
+                cb0 = plt.colorbar(im0, location="top")
+                cb1 = plt.colorbar(im1, location="bottom")
                 plt.savefig(f"simmat_e{epoch}.png")
                 plt.close()
 
