@@ -167,7 +167,8 @@ def main(args):
                 print("Computing cosine similarity matrix...")
                 simmat = cosine_similarity(torch.from_numpy(hg))
                 print("Computing cosine distance reordered matrix...")
-                simmat_reordered, reordered, _ = compute_serial_matrix(simmat)
+                _, reordered, _ = compute_serial_matrix(simmat)
+                simmat_reordered = simmat[reordered]
 
                 fig = plt.figure()
                 axs = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0)
