@@ -177,12 +177,11 @@ def main(args):
 
                 y_ax_lower = y_ax_upper + 50  # 10 for the 0 samples
 
-                ax.set_title("silhouette coefficient for each label")
-                ax.set_xlabel("silhouette coefficient")
-                ax.set_ylabel("label")
-
+            ax.set_title("silhouette coefficient for each label at epoch %d" % (epoch))
+            ax.set_xlabel("silhouette coefficient")
+            ax.set_ylabel("label")
             ax.plot(silhouette_means, silhouette_positions, c="k", linestyle="dashed", linewidth=2.0, zorder=2)
-            ax.scatter(silhouette_means, silhouette_positions, c=silhouette_colors, zorder=4)
+            # ax.scatter(silhouette_means, silhouette_positions, c=silhouette_colors, zorder=4)
             ax.axvline(np.mean(silhouette_vals), c="r", linestyle="dashed", linewidth=2.0, zorder=3)
             ax.legend(
                 [
@@ -192,7 +191,8 @@ def main(args):
                 ["average", "average for each label"],
                 loc="upper right",
             )
-            plt.yticks(silhouette_positions, targets, rotation=45)
+            ax.set_ylim([0, y_ax_upper])
+            plt.yticks(silhouette_positions, targets[::-1], rotation=45)
             plt.tight_layout()
             plt.savefig(f"silhouette_e{epoch}.png")
             plt.close()
