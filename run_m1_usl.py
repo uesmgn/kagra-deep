@@ -44,6 +44,12 @@ plt.rcParams["text.usetex"] = True
 
 @hydra.main(config_path="config", config_name="test")
 def main(args):
+    # random
+    random.seed(args.seed)
+    # Numpy
+    np.random.seed(args.seed)
+    # Pytorch
+    torch.manual_seed(args.seed)
 
     transform_fn = transforms.Compose(
         [
@@ -85,7 +91,12 @@ def main(args):
         drop_last=False,
     )
 
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+        torch.backends.cudnn.deterministic = True
+    else:
+        device = torch.device("cpu")
+
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
     model = VAE(ch_in=args.ch_in, dim_z=args.dim_z).to(device)

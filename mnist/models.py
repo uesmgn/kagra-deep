@@ -113,11 +113,14 @@ class Gaussian(nn.Module):
         super().__init__()
         self.logits = nn.Linear(in_dim, out_dim * 2)
 
-    def forward(self, x):
+    def forward(self, x, l=1):
         logits = self.logits(x)
         mean, logvar = torch.split(logits, logits.shape[-1] // 2, -1)
-        x = self._reparameterize(mean, logvar)
-        return x, mean, logvar
+        tmp = []
+        for i in range(l):
+            x = self._reparameterize(mean, logvar)
+            tmp.append(x)
+        return torch.stack(tmp, 0).squeeze(), mean, logvar
 
     def _reparameterize(self, mean, logvar):
         std = torch.exp(0.5 * logvar)
@@ -138,10 +141,10 @@ class Qz_x(nn.Module):
         )
         self.gaussian = Gaussian(1024, dim_z)
 
-    def forward(self, x):
+    def forward(self, x, l=1):
         x = self.encoder(x)
         logits = self.fc(x)
-        z, mean, logvar = self.gaussian(logits)
+        z, mean, logvar = self.gaussian(logits, l)
         return z, mean, logvar
 
 
@@ -379,8 +382,8 @@ class VAE(nn.Module):
         return -0.5 * torch.sum(logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp())
 
 
-class IID(nn.Module):
-    def __init__(self, ch_in, dim_w=100, dim_z=512, num_heads=10):
+class IIC(nn.Module):
+    def __init__(self, ch_in, dim_w=100, dim_z=512, num_heads=10, l=10):
         super().__init__()
         self.use_multi_heads = num_heads > 1
         self.num_heads = num_heads
@@ -395,6 +398,7 @@ class IID(nn.Module):
             self.classifier = nn.ModuleList([self.gen_classifier(1024, dim_w) for _ in range(self.num_heads)])
         else:
             self.classifier = self.gen_classifier(1024, dim_w)
+        self.l = l
         self.weight_init()
 
     def gen_classifier(self, dim_in, dim_out):
@@ -428,16 +432,23 @@ class IID(nn.Module):
                     continue
 
     def forward(self, x, lam=1.0):
-        z, z_mean, z_logvar = self.qz_x(x)
-        z, z_mean = self.fc(z.detach()), self.fc(z_mean.detach())
-        w, w_ = self.clustering(z_mean), self.clustering(z)
-        return self.mutual_info(w, w_, lam=lam)
+        z, z_mean, z_logvar = self.qz_x(x, self.l)
+        if z.ndim == 3:
+            tmp = 0
+            v = self.fc(z_mean.detach())
+            for i in range(len(z)):
+                u_i = self.fc(z[i].detach())
+                w_v, w_u = self.clustering(v), self.clustering(u_i)
+                tmp += self.mutual_info(w_v, w_u, lam=lam)
+            return tmp
+        v, u = self.fc(z_mean.detach()), self.fc(z.detach())
+        w_v, w_u = self.clustering(v), self.clustering(u)
+        return self.mutual_info(w_v, w_u, lam=lam)
 
     def get_params(self, x):
         assert not self.training
-        z, z_mean, z_logvar = self.qz_x(x)
-        z, z_mean = self.fc(z.detach()), self.fc(z_mean.detach())
-        w, w_ = self.clustering(z_mean), self.clustering(z)
+        _, z_mean, _ = self.qz_x(x, 1)
+        w = self.clustering(z_mean)
         return z_mean, w
 
     def clustering(self, x):
@@ -450,16 +461,6 @@ class IID(nn.Module):
         else:
             w = F.softmax(self.classifier(x), dim=-1)
             return w
-
-    def proba(self, x, y):
-        if x.ndim == 2:
-            p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(0)
-            p = ((p + p.t()) / 2) / p.sum()
-        elif x.ndim == 3:
-            p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(0)
-            p = ((p + p.permute(1, 0, 2)) / 2) / p.sum()
-            p = p.mean(-1)
-        return p
 
     def mutual_info(self, x, y, lam=1.0, eps=1e-8):
         if x.ndim == 2:
@@ -474,6 +475,6 @@ class IID(nn.Module):
             p = ((p + p.permute(1, 0, 2)) / 2) / p.sum()
             p[(p < eps).data] = eps
             _, k, m = x.shape
-            pi = p.sum(dim=1).view(k, -1).expand(k, k, m)
-            pj = p.sum(dim=0).view(k, -1).expand(k, k, m)
+            pi = p.sum(dim=1).view(k, -1).expand(k, k, m).pow(lam)
+            pj = p.sum(dim=0).view(k, -1).expand(k, k, m).pow(lam)
         return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
