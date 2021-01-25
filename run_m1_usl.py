@@ -63,7 +63,6 @@ def main(args):
 
     dataset = datasets.HDF5(args.dataset_root, transform_fn, target_transform_fn)
     train_set, test_set = copy.copy(dataset), dataset.sample(args.num_test_samples)
-    # train_set, test_set = dataset.split(train_size=args.train_size, stratify=dataset.targets)
     train_set.transform = augment_fn
 
     def sampler_callback(ds, num_samples):
