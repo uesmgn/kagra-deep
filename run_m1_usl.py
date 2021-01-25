@@ -142,7 +142,7 @@ def main(args):
                         plt.xlabel("epoch")
                         plt.title(key)
                         plt.xlim((0, len(value) - 1))
-                        plt.savefig(f"loss_{key}_e{epoch}.png", dpi=args.dpi)
+                        plt.savefig(f"loss_{key}_e{epoch}.png")
                         plt.close()
 
         if epoch % args.save_interval == 0:
@@ -168,7 +168,7 @@ def main(args):
             ax.set_title(r"2d $q(\bm{z})$ at epoch %d (t-SNE)" % (epoch))
             ax.set_aspect(1.0 / ax.get_data_ratio())
             plt.tight_layout()
-            plt.savefig(f"qz_true_e{epoch}.png", dpi=args.dpi)
+            plt.savefig(f"qz_true_e{epoch}.png")
             plt.close()
 
             fig, ax = plt.subplots()
@@ -182,23 +182,30 @@ def main(args):
             ax.set_title(r"2d $q(\bm{z})$ at epoch %d (UMAP)" % (epoch))
             ax.set_aspect(1.0 / ax.get_data_ratio())
             plt.tight_layout()
-            plt.savefig(f"qz_umap_e{epoch}.png", dpi=args.dpi)
+            plt.savefig(f"qz_umap_e{epoch}.png")
             plt.close()
 
             sample_silhouette_values = silhouette_samples(qz, y)
             y_lower = 10
             cmap = segmented_cmap(len(args.targets), "tab20b")
             fig, ax = plt.subplots()
+            silhouette_means = []
+            silhouette_positions = []
+            silhouette_colors = []
             for i in np.unique(y):
                 ith_cluster_silhouette_values = sample_silhouette_values[y == i]
                 ith_cluster_silhouette_values.sort()
                 size_cluster_i = ith_cluster_silhouette_values.shape[0]
+                silhouette_means.append(np.mean(ith_cluster_silhouette_values))
                 y_upper = y_lower + size_cluster_i
                 c = cmap(i)
                 ax.fill_betweenx(np.arange(y_lower, y_upper), 0, ith_cluster_silhouette_values, facecolor=c, edgecolor=c, alpha=0.7)
 
                 # Label the silhouette plots with their cluster numbers at the middle
-                ax.text(-0.1, y_lower + 0.5 * size_cluster_i, targets[i], color=c)
+                silhouette_pos = y_lower + 0.5 * size_cluster_i
+                ax.text(-0.1, silhouette_pos, targets[i], color=c)
+                silhouette_positions.append(silhouette_pos)
+                silhouette_colors.append(c)
 
                 # Compute the new y_lower for next plot
                 y_lower = y_upper + 50  # 10 for the 0 samples
@@ -206,11 +213,12 @@ def main(args):
                 ax.set_title("Silhouette coefficient for each cluster")
                 ax.set_xlabel("silhouette coefficient")
                 ax.set_ylabel("label")
-
                 ax.set_yticks([])  # Clear the yaxis labels / ticks
+            ax.plot(xx, yy, c="k", linestyle="dashed")
+            ax.scatter(xx, yy, c=c)
 
             plt.tight_layout()
-            plt.savefig(f"silhouette_e{epoch}.png", dpi=args.dpi)
+            plt.savefig(f"silhouette_e{epoch}.png")
             plt.close()
 
 
