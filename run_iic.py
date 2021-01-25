@@ -157,7 +157,7 @@ def main(args):
                 qz = torch.cat(params["qz"]).numpy().astype(float)
 
                 hg = torch.cat(params["pi"]).view(num_samples, -1).float()
-                hg = PCA(n_components=64).fit_transform(hg)
+                hg = PCA(n_components=64).fit_transform(torch.from_numpy(hg))
                 print("Computing cosine similarity matrix...")
                 simmat = cosine_similarity(hg)
                 print("Computing cosine distance reordered matrix...")
