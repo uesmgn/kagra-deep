@@ -150,7 +150,7 @@ def main(args):
         silhouette_vals = silhouette_samples(qz, y)
         y_lower = 10
         cmap = segmented_cmap(len(args.targets), "tab20b")
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=[12, 24])
         y_ax_lower, y_ax_upper = 0, 0
         yticks = []
         silhouette_means = []
