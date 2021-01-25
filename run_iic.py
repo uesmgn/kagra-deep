@@ -173,8 +173,9 @@ def main(args):
                 _, reordered, _ = compute_serial_matrix(simmat)
                 simmat_reordered = simmat[reordered][:, reordered]
 
-                fig, (ax0, ax1) = plt.subplots(2, 1)
+                fig = plt.figure()
                 fig.subplots_adjust(hspace=0.1)
+                ax0, ax1 = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0, add_all=True)
                 im0 = ax0.imshow(simmat_reordered, aspect=1)
                 ax0.set_xticklabels([])
                 ax0.set_yticklabels([])
