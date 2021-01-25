@@ -38,7 +38,9 @@ from mnist import IIC
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
-import mpl_toolkits.axes_grid1 as mpla
+from mpl_toolkits.axes_grid1 import ImageGrid
+from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+from mpl_toolkits.axes_grid1.colorbar import colorbar
 
 plt.style.use("seaborn-poster")
 plt.rcParams["text.latex.preamble"] = r"\usepackage{bm}"
@@ -172,7 +174,7 @@ def main(args):
                 simmat_reordered = simmat[reordered][:, reordered]
 
                 fig = plt.figure()
-                axs = mpla.ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0)
+                axs = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0)
                 im0 = axs[0].imshow(simmat_reordered, aspect=1)
                 axs[0].set_xticklabels([])
                 axs[0].set_yticklabels([])
@@ -182,14 +184,14 @@ def main(args):
                 axs[1].set_yticklabels([])
                 axs[1].set_ylabel("label")
 
-                ax0_divider = mpla.make_axes_locatable(axs[0])
+                ax0_divider = make_axes_locatable(axs[0])
                 cax0 = ax0_divider.append_axes("top", size=0.2, pad=0.2)
-                cb0 = mpla.colorbar(im0, cax=cax0, orientation="horizontal")
+                cb0 = colorbar(im0, cax=cax0, orientation="horizontal")
                 cax0.xaxis.set_ticks_position("top")
 
-                ax1_divider = mpla.make_axes_locatable(axs[1])
+                ax1_divider = make_axes_locatable(axs[1])
                 cax1 = ax1_divider.append_axes("bottom", size=0.2, pad=0.2)
-                cb1 = mpla.colorbar(im1, cax=cax1, orientation="horizontal")
+                cb1 = colorbar(im1, cax=cax1, orientation="horizontal")
                 cax1.xaxis.set_ticks_position("bottom")
 
                 plt.savefig(f"simmat_e{epoch}.png")
