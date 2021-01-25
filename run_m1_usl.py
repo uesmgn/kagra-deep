@@ -39,7 +39,6 @@ plt.style.use("seaborn-poster")
 plt.rcParams["text.latex.preamble"] = r"\usepackage{bm}"
 plt.rc("legend", fontsize=10)
 plt.rc("axes", titlesize=10)
-plt.rcParams["lines.markersize"] = 5.0
 
 
 @hydra.main(config_path="config", config_name="test")
@@ -175,7 +174,7 @@ def main(args):
             )
             pos = (y_ax_lower + y_ax_upper) / 2
             silhouette_positions.append(pos)
-            silhouette_colors.append(c)
+            silhouette_colors.append(darken(c))
 
             y_ax_lower = y_ax_upper + 100  # 10 for the 0 samples
 
@@ -186,8 +185,7 @@ def main(args):
         ax.plot(silhouette_means, silhouette_positions, c="k", linestyle="dashed")
         ax.scatter(silhouette_means, silhouette_positions, c=silhouette_colors)
         ax.axvline(np.mean(silhouette_vals), c="r", linestyle="dashed")
-        ax.set_yticks(silhouette_positions, targets)
-        plt.yticks(rotation=45)
+        plt.yticks(silhouette_positions, targets, rotation=45)
         plt.tight_layout()
         plt.savefig(f"silhouette_e{epoch}.png")
         plt.close()
