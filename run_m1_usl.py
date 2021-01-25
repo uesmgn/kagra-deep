@@ -211,7 +211,7 @@ def main(args):
                 idx = np.where(y == i)[0]
                 if len(idx) > 0:
                     c = cmap(i)
-                    ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
+                    ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, s=5.0, label=targets[i], edgecolors=darken(c))
             ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
             ax.set_title(r"2d $q(\bm{z})$ at epoch %d (t-SNE)" % (epoch))
             ax.set_aspect(1.0 / ax.get_data_ratio())
@@ -225,7 +225,7 @@ def main(args):
                 idx = np.where(y == i)[0]
                 if len(idx) > 0:
                     c = cmap(i)
-                    ax.scatter(qz_umap[idx, 0], qz_umap[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
+                    ax.scatter(qz_umap[idx, 0], qz_umap[idx, 1], color=c, s=5.0, label=targets[i], edgecolors=darken(c))
             ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
             ax.set_title(r"2d $q(\bm{z})$ at epoch %d (UMAP)" % (epoch))
             ax.set_aspect(1.0 / ax.get_data_ratio())
