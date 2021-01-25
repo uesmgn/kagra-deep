@@ -186,8 +186,8 @@ def main(args):
         ax.plot(silhouette_means, silhouette_positions, c="k", linestyle="dashed")
         ax.scatter(silhouette_means, silhouette_positions, c=silhouette_colors)
         ax.axvline(np.mean(silhouette_vals), c="r", linestyle="dashed")
-        ax.set_yticks(silhouette_positions, targets, rotation=45)
-
+        ax.set_yticks(silhouette_positions, targets)
+        plt.yticks(rotation=45)
         plt.tight_layout()
         plt.savefig(f"silhouette_e{epoch}.png")
         plt.close()
