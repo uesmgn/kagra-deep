@@ -92,7 +92,7 @@ def main(args):
     if args.load_state_dict:
         model.load_state_dict_part(torch.load(args.model_path))
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=10, T_mult=2)
+    # scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=10, T_mult=2)
 
     stats = defaultdict(lambda: [])
 
@@ -116,7 +116,7 @@ def main(args):
             print("loss_{}: {:.3f} at epoch: {}".format(key, value, epoch))
             stats[key].append(value)
 
-        scheduler.step()
+        # scheduler.step()
 
         if epoch % args.eval_interval == 0:
             print(f"----- evaluating at epoch {epoch} -----")
