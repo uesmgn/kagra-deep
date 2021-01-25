@@ -189,34 +189,41 @@ def main(args):
             y_lower = 10
             cmap = segmented_cmap(len(args.targets), "tab20b")
             fig, ax = plt.subplots()
+            y_ax_lower, y_ax_upper = 0, 0
+            yticks = []
             silhouette_means = []
             silhouette_positions = []
             silhouette_colors = []
             for i in np.unique(y):
-                ith_cluster_silhouette_values = sample_silhouette_values[y == i]
-                ith_cluster_silhouette_values.sort()
-                size_cluster_i = ith_cluster_silhouette_values.shape[0]
-                silhouette_means.append(np.mean(ith_cluster_silhouette_values))
-                y_upper = y_lower + size_cluster_i
+                silhouette_vals_i = sample_silhouette_values[y == i]
+                silhouette_vals_i.sort()
+                size_cluster_i = len(silhouette_vals_i)
+                silhouette_means.append(np.mean(silhouette_vals_i))
+                y_ax_upper = y_ax_lower + size_cluster_i
                 c = cmap(i)
-                ax.fill_betweenx(np.arange(y_lower, y_upper), 0, ith_cluster_silhouette_values, facecolor=c, edgecolor=c, alpha=0.7)
+                plt.barh(
+                    range(y_ax_lower, y_ax_upper),  # 水平の棒グラフのを描画（底辺の範囲を指定）
+                    silhouette_vals_i,  # 棒の幅
+                    height=1.0,  # 棒の高さ
+                    edgecolor="none",  # 棒の端の色
+                    color=c,
+                    alpha=0.8,
+                )
 
-                # Label the silhouette plots with their cluster numbers at the middle
-                silhouette_pos = y_lower + 0.5 * size_cluster_i
-                ax.text(-0.5, silhouette_pos - 6, targets[i], color=darken(c), fontsize=12)
-                silhouette_positions.append(silhouette_pos)
+                yticks.append((y_ax_lower + y_ax_upper) / 2)
+                silhouette_positions.append((y_ax_lower + y_ax_upper) / 2)
                 silhouette_colors.append(c)
 
-                # Compute the new y_lower for next plot
-                y_lower = y_upper + 100  # 10 for the 0 samples
+                y_ax_lower = y_ax_upper + 100  # 10 for the 0 samples
 
-                ax.set_title("Silhouette coefficient for each cluster")
+                ax.set_title("Silhouette coefficient for each label")
                 ax.set_xlabel("silhouette coefficient")
                 ax.set_ylabel("label")
-                ax.set_yticks([])  # Clear the yaxis labels / ticks
-            ax.plot(xx, yy, c="k", linestyle="dashed")
-            ax.scatter(xx, yy, c=silhouette_colors)
-            ax.axvline(np.mean(sample_silhouette_values), color="red", linestyle="dashed")
+
+            ax.plot(silhouette_means, silhouette_positions, c="k", linestyle="dashed")
+            ax.scatter(silhouette_means, silhouette_positions, c=silhouette_colors)
+            ax.axvline(np.mean(sample_silhouette_values), c="r", linestyle="dashed")
+            ax.set_yticks(yticks, targets, rotation=45)
 
             plt.tight_layout()
             plt.savefig(f"silhouette_e{epoch}.png")
