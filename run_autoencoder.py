@@ -93,7 +93,7 @@ def main(args):
     )
 
     if torch.cuda.is_available():
-        device = torch.device("cuda")
+        device = torch.device("cuda:1")
         torch.backends.cudnn.deterministic = True
     else:
         device = torch.device("cpu")
