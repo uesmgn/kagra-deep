@@ -214,7 +214,7 @@ def main(args):
                 idx = np.where(pred == l)[0]
                 if len(idx) > 0:
                     c = cmap(i)
-                    ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=i, edgecolors=darken(c))
+                    ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=l, edgecolors=darken(c))
             ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
             ax.set_title(r"t-SNE 2D plot of $q(\bm{z})$ with pred labels at epoch %d" % (epoch))
             ax.set_aspect(1.0 / ax.get_data_ratio())
