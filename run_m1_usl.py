@@ -35,7 +35,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
 
-plt.style.use("seaborn-paper")
+plt.style.use("seaborn-poster")
 plt.rcParams["text.latex.preamble"] = r"\usepackage{bm}"
 plt.rc("legend", fontsize=10)
 plt.rc("axes", titlesize=10)
