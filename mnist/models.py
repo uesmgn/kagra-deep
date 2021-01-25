@@ -290,10 +290,18 @@ class VAE(nn.Module):
         dim_z=512,
     ):
         super().__init__()
-        encoder = Encoder(ch_in, 1024)
-        decoder = Decoder(ch_in, dim_z)
-        self.qz_x = Qz_x(encoder, dim_z)
-        self.px_z = Px_z(decoder)
+        self.encoder = Encoder(ch_in, 1024)
+        self.mean = nn.Sequential(
+            nn.Linear(1024, dim_z, bias=False),
+            nn.BatchNorm1d(dim_z),
+            nn.ReLU(inplace=True),
+        )
+        self.logvar = nn.Sequential(
+            nn.Linear(1024, dim_z, bias=False),
+            nn.BatchNorm1d(dim_z),
+            nn.ReLU(inplace=True),
+        )
+        self.decoder = Decoder(ch_in, dim_z)
         self.weight_init()
 
     def load_state_dict_part(self, state_dict):
@@ -320,19 +328,12 @@ class VAE(nn.Module):
 
     def forward(self, x, l=10):
         b = x.shape[0]
-        z, z_mean, z_logvar = self.qz_x(x)
-        if l > 1:
-            tmp = 0
-            for i in range(l):
-                x_ = self.px_z(z)
-                tmp += self.bce(x, x_) / b
-                z = self.reparameterize(z_mean, z_logvar)
-            bce = tmp / l
-        else:
-            x_ = self.px_z(z)
-            bce = self.bce(x, x_) / b
+        x = self.encoder(x)
+        z_mean, z_logvar = self.mean(x), self.logvar(x)
+        z = self.reparameterize(z_mean, z_logvar)
+        x_ = self.decoder(z)
+        bce = self.bce(x, x_) / b
         kl_gauss = self.kl_gauss(z_mean, z_logvar, torch.zeros_like(z_mean), torch.ones_like(z_logvar)) / b
-
         return bce, kl_gauss
 
     def reparameterize(self, mean, logvar):
@@ -342,7 +343,8 @@ class VAE(nn.Module):
         return x
 
     def get_params(self, x):
-        z, z_mean, z_logvar = self.qz_x(x)
+        x = self.encoder(x)
+        z_mean = self.mean(x)
         return z_mean
 
     def bce(self, x, x_recon):
@@ -357,7 +359,12 @@ class IIC(nn.Module):
         super().__init__()
         self.use_multi_heads = num_heads > 1
         self.num_heads = num_heads
-        self.encoder = Encoder(ch_in, dim_z)
+        self.encoder = Encoder(ch_in, 1024)
+        self.mean = nn.Sequential(
+            nn.Linear(1024, dim_z, bias=False),
+            nn.BatchNorm1d(dim_z),
+            nn.ReLU(inplace=True),
+        )
         if self.use_multi_heads:
             self.classifier = nn.ModuleList([self.gen_classifier(dim_z, dim_w) for _ in range(self.num_heads)])
         else:
@@ -394,14 +401,19 @@ class IIC(nn.Module):
                 except:
                     continue
 
-    def forward(self, x, y, lam=1.0):
+    def forward(self, x, y, lam=1.0, detach=True):
         z_x, z_y = self.encoder(x), self.encoder(y)
-        w_v, w_u = self.clustering(z_x), self.clustering(z_y)
+        z_x, z_y = self.mean(z_x), self.mean(z_y)
+        if detach:
+            w_v, w_u = self.clustering(z_x.detach()), self.clustering(z_y.detach())
+        else:
+            w_v, w_u = self.clustering(z_x), self.clustering(z_y)
         return self.mutual_info(w_v, w_u, lam=lam)
 
     def get_params(self, x):
         assert not self.training
         z = self.encoder(x)
+        z = self.mean(z)
         w = self.clustering(z)
         return z, w
 
@@ -432,110 +444,3 @@ class IIC(nn.Module):
             pi = p.sum(dim=1).view(k, -1).expand(k, k, m).pow(lam)
             pj = p.sum(dim=0).view(k, -1).expand(k, k, m).pow(lam)
         return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
-
-
-class IIC_VAE(nn.Module):
-    def __init__(self, ch_in, dim_w=100, dim_z=512, num_heads=10):
-        super().__init__()
-        self.use_multi_heads = num_heads > 1
-        self.num_heads = num_heads
-        self.encoder = Encoder(ch_in, 1024)
-        self.mean = nn.Sequential(
-            nn.Linear(1024, dim_z, bias=False),
-            nn.BatchNorm1d(dim_z),
-            nn.ReLU(inplace=True),
-        )
-        self.logvar = nn.Sequential(
-            nn.Linear(1024, dim_z, bias=False),
-            nn.BatchNorm1d(dim_z),
-            nn.ReLU(inplace=True),
-        )
-        if self.use_multi_heads:
-            self.classifier = nn.ModuleList([self.gen_classifier(1024, dim_w) for _ in range(self.num_heads)])
-        else:
-            self.classifier = self.gen_classifier(1024, dim_w)
-        self.weight_init()
-
-    def gen_classifier(self, dim_in, dim_out):
-        return nn.Sequential(
-            nn.Linear(dim_in, 1024, bias=False),
-            nn.BatchNorm1d(1024),
-            nn.ReLU(inplace=True),
-            nn.Linear(1024, dim_out),
-        )
-
-    def load_state_dict_part(self, state_dict):
-        own_state = self.state_dict()
-        for name, param in state_dict.items():
-            if name not in own_state:
-                continue
-            print(f"load state dict: {name}")
-            own_state[name].copy_(param)
-
-    def weight_init(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.xavier_normal_(m.weight)
-            elif isinstance(m, (nn.BatchNorm1d, nn.BatchNorm2d)):
-                nn.init.normal_(m.weight, mean=1, std=0.02)
-                nn.init.constant_(m.bias, 0)
-            elif isinstance(m, nn.Linear):
-                nn.init.xavier_normal_(m.weight)
-                try:
-                    nn.init.zeros_(m.bias)
-                except:
-                    continue
-
-    def forward(self, x, y, lam=1.0):
-        b = len(x)
-        z_x, z_y = self.encoder(x), self.encoder(y)
-        w_x, w_y = self.clustering(z_x), self.clustering(z_y)
-        mutual_info = self.mutual_info(w_x, w_y, lam=lam) / b
-
-        mean, logvar = self.mean(z_x), self.logvar(z_x)
-        kl_gauss = self.kl_gauss(mean, logvar, torch.zeros_like(mean), torch.ones_like(logvar)) / b
-        return mutual_info, kl_gauss
-
-    def get_params(self, x):
-        assert not self.training
-        z_x = self.encoder(x)
-        z_x_mean = self.mean(z_x)
-        w_x = self.clustering(z_x)
-        return z_x_mean, w_x
-
-    def clustering(self, x):
-        if self.use_multi_heads:
-            tmp = []
-            for classifier in self.classifier:
-                w = F.softmax(classifier(x), dim=-1)
-                tmp.append(w)
-            return torch.stack(tmp, dim=-1)
-        else:
-            w = F.softmax(self.classifier(x), dim=-1)
-            return w
-
-    def reparameterize(self, mean, logvar):
-        std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(mean)
-        x = mean + eps * std
-        return x
-
-    def mutual_info(self, x, y, lam=1.0, eps=1e-8):
-        if x.ndim == 2:
-            p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(0)
-            p = ((p + p.t()) / 2) / p.sum()
-            _, k = x.shape
-            p[(p < eps).data] = eps
-            pi = p.sum(dim=1).view(k, 1).expand(k, k).pow(lam)
-            pj = p.sum(dim=0).view(1, k).expand(k, k).pow(lam)
-        elif x.ndim == 3:
-            p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(0)
-            p = ((p + p.permute(1, 0, 2)) / 2) / p.sum()
-            p[(p < eps).data] = eps
-            _, k, m = x.shape
-            pi = p.sum(dim=1).view(k, -1).expand(k, k, m).pow(lam)
-            pj = p.sum(dim=0).view(k, -1).expand(k, k, m).pow(lam)
-        return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
-
-    def kl_gauss(self, mean_p, logvar_p, mean_q, logvar_q):
-        return -0.5 * torch.sum(logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp())
