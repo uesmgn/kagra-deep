@@ -10,6 +10,7 @@ import copy
 import umap
 from itertools import cycle
 import os
+import random
 from sklearn.manifold import TSNE
 from umap import UMAP
 from sklearn.metrics import silhouette_samples
