@@ -210,8 +210,8 @@ def main(args):
             print(f"Plotting t-SNE 2D latent features with pred labels...")
             fig, ax = plt.subplots()
             cmap = segmented_cmap(len(np.unique(pred)), "tab20b")
-            for i in np.unique(pred):
-                idx = np.where(pred == i)[0]
+            for i, l in enumerate(np.unique(pred)):
+                idx = np.where(pred == l)[0]
                 if len(idx) > 0:
                     c = cmap(i)
                     ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=i, edgecolors=darken(c))
