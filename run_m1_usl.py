@@ -191,6 +191,7 @@ def main(args):
                 Line2D([0], [0], color="k", linestyle="dashed", linewidth=2.0),
             ],
             ["average", "average for each label"],
+            loc="upper right",
         )
         plt.yticks(silhouette_positions, targets, rotation=45)
         plt.tight_layout()
