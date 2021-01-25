@@ -108,8 +108,10 @@ def main(args):
         dim_z=args.dim_z,
         num_heads=args.num_heads,
     ).to(device)
+    detach = False
     if args.load_state_dict:
         model.load_state_dict_part(torch.load(args.model_path))
+        detach = True
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
     # scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=10, T_mult=2)
 
@@ -123,7 +125,7 @@ def main(args):
         for (x, x_), _ in tqdm(train_loader):
             x = x.to(device)
             x_ = x_.to(device)
-            loss = model(x, x_)
+            loss = model(x, x_, detach=detach)
             optim.zero_grad()
             loss.backward()
             optim.step()
