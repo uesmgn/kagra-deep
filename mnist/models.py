@@ -456,15 +456,10 @@ class IIC(nn.Module):
         self.use_multi_heads = num_heads > 1
         self.num_heads = num_heads
         self.encoder = Encoder(ch_in, dim_z)
-        self.fc = nn.Sequential(
-            nn.Linear(dim_z, 1024, bias=False),
-            nn.BatchNorm1d(1024),
-            nn.ReLU(inplace=True),
-        )
         if self.use_multi_heads:
-            self.classifier = nn.ModuleList([self.gen_classifier(1024, dim_w) for _ in range(self.num_heads)])
+            self.classifier = nn.ModuleList([self.gen_classifier(dim_z, dim_w) for _ in range(self.num_heads)])
         else:
-            self.classifier = self.gen_classifier(1024, dim_w)
+            self.classifier = self.gen_classifier(dim_z, dim_w)
         self.weight_init()
 
     def gen_classifier(self, dim_in, dim_out):
@@ -499,8 +494,7 @@ class IIC(nn.Module):
 
     def forward(self, x, y, lam=1.0):
         z_x, z_y = self.encoder(x), self.encoder(y)
-        v, u = self.fc(z_x), self.fc(z_y)
-        w_v, w_u = self.clustering(v), self.clustering(u)
+        w_v, w_u = self.clustering(z_x), self.clustering(z_y)
         return self.mutual_info(w_v, w_u, lam=lam)
 
     def get_params(self, x):
