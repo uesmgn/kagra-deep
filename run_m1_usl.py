@@ -12,6 +12,7 @@ from itertools import cycle
 import os
 from sklearn.manifold import TSNE
 from umap import UMAP
+from sklearn.metrics import silhouette_samples
 
 from src.utils.functional import (
     acronym,
@@ -140,7 +141,7 @@ def main(args):
                         plt.xlabel("epoch")
                         plt.title(key)
                         plt.xlim((0, len(value) - 1))
-                        plt.savefig(f"loss_{key}_e{epoch}.png")
+                        plt.savefig(f"loss_{key}_e{epoch}.png", transparent=True, dpi=args.dpi)
                         plt.close()
 
         if epoch % args.save_interval == 0:
@@ -152,28 +153,62 @@ def main(args):
             print("UMAP decomposing...")
             qz_umap = UMAP(n_components=2, random_state=args.seed).fit(qz).embedding_
 
-            plt.figure()
-            cmap = segmented_cmap(len(args.targets), "tab20b")
-            for i in np.unique(y):
-                idx = np.where(y == i)
-                c = cmap(i)
-                plt.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
-            plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-            plt.title(f"2d qz using t-sne at epoch {epoch}")
+            print(f"Plotting 2D latent features with true labels...")
+            fig, ax = plt.subplots()
+            cmap = segmented_cmap(args.num_classes, "tab20b")
+            for i in range(args.num_classes):
+                idx = np.where(y == i)[0]
+                if len(idx) > 0:
+                    c = cmap(i)
+                    ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
+            ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
+            ax.set_title(r"2d $q(\bm{z})$ at epoch %d (t-SNE)" % (epoch))
+            ax.set_aspect(1.0 / ax.get_data_ratio())
             plt.tight_layout()
-            plt.savefig(f"qz_tsne_e{epoch}.png")
+            plt.savefig(f"qz_true_e{epoch}.png", transparent=True, dpi=args.dpi)
             plt.close()
 
-            plt.figure()
-            cmap = segmented_cmap(len(args.targets), "tab20b")
-            for i in np.unique(y):
-                idx = np.where(y == i)
-                c = cmap(i)
-                plt.scatter(qz_umap[idx, 0], qz_umap[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
-            plt.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-            plt.title(f"2d qz using umap at epoch {epoch}")
+            fig, ax = plt.subplots()
+            cmap = segmented_cmap(args.num_classes, "tab20b")
+            for i in range(args.num_classes):
+                idx = np.where(y == i)[0]
+                if len(idx) > 0:
+                    c = cmap(i)
+                    ax.scatter(qz_umap[idx, 0], qz_umap[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
+            ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
+            ax.set_title(r"2d $q(\bm{z})$ at epoch %d (UMAP)" % (epoch))
+            ax.set_aspect(1.0 / ax.get_data_ratio())
             plt.tight_layout()
-            plt.savefig(f"qz_umap_e{epoch}.png")
+            plt.savefig(f"qz_umap_e{epoch}.png", transparent=True, dpi=args.dpi)
+            plt.close()
+
+            sample_silhouette_values = silhouette_samples(qz, y)
+            y_lower = 10
+            cmap = segmented_cmap(len(args.targets), "tab20b")
+
+            for i in np.unique(y):
+                ith_cluster_silhouette_values = sample_silhouette_values[y == i]
+                ith_cluster_silhouette_values.sort()
+                size_cluster_i = ith_cluster_silhouette_values.shape[0]
+                y_upper = y_lower + size_cluster_i
+                c = cmap(i)
+                ax.fill_betweenx(np.arange(y_lower, y_upper), 0, ith_cluster_silhouette_values, facecolor=c, edgecolor=darken(c), alpha=0.7)
+
+                # Label the silhouette plots with their cluster numbers at the middle
+                ax.text(-0.1, y_lower + 0.5 * size_cluster_i, targets[i])
+
+                # Compute the new y_lower for next plot
+                y_lower = y_upper + 10  # 10 for the 0 samples
+
+                ax.set_title("Silhouette coefficient for each cluster")
+                ax.set_xlabel("silhouette coefficient")
+                ax.set_ylabel("label")
+
+                ax.set_yticks([])  # Clear the yaxis labels / ticks
+                ax.set_xticks([-0.1, 0, 0.2, 0.4, 0.6, 0.8, 1])
+
+            plt.tight_layout()
+            plt.savefig(f"silhouette_e{epoch}.png", transparent=True, dpi=args.dpi)
             plt.close()
 
 
