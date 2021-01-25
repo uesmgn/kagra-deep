@@ -150,6 +150,48 @@ def main(args):
 
         plt.rcParams["text.usetex"] = True
 
+        silhouette_vals = silhouette_samples(qz, y)
+        y_lower = 10
+        cmap = segmented_cmap(len(args.targets), "tab20b")
+        fig, ax = plt.subplots()
+        y_ax_lower, y_ax_upper = 0, 0
+        yticks = []
+        silhouette_means = []
+        silhouette_positions = []
+        silhouette_colors = []
+        for i in np.unique(y):
+            silhouette_vals_i = silhouette_vals[y == i]
+            silhouette_vals_i.sort()
+            silhouette_means.append(np.mean(silhouette_vals_i))
+            y_ax_upper = y_ax_lower + len(silhouette_vals_i)
+            c = cmap(i)
+            plt.barh(
+                range(y_ax_lower, y_ax_upper),
+                silhouette_vals_i,
+                height=1.0,
+                edgecolor="none",
+                color=c,
+                alpha=0.8,
+            )
+            pos = (y_ax_lower + y_ax_upper) / 2
+            silhouette_positions.append(pos)
+            silhouette_colors.append(c)
+
+            y_ax_lower = y_ax_upper + 100  # 10 for the 0 samples
+
+            ax.set_title("Silhouette coefficient for each label")
+            ax.set_xlabel("silhouette coefficient")
+            ax.set_ylabel("label")
+
+        ax.plot(silhouette_means, silhouette_positions, c="k", linestyle="dashed")
+        ax.scatter(silhouette_means, silhouette_positions, c=silhouette_colors)
+        ax.axvline(np.mean(silhouette_vals), c="r", linestyle="dashed")
+        ax.set_yticks(silhouette_positions, targets, rotation=45)
+
+        plt.tight_layout()
+        plt.savefig(f"silhouette_e{epoch}.png")
+        plt.close()
+
         if epoch % args.embedding_interval == 0 and epoch > 0:
             print("t-SNE decomposing...")
             qz_tsne = TSNE(n_components=2, random_state=args.seed).fit(qz).embedding_
@@ -183,48 +225,6 @@ def main(args):
             ax.set_aspect(1.0 / ax.get_data_ratio())
             plt.tight_layout()
             plt.savefig(f"qz_umap_e{epoch}.png")
-            plt.close()
-
-            silhouette_vals = silhouette_samples(qz, y)
-            y_lower = 10
-            cmap = segmented_cmap(len(args.targets), "tab20b")
-            fig, ax = plt.subplots()
-            y_ax_lower, y_ax_upper = 0, 0
-            yticks = []
-            silhouette_means = []
-            silhouette_positions = []
-            silhouette_colors = []
-            for i in np.unique(y):
-                silhouette_vals_i = silhouette_vals[y == i]
-                silhouette_vals_i.sort()
-                silhouette_means.append(np.mean(silhouette_vals_i))
-                y_ax_upper = y_ax_lower + len(silhouette_vals_i)
-                c = cmap(i)
-                plt.barh(
-                    range(y_ax_lower, y_ax_upper),
-                    silhouette_vals_i,
-                    height=1.0,
-                    edgecolor="none",
-                    color=c,
-                    alpha=0.8,
-                )
-                pos = (y_ax_lower + y_ax_upper) / 2
-                silhouette_positions.append(pos)
-                silhouette_colors.append(c)
-
-                y_ax_lower = y_ax_upper + 100  # 10 for the 0 samples
-
-                ax.set_title("Silhouette coefficient for each label")
-                ax.set_xlabel("silhouette coefficient")
-                ax.set_ylabel("label")
-
-            ax.plot(silhouette_means, silhouette_positions, c="k", linestyle="dashed")
-            ax.scatter(silhouette_means, silhouette_positions, c=silhouette_colors)
-            ax.axvline(np.mean(silhouette_vals), c="r", linestyle="dashed")
-            ax.set_yticks(silhouette_positions, targets, rotation=45)
-
-            plt.tight_layout()
-            plt.savefig(f"silhouette_e{epoch}.png")
             plt.close()
 
 
