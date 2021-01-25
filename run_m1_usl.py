@@ -37,8 +37,6 @@ import seaborn as sns
 
 plt.style.use("seaborn-poster")
 plt.rcParams["text.latex.preamble"] = r"\usepackage{bm}"
-plt.rc("legend", fontsize=10)
-plt.rc("axes", titlesize=10)
 
 
 @hydra.main(config_path="config", config_name="test")
@@ -184,7 +182,7 @@ def main(args):
             ax.set_ylabel("label")
 
         ax.plot(silhouette_means, silhouette_positions, c="k", linestyle="dashed", linewidth=1.0, zorder=2)
-        ax.scatter(silhouette_means, silhouette_positions, c=silhouette_colors, zorder=4)
+        ax.scatter(silhouette_means, silhouette_positions, s=4.0, c=silhouette_colors, zorder=4)
         ax.axvline(np.mean(silhouette_vals), c="r", linestyle="dashed", linewidth=1.0, zorder=3)
         plt.yticks(silhouette_positions, targets, rotation=45)
         plt.tight_layout()
