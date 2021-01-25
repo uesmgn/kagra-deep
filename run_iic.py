@@ -186,18 +186,6 @@ def main(args):
                     plt.savefig(f"{fbase}_e{epoch}.png")
                     plt.close()
 
-                for key, value in stats.items():
-                    plt.plot(value)
-                    plt.ylabel(key)
-                    plt.yscale("log")
-                    plt.xlabel("epoch")
-                    plt.title(key)
-                    plt.xlim((0, len(value) - 1))
-                    fbase = key.replace(" ", "_")
-                    plt.tight_layout()
-                    plt.savefig(f"{fbase}_e{epoch}_log.png")
-                    plt.close()
-
             print("t-SNE decomposing...")
             qz_tsne = TSNE(n_components=2, random_state=args.seed).fit(qz).embedding_
 
