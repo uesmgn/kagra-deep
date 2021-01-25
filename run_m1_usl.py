@@ -145,6 +145,7 @@ def main(args):
                     plt.title(key)
                     plt.xlim((0, len(value) - 1))
                     fbase = key.replace(" ", "_")
+                    plt.tight_layout()
                     plt.savefig(f"{fbase}_e{epoch}.png")
                     plt.close()
 
