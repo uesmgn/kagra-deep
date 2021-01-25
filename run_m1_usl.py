@@ -176,15 +176,15 @@ def main(args):
             silhouette_positions.append(pos)
             silhouette_colors.append(darken(c))
 
-            y_ax_lower = y_ax_upper + 100  # 10 for the 0 samples
+            y_ax_lower = y_ax_upper + 50  # 10 for the 0 samples
 
             ax.set_title("Silhouette coefficient for each label")
             ax.set_xlabel("silhouette coefficient")
             ax.set_ylabel("label")
 
-        ax.plot(silhouette_means, silhouette_positions, c="k", linestyle="dashed")
-        ax.scatter(silhouette_means, silhouette_positions, c=silhouette_colors)
-        ax.axvline(np.mean(silhouette_vals), c="r", linestyle="dashed")
+        # ax.plot(silhouette_means, silhouette_positions, c="k", linestyle="dashed", linewidth=1.0)
+        # ax.scatter(silhouette_means, silhouette_positions, c=silhouette_colors)
+        ax.axvline(np.mean(silhouette_vals), c="r", linestyle="dashed", linewidth=1.0)
         plt.yticks(silhouette_positions, targets, rotation=45)
         plt.tight_layout()
         plt.savefig(f"silhouette_e{epoch}.png")
