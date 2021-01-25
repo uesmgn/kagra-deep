@@ -215,7 +215,8 @@ def main(args):
                 ax.set_ylabel("label")
                 ax.set_yticks([])  # Clear the yaxis labels / ticks
             ax.plot(xx, yy, c="k", linestyle="dashed")
-            ax.scatter(xx, yy, c=c)
+            ax.scatter(xx, yy, c=silhouette_colors)
+            ax.axvline(np.mean(sample_silhouette_values), color="red", linestyle="dashed")
 
             plt.tight_layout()
             plt.savefig(f"silhouette_e{epoch}.png")
