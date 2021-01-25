@@ -235,97 +235,6 @@ class Px_z(nn.Module):
         return x
 
 
-class IICVAE(nn.Module):
-    def __init__(self, ch_in, dim_w=100, dim_z=512, num_heads=10):
-        super().__init__()
-        self.use_multi_heads = num_heads > 1
-        self.num_heads = num_heads
-        encoder = Encoder(ch_in, 1024)
-        self.qz_x = Qz_x(encoder, dim_z)
-        if self.use_multi_heads:
-            self.classifier = nn.ModuleList([self.gen_classifier(dim_z, dim_w) for _ in range(self.num_heads)])
-        else:
-            self.classifier = self.gen_classifier(dim_z, dim_w)
-        self.weight_init()
-
-    def gen_classifier(self, dim_in, dim_out):
-        return nn.Sequential(
-            nn.Linear(dim_in, 1024, bias=False),
-            nn.BatchNorm1d(1024),
-            nn.ReLU(inplace=True),
-            nn.Linear(1024, dim_out),
-        )
-
-    def load_state_dict_part(self, state_dict):
-        own_state = self.state_dict()
-        for name, param in state_dict.items():
-            if name not in own_state:
-                continue
-            print(f"load state dict: {name}")
-            own_state[name].copy_(param)
-
-    def weight_init(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.xavier_normal_(m.weight)
-            elif isinstance(m, (nn.BatchNorm1d, nn.BatchNorm2d)):
-                nn.init.normal_(m.weight, mean=1, std=0.02)
-                nn.init.constant_(m.bias, 0)
-            elif isinstance(m, nn.Linear):
-                nn.init.xavier_normal_(m.weight)
-                try:
-                    nn.init.zeros_(m.bias)
-                except:
-                    continue
-
-    def forward(self, x, lam=1.0):
-        b = x.shape[0]
-        z, z_mean, z_logvar = self.qz_x(x)
-        w, w_ = self.clustering(z.detach()), self.clustering(z_mean.detach())
-        mi = self.mutual_info(w, w_, lam=lam)
-        return mi
-
-    def get_params(self, x):
-        assert not self.training
-        _, z_mean, _ = self.qz_x(x)
-        w = self.clustering(z_mean)
-        return z_mean, w
-
-    def clustering(self, x):
-        if self.use_multi_heads:
-            tmp = []
-            for classifier in self.classifier:
-                w = F.softmax(classifier(x), dim=-1)
-                tmp.append(w)
-            return torch.stack(tmp, dim=-1)
-        else:
-            w = F.softmax(self.classifier(x), dim=-1)
-            return w
-
-    def bce(self, x, y):
-        return F.binary_cross_entropy(y, x, reduction="sum")
-
-    def kl_gauss(self, mean_p, logvar_p, mean_q, logvar_q):
-        return -0.5 * torch.sum(logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp())
-
-    def mutual_info(self, x, y, lam=1.0, eps=1e-8):
-        if x.ndim == 2:
-            p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(0)
-            p = ((p + p.t()) / 2) / p.sum()
-            _, k = x.shape
-            p[(p < eps).data] = eps
-            pi = p.sum(dim=1).view(k, 1).expand(k, k).pow(lam)
-            pj = p.sum(dim=0).view(1, k).expand(k, k).pow(lam)
-        elif x.ndim == 3:
-            p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(0)
-            p = ((p + p.permute(1, 0, 2)) / 2) / p.sum()
-            p[(p < eps).data] = eps
-            _, k, m = x.shape
-            pi = p.sum(dim=1).view(k, -1).expand(k, k, m)
-            pj = p.sum(dim=0).view(k, -1).expand(k, k, m)
-        return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
-
-
 class AE(nn.Module):
     def __init__(
         self,
@@ -443,7 +352,7 @@ class VAE(nn.Module):
         return -0.5 * torch.sum(logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp())
 
 
-class IIC(nn.Module):
+class IICVAE(nn.Module):
     def __init__(self, ch_in, dim_w=100, dim_z=512, num_heads=10, l=10):
         super().__init__()
         self.use_multi_heads = num_heads > 1
@@ -511,6 +420,94 @@ class IIC(nn.Module):
         _, z_mean, _ = self.qz_x(x, 1)
         w = self.clustering(z_mean)
         return z_mean, w
+
+    def clustering(self, x):
+        if self.use_multi_heads:
+            tmp = []
+            for classifier in self.classifier:
+                w = F.softmax(classifier(x), dim=-1)
+                tmp.append(w)
+            return torch.stack(tmp, dim=-1)
+        else:
+            w = F.softmax(self.classifier(x), dim=-1)
+            return w
+
+    def mutual_info(self, x, y, lam=1.0, eps=1e-8):
+        if x.ndim == 2:
+            p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(0)
+            p = ((p + p.t()) / 2) / p.sum()
+            _, k = x.shape
+            p[(p < eps).data] = eps
+            pi = p.sum(dim=1).view(k, 1).expand(k, k).pow(lam)
+            pj = p.sum(dim=0).view(1, k).expand(k, k).pow(lam)
+        elif x.ndim == 3:
+            p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(0)
+            p = ((p + p.permute(1, 0, 2)) / 2) / p.sum()
+            p[(p < eps).data] = eps
+            _, k, m = x.shape
+            pi = p.sum(dim=1).view(k, -1).expand(k, k, m).pow(lam)
+            pj = p.sum(dim=0).view(k, -1).expand(k, k, m).pow(lam)
+        return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
+
+
+class IIC(nn.Module):
+    def __init__(self, ch_in, dim_w=100, dim_z=512, num_heads=10):
+        super().__init__()
+        self.use_multi_heads = num_heads > 1
+        self.num_heads = num_heads
+        self.encoder = Encoder(ch_in, dim_z)
+        self.fc = nn.Sequential(
+            nn.Linear(dim_z, 1024, bias=False),
+            nn.BatchNorm1d(1024),
+            nn.ReLU(inplace=True),
+        )
+        if self.use_multi_heads:
+            self.classifier = nn.ModuleList([self.gen_classifier(1024, dim_w) for _ in range(self.num_heads)])
+        else:
+            self.classifier = self.gen_classifier(1024, dim_w)
+        self.weight_init()
+
+    def gen_classifier(self, dim_in, dim_out):
+        return nn.Sequential(
+            nn.Linear(dim_in, 1024, bias=False),
+            nn.BatchNorm1d(1024),
+            nn.ReLU(inplace=True),
+            nn.Linear(1024, dim_out),
+        )
+
+    def load_state_dict_part(self, state_dict):
+        own_state = self.state_dict()
+        for name, param in state_dict.items():
+            if name not in own_state:
+                continue
+            print(f"load state dict: {name}")
+            own_state[name].copy_(param)
+
+    def weight_init(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.xavier_normal_(m.weight)
+            elif isinstance(m, (nn.BatchNorm1d, nn.BatchNorm2d)):
+                nn.init.normal_(m.weight, mean=1, std=0.02)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.xavier_normal_(m.weight)
+                try:
+                    nn.init.zeros_(m.bias)
+                except:
+                    continue
+
+    def forward(self, x, y, lam=1.0):
+        z_x, z_y = self.encoder(x), self.encoder(y)
+        v, u = self.fc(z_x), self.fc(z_y)
+        w_v, w_u = self.clustering(v), self.clustering(u)
+        return self.mutual_info(w_v, w_u, lam=lam)
+
+    def get_params(self, x):
+        assert not self.training
+        z = self.encoder(x)
+        w = self.clustering(z)
+        return z, w
 
     def clustering(self, x):
         if self.use_multi_heads:

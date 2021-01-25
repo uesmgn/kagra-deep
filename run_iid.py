@@ -30,7 +30,7 @@ from src.data import datasets
 from src.data import samplers
 from src import config
 
-from mnist import IID
+from mnist import IIC
 
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
@@ -100,7 +100,7 @@ def main(args):
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
-    model = IID(
+    model = IIC(
         ch_in=args.ch_in,
         dim_w=args.dim_w,
         dim_z=args.dim_z,
