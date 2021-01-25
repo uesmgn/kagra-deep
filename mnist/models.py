@@ -451,9 +451,9 @@ class IIC_VAE(nn.Module):
             nn.ReLU(inplace=True),
         )
         if self.use_multi_heads:
-            self.classifier = nn.ModuleList([self.gen_classifier(dim_z, dim_w) for _ in range(self.num_heads)])
+            self.classifier = nn.ModuleList([self.gen_classifier(1024, dim_w) for _ in range(self.num_heads)])
         else:
-            self.classifier = self.gen_classifier(dim_z, dim_w)
+            self.classifier = self.gen_classifier(1024, dim_w)
         self.weight_init()
 
     def gen_classifier(self, dim_in, dim_out):
@@ -486,22 +486,22 @@ class IIC_VAE(nn.Module):
                 except:
                     continue
 
-    def forward(self, x, lam=1.0):
+    def forward(self, x, y, lam=1.0):
         b = len(x)
-        z_x = self.encoder(x)
-        z_x_mean, z_x_logvar = self.mean(z_x), self.logvar(z_x)
-        z_x = self.reparameterize(z_x_mean, z_x_logvar)
-        w_mean, w = self.clustering(z_x_mean), self.clustering(z_x)
-        mutual_info = self.mutual_info(w_mean, w, lam=lam) / b
-        kl_gauss = self.kl_gauss(z_x_mean, z_x_logvar, torch.zeros_like(z_x_mean), torch.ones_like(z_x_logvar)) / b
+        z_x, z_y = self.encoder(x), self.encoder(y)
+        w_x, w_y = self.clustering(z_x), self.clustering(z_y)
+        mutual_info = self.mutual_info(w_x, w_y, lam=lam) / b
+
+        mean, logvar = self.mean(z_x), self.logvar(z_x)
+        kl_gauss = self.kl_gauss(mean, logvar, torch.zeros_like(mean), torch.ones_like(logvar)) / b
         return mutual_info, kl_gauss
 
     def get_params(self, x):
         assert not self.training
         z_x = self.encoder(x)
         z_x_mean = self.mean(z_x)
-        w_mean = self.clustering(z_x_mean)
-        return z_x_mean, w_mean
+        w_x = self.clustering(z_x)
+        return z_x_mean, w_x
 
     def clustering(self, x):
         if self.use_multi_heads:
