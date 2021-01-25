@@ -363,12 +363,13 @@ class VAE(nn.Module):
 
     def forward(self, x, l=10):
         b = x.shape[0]
-        z, z_mean, z_logvar = self.qz_x(x, l)
-        if z.ndim == 3:
+        z, z_mean, z_logvar = self.qz_x(x)
+        if l > 1:
             tmp = 0
             for i in range(l):
-                x_ = self.px_z(z[i])
+                x_ = self.px_z(z)
                 tmp += self.bce(x, x_) / b
+                z = self.reparameterize(z_mean, z_logvar)
             bce = tmp / l
         else:
             x_ = self.px_z(z)
@@ -376,6 +377,12 @@ class VAE(nn.Module):
         kl_gauss = self.kl_gauss(z_mean, z_logvar, torch.zeros_like(z_mean), torch.ones_like(z_logvar)) / b
 
         return bce, kl_gauss
+
+    def reparameterize(self, mean, logvar):
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(mean)
+        x = mean + eps * std
+        return x
 
     def get_params(self, x):
         z, z_mean, z_logvar = self.qz_x(x)
