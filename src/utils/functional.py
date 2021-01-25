@@ -23,6 +23,7 @@ __all__ = [
     "compute_serial_matrix",
     "sample_from_each_class",
     "segmented_cmap",
+    "modify_cax",
 ]
 
 
@@ -268,3 +269,19 @@ class TensorDict(dict):
 
 def tensordict(d=None):
     return TensorDict(d)
+
+
+def modify_cax(ax, cax, orientation="vertical"):
+    """
+    Set colorbar axis same as plot.
+    Parameters:
+        ax: ax = plt.gca()
+        cax: cax = plt.colorbar()
+        orientataion: vertical or horizontal
+    """
+    axp = ax.get_position()
+    caxp = cax.ax.get_position()
+    if orientation == "vertical":
+        cax.ax.set_position([caxp.x0, axp.y0, caxp.x1 - caxp.x0, axp.y1 - axp.y0])
+    elif orientation == "horizontal":
+        cax.ax.set_position([axp.x0, caxp.y0, axp.x1 - axp.x0, caxp.y1 - caxp.y0])

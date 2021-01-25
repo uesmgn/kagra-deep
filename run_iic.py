@@ -26,6 +26,7 @@ from src.utils.functional import (
     compute_serial_matrix,
     sample_from_each_class,
     segmented_cmap,
+    modify_cax,
 )
 from src.utils import transforms
 from src.data import datasets
@@ -172,14 +173,15 @@ def main(args):
 
                 fig = plt.figure()
                 axs = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0)
-                axs[0].imshow(simmat_reordered, aspect=1)
+                im = axs[0].imshow(simmat_reordered, aspect=1)
                 axs[0].axis("off")
                 axs[0].set_ylabel("cosine similarity")
                 axs[1].imshow(y[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(len(targets), "tab20b"))
                 axs[1].axis("off")
                 axs[1].set_ylabel("label")
                 axs[0].set_title("cosine similarity matrix with label at epoch %d" % epoch)
-                plt.colorbar(cax=axs[0])
+                cbar = plt.colorbar(im)
+                modify_cax(axs[0], cbar)
                 plt.savefig(f"simmat_e{epoch}.png")
                 plt.close()
 
