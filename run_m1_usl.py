@@ -39,6 +39,7 @@ import seaborn as sns
 plt.style.use("seaborn-poster")
 plt.rcParams["text.latex.preamble"] = r"\usepackage{bm}"
 plt.rcParams["lines.markersize"] = 5.0
+plt.rcParams["text.usetex"] = True
 
 
 @hydra.main(config_path="config", config_name="test")
@@ -108,11 +109,11 @@ def main(args):
             loss.backward()
             optim.step()
             total += loss.item()
-            total_dict["total"] += loss.item()
-            total_dict["bce"] += bce.item()
-            total_dict["kl_gauss"] += kl_gauss.item()
+            total_dict["total loss"] += loss.item()
+            total_dict["binary cross entropy"] += bce.item()
+            total_dict["gaussian kl divergence"] += kl_gauss.item()
         for key, value in total_dict.items():
-            print("loss_{}: {:.3f} at epoch: {}".format(key, value, epoch))
+            print("{}: {:.3f} at epoch: {}".format(key, value, epoch))
             stats[key].append(value)
 
         # scheduler.step()
@@ -133,73 +134,69 @@ def main(args):
                 y = params["y"].numpy().astype(int)
                 qz = params["qz"].numpy()
 
-                plt.rcParams["text.usetex"] = False
-                if epoch > 0:
-                    for key, value in stats.items():
-                        plt.plot(value)
-                        plt.ylabel(key)
-                        plt.xlabel("epoch")
-                        plt.title(key)
-                        plt.xlim((0, len(value) - 1))
-                        plt.savefig(f"loss_{key}_e{epoch}.png")
-                        plt.close()
+                silhouette_vals = silhouette_samples(qz, y)
+                stats["average of silhouette coefficient"].append(np.mean(silhouette_vals))
 
-        if epoch % args.save_interval == 0:
-            torch.save(model.state_dict(), os.path.join(args.model_dir, "model_m1_usl.pt"))
+            if epoch > 0:
+                for key, value in stats.items():
+                    plt.plot(value)
+                    plt.ylabel(key)
+                    plt.xlabel("epoch")
+                    plt.title(key)
+                    plt.xlim((0, len(value) - 1))
+                    fbase = key.replace(" ", "_")
+                    plt.savefig(f"{fbase}_e{epoch}.png")
+                    plt.close()
 
-        plt.rcParams["text.usetex"] = True
+            y_lower = 10
+            cmap = segmented_cmap(len(args.targets), "tab20b")
+            fig, ax = plt.subplots(figsize=[12, 18])
+            y_ax_lower, y_ax_upper = 0, 0
+            yticks = []
+            silhouette_means = []
+            silhouette_positions = []
+            silhouette_colors = []
+            for i in np.unique(y)[::-1]:
+                silhouette_vals_i = silhouette_vals[y == i]
+                silhouette_vals_i.sort()
+                silhouette_means.append(np.mean(silhouette_vals_i))
+                y_ax_upper = y_ax_lower + len(silhouette_vals_i)
+                c = cmap(i)
+                plt.barh(
+                    range(y_ax_lower, y_ax_upper),
+                    silhouette_vals_i,
+                    height=1.0,
+                    edgecolor="none",
+                    color=c,
+                    alpha=0.8,
+                    zorder=1,
+                )
+                pos = (y_ax_lower + y_ax_upper) / 2
+                silhouette_positions.append(pos)
+                silhouette_colors.append(darken(c))
 
-        silhouette_vals = silhouette_samples(qz, y)
-        y_lower = 10
-        cmap = segmented_cmap(len(args.targets), "tab20b")
-        fig, ax = plt.subplots(figsize=[12, 18])
-        y_ax_lower, y_ax_upper = 0, 0
-        yticks = []
-        silhouette_means = []
-        silhouette_positions = []
-        silhouette_colors = []
-        for i in np.unique(y)[::-1]:
-            silhouette_vals_i = silhouette_vals[y == i]
-            silhouette_vals_i.sort()
-            silhouette_means.append(np.mean(silhouette_vals_i))
-            y_ax_upper = y_ax_lower + len(silhouette_vals_i)
-            c = cmap(i)
-            plt.barh(
-                range(y_ax_lower, y_ax_upper),
-                silhouette_vals_i,
-                height=1.0,
-                edgecolor="none",
-                color=c,
-                alpha=0.8,
-                zorder=1,
+                y_ax_lower = y_ax_upper + 50  # 10 for the 0 samples
+
+                ax.set_title("silhouette coefficient for each label")
+                ax.set_xlabel("silhouette coefficient")
+                ax.set_ylabel("label")
+
+            ax.plot(silhouette_means, silhouette_positions, c="k", linestyle="dashed", linewidth=2.0, zorder=2)
+            ax.scatter(silhouette_means, silhouette_positions, c=silhouette_colors, zorder=4)
+            ax.axvline(np.mean(silhouette_vals), c="r", linestyle="dashed", linewidth=2.0, zorder=3)
+            ax.legend(
+                [
+                    Line2D([0], [0], c="r", linestyle="dashed", linewidth=2.0),
+                    Line2D([0], [0], color="k", linestyle="dashed", linewidth=2.0),
+                ],
+                ["average", "average for each label"],
+                loc="upper right",
             )
-            pos = (y_ax_lower + y_ax_upper) / 2
-            silhouette_positions.append(pos)
-            silhouette_colors.append(darken(c))
+            plt.yticks(silhouette_positions, targets, rotation=45)
+            plt.tight_layout()
+            plt.savefig(f"silhouette_e{epoch}.png")
+            plt.close()
 
-            y_ax_lower = y_ax_upper + 50  # 10 for the 0 samples
-
-            ax.set_title("Silhouette coefficient for each label")
-            ax.set_xlabel("silhouette coefficient")
-            ax.set_ylabel("label")
-
-        ax.plot(silhouette_means, silhouette_positions, c="k", linestyle="dashed", linewidth=2.0, zorder=2)
-        ax.scatter(silhouette_means, silhouette_positions, c=silhouette_colors, zorder=4)
-        ax.axvline(np.mean(silhouette_vals), c="r", linestyle="dashed", linewidth=2.0, zorder=3)
-        ax.legend(
-            [
-                Line2D([0], [0], c="r", linestyle="dashed", linewidth=2.0),
-                Line2D([0], [0], color="k", linestyle="dashed", linewidth=2.0),
-            ],
-            ["average", "average for each label"],
-            loc="upper right",
-        )
-        plt.yticks(silhouette_positions, targets, rotation=45)
-        plt.tight_layout()
-        plt.savefig(f"silhouette_e{epoch}.png")
-        plt.close()
-
-        if epoch % args.embedding_interval == 0 and epoch > 0:
             print("t-SNE decomposing...")
             qz_tsne = TSNE(n_components=2, random_state=args.seed).fit(qz).embedding_
             print("UMAP decomposing...")
@@ -214,7 +211,7 @@ def main(args):
                     c = cmap(i)
                     ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
             ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-            ax.set_title(r"2d $q(\bm{z})$ at epoch %d (t-SNE)" % (epoch))
+            ax.set_title(r"t-SNE 2D plot of $q(\bm{z})$ at epoch %d" % (epoch))
             ax.set_aspect(1.0 / ax.get_data_ratio())
             plt.tight_layout()
             plt.savefig(f"qz_true_e{epoch}.png")
@@ -228,11 +225,14 @@ def main(args):
                     c = cmap(i)
                     ax.scatter(qz_umap[idx, 0], qz_umap[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
             ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-            ax.set_title(r"2d $q(\bm{z})$ at epoch %d (UMAP)" % (epoch))
+            ax.set_title(r"UMAP 2D plot of $q(\bm{z})$ at epoch %d" % (epoch))
             ax.set_aspect(1.0 / ax.get_data_ratio())
             plt.tight_layout()
             plt.savefig(f"qz_umap_e{epoch}.png")
             plt.close()
+
+        if epoch % args.save_interval == 0:
+            torch.save(model.state_dict(), os.path.join(args.model_dir, "model_m1_usl.pt"))
 
 
 if __name__ == "__main__":
