@@ -171,6 +171,7 @@ def main(args):
                 edgecolor="none",
                 color=c,
                 alpha=0.8,
+                zorder=1,
             )
             pos = (y_ax_lower + y_ax_upper) / 2
             silhouette_positions.append(pos)
@@ -182,9 +183,9 @@ def main(args):
             ax.set_xlabel("silhouette coefficient")
             ax.set_ylabel("label")
 
-        # ax.plot(silhouette_means, silhouette_positions, c="k", linestyle="dashed", linewidth=1.0)
-        # ax.scatter(silhouette_means, silhouette_positions, c=silhouette_colors)
-        ax.axvline(np.mean(silhouette_vals), c="r", linestyle="dashed", linewidth=1.0)
+        ax.plot(silhouette_means, silhouette_positions, c="k", linestyle="dashed", linewidth=1.0, zorder=2)
+        ax.scatter(silhouette_means, silhouette_positions, c=silhouette_colors, zorder=4)
+        ax.axvline(np.mean(silhouette_vals), c="r", linestyle="dashed", linewidth=1.0, zorder=3)
         plt.yticks(silhouette_positions, targets, rotation=45)
         plt.tight_layout()
         plt.savefig(f"silhouette_e{epoch}.png")
