@@ -203,12 +203,12 @@ def main(args):
 
                 # Label the silhouette plots with their cluster numbers at the middle
                 silhouette_pos = y_lower + 0.5 * size_cluster_i
-                ax.text(-0.1, silhouette_pos - 6, targets[i], color=darken(c), fontsize=12)
+                ax.text(-0.5, silhouette_pos - 6, targets[i], color=darken(c), fontsize=12)
                 silhouette_positions.append(silhouette_pos)
                 silhouette_colors.append(c)
 
                 # Compute the new y_lower for next plot
-                y_lower = y_upper + 50  # 10 for the 0 samples
+                y_lower = y_upper + 100  # 10 for the 0 samples
 
                 ax.set_title("Silhouette coefficient for each cluster")
                 ax.set_xlabel("silhouette coefficient")
