@@ -172,7 +172,7 @@ def main(args):
                 _, reordered, _ = compute_serial_matrix(simmat)
                 simmat_reordered = simmat[reordered][:, reordered]
 
-                fig = plt.figure()
+                fig, ax = plt.subplots()
                 axs = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0)
                 im0 = axs[0].imshow(simmat_reordered, aspect=1)
                 axs[0].set_xticklabels([])
@@ -183,7 +183,7 @@ def main(args):
                 axs[1].set_yticklabels([])
                 axs[1].set_ylabel("label")
 
-                divider = make_axes_locatable(axs)
+                divider = make_axes_locatable(ax)
                 cax0 = divider.append_axes("top", size=0.2, pad=0.2)
                 cb0 = plt.colorbar(im0, cax=cax0, orientation="horizontal")
                 cax0.xaxis.set_ticks_position("top")
