@@ -142,7 +142,7 @@ def main(args):
                         plt.xlabel("epoch")
                         plt.title(key)
                         plt.xlim((0, len(value) - 1))
-                        plt.savefig(f"loss_{key}_e{epoch}.png", transparent=True, dpi=args.dpi)
+                        plt.savefig(f"loss_{key}_e{epoch}.png", dpi=args.dpi)
                         plt.close()
 
         if epoch % args.save_interval == 0:
@@ -168,7 +168,7 @@ def main(args):
             ax.set_title(r"2d $q(\bm{z})$ at epoch %d (t-SNE)" % (epoch))
             ax.set_aspect(1.0 / ax.get_data_ratio())
             plt.tight_layout()
-            plt.savefig(f"qz_true_e{epoch}.png", transparent=True, dpi=args.dpi)
+            plt.savefig(f"qz_true_e{epoch}.png", dpi=args.dpi)
             plt.close()
 
             fig, ax = plt.subplots()
@@ -182,7 +182,7 @@ def main(args):
             ax.set_title(r"2d $q(\bm{z})$ at epoch %d (UMAP)" % (epoch))
             ax.set_aspect(1.0 / ax.get_data_ratio())
             plt.tight_layout()
-            plt.savefig(f"qz_umap_e{epoch}.png", transparent=True, dpi=args.dpi)
+            plt.savefig(f"qz_umap_e{epoch}.png", dpi=args.dpi)
             plt.close()
 
             sample_silhouette_values = silhouette_samples(qz, y)
@@ -211,7 +211,7 @@ def main(args):
                 ax.set_xticks([-0.1, 0, 0.2, 0.4, 0.6, 0.8, 1])
 
             plt.tight_layout()
-            plt.savefig(f"silhouette_e{epoch}.png", transparent=True, dpi=args.dpi)
+            plt.savefig(f"silhouette_e{epoch}.png", dpi=args.dpi)
             plt.close()
 
 
