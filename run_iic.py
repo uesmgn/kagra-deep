@@ -175,7 +175,7 @@ def main(args):
 
                 fig = plt.figure()
                 fig.subplots_adjust(hspace=0.1)
-                ax0, ax1 = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0, add_all=True)
+                ax0, ax1 = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0, cbar_mode="each")
                 im0 = ax0.imshow(simmat_reordered, aspect=1)
                 ax0.set_xticklabels([])
                 ax0.set_yticklabels([])
