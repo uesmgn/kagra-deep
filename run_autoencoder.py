@@ -242,7 +242,7 @@ def main(args):
             plt.close()
 
         if epoch % args.save_interval == 0:
-            torch.save(model.state_dict(), os.path.join(args.model_dir, "model_m1_usl.pt"))
+            torch.save(model.state_dict(), os.path.join(args.model_dir, "model_autoencoder.pt"))
 
 
 if __name__ == "__main__":
