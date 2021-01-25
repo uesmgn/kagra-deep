@@ -333,8 +333,8 @@ class AE(nn.Module):
         dim_z=512,
     ):
         super().__init__()
-        encoder = Encoder(ch_in, dim_z)
-        decoder = Decoder(ch_in, dim_z)
+        self.encoder = Encoder(ch_in, dim_z)
+        self.decoder = Decoder(ch_in, dim_z)
         self.weight_init()
 
     def load_state_dict_part(self, state_dict):
