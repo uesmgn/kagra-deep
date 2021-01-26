@@ -12,7 +12,7 @@ class ResBlock(nn.Module):
         self.block = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, stride=stride, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.2, inplace=True),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(out_channels),
         )
@@ -23,7 +23,7 @@ class ResBlock(nn.Module):
                 nn.BatchNorm2d(out_channels),
             )
         if activation is None:
-            self.activation = nn.ReLU(inplace=True)
+            self.activation = nn.LeakyReLU(0.2, inplace=True)
         else:
             self.activation = activation
 
@@ -41,7 +41,7 @@ class ResBlockDec(nn.Module):
         self.block = self.block = nn.Sequential(
             nn.ConvTranspose2d(in_channels, in_channels, stride=2, kernel_size=4, padding=1, bias=False),
             nn.BatchNorm2d(in_channels),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.2, inplace=True),
             nn.ConvTranspose2d(in_channels, out_channels, kernel_size=1, bias=False),
             nn.BatchNorm2d(out_channels),
         )
@@ -50,7 +50,7 @@ class ResBlockDec(nn.Module):
             nn.BatchNorm2d(out_channels),
         )
         if activation is None:
-            self.activation = nn.ReLU(inplace=True)
+            self.activation = nn.LeakyReLU(0.2, inplace=True)
         else:
             self.activation = activation
 
@@ -66,7 +66,7 @@ class Encoder(nn.Module):
         self.blocks = nn.Sequential(
             nn.Conv2d(ch_in, 32, kernel_size=7, stride=2, padding=3, bias=False),
             nn.BatchNorm2d(32),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.2, inplace=True),
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
             ResBlock(32, 64, stride=2),
             ResBlock(64, 128, stride=2),
@@ -76,7 +76,7 @@ class Encoder(nn.Module):
             nn.Flatten(),
             nn.Linear(256 * 7 * 7, dim_out, bias=False),
             nn.BatchNorm1d(dim_out),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.2, inplace=True),
         )
 
     def forward(self, x):
@@ -91,7 +91,7 @@ class Decoder(nn.Module):
         self.head = nn.Sequential(
             nn.Linear(dim_in, 256 * 7 * 7, bias=False),
             nn.BatchNorm1d(256 * 7 * 7),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.2, inplace=True),
         )
         self.blocks = nn.Sequential(
             nn.Upsample(scale_factor=2),
@@ -137,7 +137,7 @@ class Qz_x(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(1024, 1024, bias=False),
             nn.BatchNorm1d(1024),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.2, inplace=True),
         )
         self.gaussian = Gaussian(1024, dim_z)
 
@@ -156,12 +156,12 @@ class Qz_xy(nn.Module):
         self.fc_x = nn.Sequential(
             nn.Linear(1024, dim_y, bias=False),
             nn.BatchNorm1d(dim_y),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.2, inplace=True),
         )
         self.fc_y = nn.Sequential(
             nn.Linear(1024, dim_y, bias=False),
             nn.BatchNorm1d(dim_y),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.2, inplace=True),
         )
         self.gaussian = Gaussian(dim_y + dim_y, dim_z)
 
@@ -198,7 +198,7 @@ class Qy_z(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(dim_z, 1024, bias=False),
             nn.BatchNorm1d(1024),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.2, inplace=True),
             nn.Linear(1024, dim_y, bias=False),
         )
 
@@ -215,7 +215,7 @@ class Pz_y(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear(dim_y, 1024, bias=False),
             nn.BatchNorm1d(1024),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.2, inplace=True),
         )
         self.gaussian = Gaussian(1024, dim_z)
 
@@ -294,12 +294,12 @@ class VAE(nn.Module):
         self.mean = nn.Sequential(
             nn.Linear(1024, dim_z, bias=False),
             nn.BatchNorm1d(dim_z),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.2, inplace=True),
         )
         self.logvar = nn.Sequential(
             nn.Linear(1024, dim_z, bias=False),
             nn.BatchNorm1d(dim_z),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.2, inplace=True),
         )
         self.decoder = Decoder(ch_in, dim_z)
         self.weight_init()
@@ -363,7 +363,7 @@ class IIC(nn.Module):
         self.mean = nn.Sequential(
             nn.Linear(1024, dim_z, bias=False),
             nn.BatchNorm1d(dim_z),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.2, inplace=True),
         )
 
         if self.use_multi_heads:
@@ -382,7 +382,7 @@ class IIC(nn.Module):
         return nn.Sequential(
             nn.Linear(dim_in, 1024, bias=False),
             nn.BatchNorm1d(1024),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(0.2, inplace=True),
             nn.Linear(1024, dim_out),
         )
 
