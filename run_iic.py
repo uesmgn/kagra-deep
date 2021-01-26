@@ -198,6 +198,7 @@ def main(args):
                     bbox_transform=grid[0].transAxes,
                     borderpad=0,
                 )
+                im0.set_clim(-1, 1)
                 cb0 = plt.colorbar(im0, cax=axins0, orientation="horizontal")
                 axins0.xaxis.set_ticks_position("top")
 
@@ -214,8 +215,8 @@ def main(args):
                     bbox_transform=grid[1].transAxes,
                     borderpad=0,
                 )
-                cb1 = plt.colorbar(im1, cax=axins1, orientation="horizontal")
                 im1.set_clim(0 - 0.5, len(targets) - 0.5)
+                cb1 = plt.colorbar(im1, cax=axins1, orientation="horizontal")
                 cb1.set_ticks(np.arange(0, len(targets), 2))
                 cb1.set_ticklabels(targets[np.arange(0, len(targets), 2)])
                 plt.setp(axins1.get_xticklabels(), rotation=45, horizontalalignment="right")
