@@ -179,7 +179,13 @@ def main(args):
                 grid[0].set_yticklabels([])
                 grid[0].set_ylabel("cosine similarity")
                 axins0 = inset_axes(
-                    grid[0], height=0.1, width="100%", loc="upper left", bbox_to_anchor=(0, 0.05, 1, 1), bbox_transform=grid[0].transAxes, borderpad=0
+                    grid[0],
+                    height=0.1,
+                    width="100%",
+                    loc="upper left",
+                    bbox_to_anchor=(0, 0.01, 1, 1),
+                    bbox_transform=grid[0].transAxes,
+                    borderpad=0,
                 )
                 cb0 = plt.colorbar(im0, cax=axins0, orientation="horizontal")
                 axins0.xaxis.set_ticks_position("top")
@@ -193,7 +199,7 @@ def main(args):
                     height=0.1,
                     width="100%",
                     loc="lower left",
-                    bbox_to_anchor=(0, -0.95, 1, 1),
+                    bbox_to_anchor=(0, -0.99, 1, 1),
                     bbox_transform=grid[1].transAxes,
                     borderpad=0,
                 )
