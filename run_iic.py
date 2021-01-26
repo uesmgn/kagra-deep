@@ -180,10 +180,10 @@ def main(args):
                 grid[0].set_ylabel("cosine similarity")
                 axins0 = inset_axes(
                     grid[0],
-                    height=0.1,
+                    height=0.2,
                     width="100%",
                     loc="upper left",
-                    bbox_to_anchor=(0, 0.01, 1, 1),
+                    bbox_to_anchor=(0, 0.05, 1, 1),
                     bbox_transform=grid[0].transAxes,
                     borderpad=0,
                 )
@@ -196,10 +196,10 @@ def main(args):
                 grid[1].set_ylabel("label")
                 axins1 = inset_axes(
                     grid[1],
-                    height=0.1,
+                    height=0.2,
                     width="100%",
                     loc="lower left",
-                    bbox_to_anchor=(0, -0.99, 1, 1),
+                    bbox_to_anchor=(0, -0.95, 1, 1),
                     bbox_transform=grid[1].transAxes,
                     borderpad=0,
                 )
@@ -209,7 +209,7 @@ def main(args):
                 cb1.set_ticklabels(targets[np.arange(0, len(targets), 5)])
                 plt.setp(axins1.get_xticklabels(), rotation=45, horizontalalignment="center")
                 axins1.xaxis.set_ticks_position("bottom")
-
+                plt.tight_layout()
                 plt.savefig(f"simmat_e{epoch}.png")
                 plt.close()
 
