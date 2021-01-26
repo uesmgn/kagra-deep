@@ -13,6 +13,7 @@ import os
 import random
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
+from sklearn.cluster import SpectralClustering
 from umap import UMAP
 from sklearn.metrics import silhouette_samples
 from matplotlib.lines import Line2D
@@ -172,6 +173,7 @@ def main(args):
                 simmat = cosine_similarity(torch.from_numpy(hg))
                 print("Computing cosine distance reordered matrix...")
                 dist_mat, reordered, _ = compute_serial_matrix(simmat)
+                pred_ensembled = SpectralClustering(n_clusters=args.dim_w, random_state=args.seed).fit(hg).labels_
 
                 figure = plt.figure()
                 grid = ImageGrid(figure, 111, nrows_ncols=(2, 1), axes_pad=0.05)
@@ -225,19 +227,36 @@ def main(args):
                         plt.savefig(f"{fbase}_e{epoch}.png")
                         plt.close()
 
-                print(f"Plotting confusion matrix with ensembled label...")
+                print(f"Plotting confusion matrix with ensembled label as head {i}...")
                 fig, ax = plt.subplots()
-                cm = confusion_matrix(y, pred, labels=list(range(args.dim_w)))
+                cm = confusion_matrix(y, pred_ensembled, labels=list(range(args.dim_w)))
                 cm = cm[: args.num_classes, :]
                 cmn = normalize(cm, axis=0)
                 sns.heatmap(cmn, ax=ax, annot=cm, fmt="d", linewidths=0.1, cmap="Greens", cbar=False, yticklabels=targets, annot_kws={"fontsize": 8})
                 plt.yticks(rotation=45)
-                plt.xlabel("predicted labels")
+                plt.xlabel("ensemble predicted labels")
                 plt.ylabel("true labels")
-                ax.set_title(r"confusion matrix at epoch %d" % epoch)
+                ax.set_title(r"confusion matrix at epoch %d with ensemble classifier" % (epoch))
                 plt.tight_layout()
-                plt.savefig(f"cm_e{epoch}.png")
+                plt.savefig(f"cm_ensembled_e{epoch}.png")
                 plt.close()
+
+                for i in range(args.num_heads):
+                    print(f"Plotting confusion matrix with predicted label as head {i}...")
+                    fig, ax = plt.subplots()
+                    cm = confusion_matrix(y, pred[i], labels=list(range(args.dim_w)))
+                    cm = cm[: args.num_classes, :]
+                    cmn = normalize(cm, axis=0)
+                    sns.heatmap(
+                        cmn, ax=ax, annot=cm, fmt="d", linewidths=0.1, cmap="Greens", cbar=False, yticklabels=targets, annot_kws={"fontsize": 8}
+                    )
+                    plt.yticks(rotation=45)
+                    plt.xlabel("predicted labels")
+                    plt.ylabel("true labels")
+                    ax.set_title(r"confusion matrix at epoch %d with classifier %d" % (epoch, i))
+                    plt.tight_layout()
+                    plt.savefig(f"cm_c{i}_e{epoch}.png")
+                    plt.close()
 
                 print("t-SNE decomposing...")
                 qz_tsne = TSNE(n_components=2, random_state=args.seed).fit(qz).embedding_
@@ -257,20 +276,20 @@ def main(args):
                 plt.savefig(f"qz_tsne_true_e{epoch}.png")
                 plt.close()
 
-                print(f"Plotting t-SNE 2D latent features with pred labels...")
-                fig, ax = plt.subplots()
-                cmap = segmented_cmap(len(np.unique(pred)), "tab20b")
-                for i, l in enumerate(np.unique(pred)):
-                    idx = np.where(pred == l)[0]
-                    if len(idx) > 0:
-                        c = cmap(i)
-                        ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=l, edgecolors=darken(c))
-                ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=len(np.unique(pred)) // 25 + 1)
-                ax.set_title(r"t-SNE 2D plot of $q(\bm{z})$ with pred labels at epoch %d" % (epoch))
-                ax.set_aspect(1.0 / ax.get_data_ratio())
-                plt.tight_layout()
-                plt.savefig(f"qz_tsne_pred_e{epoch}.png")
-                plt.close()
+                # print(f"Plotting t-SNE 2D latent features with pred labels...")
+                # fig, ax = plt.subplots()
+                # cmap = segmented_cmap(len(np.unique(pred_ensembled)), "tab20b")
+                # for i, l in enumerate(np.unique(pred_ensembled)):
+                #     idx = np.where(pred == l)[0]
+                #     if len(idx) > 0:
+                #         c = cmap(i)
+                #         ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=l, edgecolors=darken(c))
+                # ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=len(np.unique(pred_ensembled)) // 25 + 1)
+                # ax.set_title(r"t-SNE 2D plot  of latent codes with ensemble predicted labels at epoch %d" % (epoch))
+                # ax.set_aspect(1.0 / ax.get_data_ratio())
+                # plt.tight_layout()
+                # plt.savefig(f"qz_tsne_pred_e{epoch}.png")
+                # plt.close()
 
         if epoch % args.save_interval == 0:
             torch.save(model.state_dict(), os.path.join(args.model_dir, "model_iic.pt"))
