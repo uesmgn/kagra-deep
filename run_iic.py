@@ -167,6 +167,7 @@ def main(args):
 
                 y = torch.cat(params["y"]).numpy().astype(int)
                 pred = torch.cat(params["pred"]).numpy().astype(int)
+                pred_over = torch.cat(params["pred_over"]).numpy().astype(int)
                 pi = torch.cat(params["pi"]).numpy().astype(float)
                 qz = torch.cat(params["qz"]).numpy().astype(float)
 
