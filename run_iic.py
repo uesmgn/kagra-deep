@@ -198,7 +198,7 @@ def main(args):
                     bbox_transform=grid[0].transAxes,
                     borderpad=0,
                 )
-                im0.set_clim(-1, 1)
+                im0.set_clim(0, 1)
                 cb0 = plt.colorbar(im0, cax=axins0, orientation="horizontal")
                 cb0.set_ticks(np.linspace(-1, 1, 5))
                 axins0.xaxis.set_ticks_position("top")
