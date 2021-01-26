@@ -416,7 +416,7 @@ class IIC(nn.Module):
             w_v_over, w_u_over = self.over_clustering(z_x.detach()), self.over_clustering(z_y.detach())
         else:
             w_v, w_u = self.clustering(z_x), self.clustering(z_y)
-            w_v_over, w_u_over = self.over_clustering(z_x), self.over_clustering(z_ys)
+            w_v_over, w_u_over = self.over_clustering(z_x), self.over_clustering(z_y)
         mi = self.mutual_info(w_v, w_u, lam=lam)
         mi_over = self.mutual_info(w_v_over, w_u_over, lam=lam)
         return mi + mi_over
