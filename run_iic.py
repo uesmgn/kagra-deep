@@ -209,54 +209,65 @@ def main(args):
                 cb1.set_ticklabels(targets[np.arange(0, len(targets), 5)])
                 plt.setp(axins1.get_xticklabels(), rotation=45, horizontalalignment="center")
                 axins1.xaxis.set_ticks_position("bottom")
-                plt.tight_layout()
-                plt.savefig(f"simmat_e{epoch}.png")
+                plt.savefig(f"simmat_e{epoch}.png", bbox_inches="tight")
                 plt.close()
 
-            if epoch > 0:
-                for key, value in stats.items():
-                    plt.plot(value)
-                    plt.ylabel(key)
-                    plt.xlabel("epoch")
-                    plt.title(key)
-                    plt.xlim((0, len(value) - 1))
-                    fbase = key.replace(" ", "_")
-                    plt.tight_layout()
-                    plt.savefig(f"{fbase}_e{epoch}.png")
-                    plt.close()
+                if epoch > 0:
+                    for key, value in stats.items():
+                        plt.plot(value)
+                        plt.ylabel(key)
+                        plt.xlabel("epoch")
+                        plt.title(key)
+                        plt.xlim((0, len(value) - 1))
+                        fbase = key.replace(" ", "_")
+                        plt.tight_layout()
+                        plt.savefig(f"{fbase}_e{epoch}.png")
+                        plt.close()
 
-            print("t-SNE decomposing...")
-            qz_tsne = TSNE(n_components=2, random_state=args.seed).fit(qz).embedding_
+                print(f"Plotting confusion matrix with ensembled label...")
+                fig, ax = plt.subplots()
+                cm = confusion_matrix(y, pred)
+                cm = cm[: args.num_classes, :]
+                cmn = normalize(cm, axis=0)
+                sns.heatmap(cmn, ax=ax, annot=cm, fmt="d", linewidths=0.1, cmap="Greens", cbar=False, yticklabels=targets, annot_kws={"fontsize": 8})
+                plt.yticks(rotation=45)
+                ax.set_title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ ensembled with SC at epoch %d" % epoch)
+                plt.tight_layout()
+                plt.savefig(f"cm_e{epoch}.png")
+                plt.close()
 
-            print(f"Plotting t-SNE 2D latent features with true labels...")
-            fig, ax = plt.subplots()
-            cmap = segmented_cmap(args.num_classes, "tab20b")
-            for i in range(args.num_classes):
-                idx = np.where(y == i)[0]
-                if len(idx) > 0:
-                    c = cmap(i)
-                    ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
-            ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=len(targets) // 25)
-            ax.set_title(r"t-SNE 2D plot of $q(\bm{z})$ with true labels at epoch %d" % (epoch))
-            ax.set_aspect(1.0 / ax.get_data_ratio())
-            plt.tight_layout()
-            plt.savefig(f"qz_tsne_true_e{epoch}.png")
-            plt.close()
+                print("t-SNE decomposing...")
+                qz_tsne = TSNE(n_components=2, random_state=args.seed).fit(qz).embedding_
 
-            print(f"Plotting t-SNE 2D latent features with pred labels...")
-            fig, ax = plt.subplots()
-            cmap = segmented_cmap(len(np.unique(pred)), "tab20b")
-            for i, l in enumerate(np.unique(pred)):
-                idx = np.where(pred == l)[0]
-                if len(idx) > 0:
-                    c = cmap(i)
-                    ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=l, edgecolors=darken(c))
-            ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=len(np.unique(pred)) // 25)
-            ax.set_title(r"t-SNE 2D plot of $q(\bm{z})$ with pred labels at epoch %d" % (epoch))
-            ax.set_aspect(1.0 / ax.get_data_ratio())
-            plt.tight_layout()
-            plt.savefig(f"qz_tsne_pred_e{epoch}.png")
-            plt.close()
+                print(f"Plotting t-SNE 2D latent features with true labels...")
+                fig, ax = plt.subplots()
+                cmap = segmented_cmap(args.num_classes, "tab20b")
+                for i in range(args.num_classes):
+                    idx = np.where(y == i)[0]
+                    if len(idx) > 0:
+                        c = cmap(i)
+                        ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
+                ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=len(targets) // 25 + 1)
+                ax.set_title(r"t-SNE 2D plot of $q(\bm{z})$ with true labels at epoch %d" % (epoch))
+                ax.set_aspect(1.0 / ax.get_data_ratio())
+                plt.tight_layout()
+                plt.savefig(f"qz_tsne_true_e{epoch}.png")
+                plt.close()
+
+                print(f"Plotting t-SNE 2D latent features with pred labels...")
+                fig, ax = plt.subplots()
+                cmap = segmented_cmap(len(np.unique(pred)), "tab20b")
+                for i, l in enumerate(np.unique(pred)):
+                    idx = np.where(pred == l)[0]
+                    if len(idx) > 0:
+                        c = cmap(i)
+                        ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=l, edgecolors=darken(c))
+                ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=len(np.unique(pred)) // 25 + 1)
+                ax.set_title(r"t-SNE 2D plot of $q(\bm{z})$ with pred labels at epoch %d" % (epoch))
+                ax.set_aspect(1.0 / ax.get_data_ratio())
+                plt.tight_layout()
+                plt.savefig(f"qz_tsne_pred_e{epoch}.png")
+                plt.close()
 
         if epoch % args.save_interval == 0:
             torch.save(model.state_dict(), os.path.join(args.model_dir, "model_iic.pt"))
