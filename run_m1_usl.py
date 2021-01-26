@@ -39,8 +39,9 @@ import seaborn as sns
 
 plt.style.use("seaborn-poster")
 plt.rcParams["text.latex.preamble"] = r"\usepackage{bm}"
-plt.rcParams["lines.markersize"] = 5.0
+plt.rcParams["lines.markersize"] = 6.0
 plt.rcParams["text.usetex"] = True
+plt.rc("legend", fontsize=10)
 
 
 @hydra.main(config_path="config", config_name="test")
@@ -236,7 +237,7 @@ def main(args):
                     c = cmap(i)
                     ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
             ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-            ax.set_title(r"t-SNE 2D plot of $q(\bm{z})$ at epoch %d" % (epoch))
+            ax.set_title(r"t-SNE 2D plot of latent code at epoch %d" % (epoch))
             ax.set_aspect(1.0 / ax.get_data_ratio())
             plt.tight_layout()
             plt.savefig(f"qz_true_e{epoch}.png")
@@ -250,7 +251,7 @@ def main(args):
                     c = cmap(i)
                     ax.scatter(qz_umap[idx, 0], qz_umap[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
             ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-            ax.set_title(r"UMAP 2D plot of $q(\bm{z})$ at epoch %d" % (epoch))
+            ax.set_title(r"UMAP 2D plot of latent code at epoch %d" % (epoch))
             ax.set_aspect(1.0 / ax.get_data_ratio())
             plt.tight_layout()
             plt.savefig(f"qz_umap_e{epoch}.png")
