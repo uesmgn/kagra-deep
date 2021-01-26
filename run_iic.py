@@ -151,7 +151,7 @@ def main(args):
                 for i, (x, y) in tqdm(enumerate(test_loader)):
                     x = x.to(device)
                     qz, pi = model.get_params(x)
-                    pred = torch.argmax(pi, -1)
+                    pred = torch.argmax(pi, 1)
 
                     params["y"].append(y)
                     params["pred"].append(pred.cpu())
