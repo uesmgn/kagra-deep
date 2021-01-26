@@ -419,14 +419,15 @@ class IIC(nn.Module):
             w_v_over, w_u_over = self.over_clustering(z_x), self.over_clustering(z_y)
         mi = self.mutual_info(w_v, w_u, lam=lam)
         mi_over = self.mutual_info(w_v_over, w_u_over, lam=lam)
-        return mi + mi_over
+        return mi, mi_over
 
     def get_params(self, x):
         assert not self.training
         z = self.encoder(x)
         z = self.mean(z)
         w = self.clustering(z)
-        return z, w
+        w_over = self.over_clustering(z)
+        return z, w, w_over
 
     def clustering(self, x):
         if self.use_multi_heads:

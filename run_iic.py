@@ -130,12 +130,15 @@ def main(args):
         for (x, x_), _ in tqdm(train_loader):
             x = x.to(device)
             x_ = x_.to(device)
-            loss = model(x, x_, lam=args.lam, detach=detach)
+            mi, mi_over = model(x, x_, lam=args.lam, detach=detach)
+            loss = sum([mi, mi_over])
             optim.zero_grad()
             loss.backward()
             optim.step()
             total += loss.item()
             total_dict["total loss"] += loss.item()
+            total_dict["mutual information loss"] += mi.item()
+            total_dict["mutual information loss for overclustering"] += mi_over.item()
         for key, value in total_dict.items():
             print("{}: {:.3f} at epoch: {}".format(key, value, epoch))
             stats[key].append(value)
@@ -150,11 +153,13 @@ def main(args):
             with torch.no_grad():
                 for i, (x, y) in tqdm(enumerate(test_loader)):
                     x = x.to(device)
-                    qz, pi = model.get_params(x)
+                    qz, pi, pi_over = model.get_params(x)
                     pred = torch.argmax(pi, 1)
+                    pred_over = torch.argmax(pi_over, 1)
 
                     params["y"].append(y)
                     params["pred"].append(pred.cpu())
+                    params["pred_over"].append(pred_over.cpu())
                     params["pi"].append(pi.cpu())
                     params["qz"].append(qz.cpu())
                     num_samples += x.shape[0]
@@ -247,15 +252,27 @@ def main(args):
                     cm = confusion_matrix(y, pred[..., i], labels=list(range(args.dim_w)))
                     cm = cm[: args.num_classes, :]
                     cmn = normalize(cm, axis=0)
-                    sns.heatmap(
-                        cmn, ax=ax, annot=cm, fmt="d", linewidths=0.1, cmap="Greens", cbar=False, yticklabels=targets, annot_kws={"fontsize": 8}
-                    )
+                    sns.heatmap(cmn, ax=ax, linewidths=0.1, cmap="Greens", cbar=True, yticklabels=targets)
                     plt.yticks(rotation=45)
                     plt.xlabel("predicted labels")
                     plt.ylabel("true labels")
                     ax.set_title(r"confusion matrix at epoch %d with classifier %d" % (epoch, i))
                     plt.tight_layout()
                     plt.savefig(f"cm_c{i}_e{epoch}.png")
+                    plt.close()
+
+                    print(f"Plotting confusion matrix with predicted label for overclustering as head {i}...")
+                    fig, ax = plt.subplots()
+                    cm = confusion_matrix(y, pred_over[..., i], labels=list(range(args.dim_w_over)))
+                    cm = cm[: args.num_classes, :]
+                    cmn = normalize(cm, axis=0)
+                    sns.heatmap(cmn, ax=ax, linewidths=0.1, cmap="Greens", cbar=True, yticklabels=targets)
+                    plt.yticks(rotation=45)
+                    plt.xlabel("predicted labels (overclustering)")
+                    plt.ylabel("true labels")
+                    ax.set_title(r"confusion matrix for overclustering at epoch %d with classifier %d" % (epoch, i))
+                    plt.tight_layout()
+                    plt.savefig(f"cm_over_c{i}_e{epoch}.png")
                     plt.close()
 
                 print("t-SNE decomposing...")
