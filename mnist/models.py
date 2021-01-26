@@ -355,7 +355,7 @@ class VAE(nn.Module):
 
 
 class IIC(nn.Module):
-    def __init__(self, ch_in, dim_w=100, dim_z=512, num_heads=10):
+    def __init__(self, ch_in, dim_w=30, dim_w_over=100, dim_z=512, num_heads=10):
         super().__init__()
         self.use_multi_heads = num_heads > 1
         self.num_heads = num_heads
@@ -365,10 +365,17 @@ class IIC(nn.Module):
             nn.BatchNorm1d(dim_z),
             nn.ReLU(inplace=True),
         )
+
         if self.use_multi_heads:
             self.classifier = nn.ModuleList([self.gen_classifier(dim_z, dim_w) for _ in range(self.num_heads)])
         else:
             self.classifier = self.gen_classifier(dim_z, dim_w)
+
+        if self.use_multi_heads:
+            self.over_classifier = nn.ModuleList([self.gen_classifier(dim_z, dim_w_over) for _ in range(self.num_heads)])
+        else:
+            self.over_classifier = self.gen_classifier(dim_z, dim_w_over)
+
         self.weight_init()
 
     def gen_classifier(self, dim_in, dim_out):
@@ -406,9 +413,13 @@ class IIC(nn.Module):
         z_x, z_y = self.mean(z_x), self.mean(z_y)
         if detach:
             w_v, w_u = self.clustering(z_x.detach()), self.clustering(z_y.detach())
+            w_v_over, w_u_over = self.over_clustering(z_x.detach()), self.over_clustering(z_y.detach())
         else:
             w_v, w_u = self.clustering(z_x), self.clustering(z_y)
-        return self.mutual_info(w_v, w_u, lam=lam)
+            w_v_over, w_u_over = self.over_clustering(z_x), self.over_clustering(z_ys)
+        mi = self.mutual_info(w_v, w_u, lam=lam)
+        mi_over = self.mutual_info(w_v_over, w_u_over, lam=lam)
+        return mi + mi_over
 
     def get_params(self, x):
         assert not self.training
@@ -428,8 +439,20 @@ class IIC(nn.Module):
             w = F.softmax(self.classifier(x), dim=-1)
             return w
 
+    def over_clustering(self, x):
+        if self.use_multi_heads:
+            tmp = []
+            for classifier in self.over_classifier:
+                w = F.softmax(classifier(x), dim=-1)
+                tmp.append(w)
+            return torch.stack(tmp, dim=-1)
+        else:
+            w = F.softmax(self.over_classifier(x), dim=-1)
+            return w
+
     def mutual_info(self, x, y, lam=1.0, eps=1e-8):
         if x.ndim == 2:
+            m = 1
             p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(0)
             p = ((p + p.t()) / 2) / p.sum()
             _, k = x.shape
@@ -443,4 +466,4 @@ class IIC(nn.Module):
             _, k, m = x.shape
             pi = p.sum(dim=1).view(k, -1).expand(k, k, m).pow(lam)
             pj = p.sum(dim=0).view(k, -1).expand(k, k, m).pow(lam)
-        return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum()
+        return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum() / m
