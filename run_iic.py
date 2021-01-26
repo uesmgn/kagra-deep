@@ -227,12 +227,12 @@ def main(args):
 
                 print(f"Plotting confusion matrix with ensembled label...")
                 fig, ax = plt.subplots()
-                cm = confusion_matrix(y, pred)
+                cm = confusion_matrix(y, pred, labels=list(range(args.dim_w)))
                 cm = cm[: args.num_classes, :]
                 cmn = normalize(cm, axis=0)
                 sns.heatmap(cmn, ax=ax, annot=cm, fmt="d", linewidths=0.1, cmap="Greens", cbar=False, yticklabels=targets, annot_kws={"fontsize": 8})
                 plt.yticks(rotation=45)
-                ax.set_title(r"confusion matrix $\bm{y}$ with predicted labels at epoch %d" % epoch)
+                ax.set_title(r"confusion matrix at epoch %d" % epoch)
                 plt.tight_layout()
                 plt.savefig(f"cm_e{epoch}.png")
                 plt.close()
