@@ -180,7 +180,7 @@ def main(args):
                 simmat = cosine_similarity(torch.from_numpy(hg))
                 print("Computing cosine distance reordered matrix...")
                 dist_mat, reordered, _ = compute_serial_matrix(simmat)
-                pred_ensembled = SpectralClustering(n_clusters=args.dim_w, random_state=args.seed).fit(hg).labels_
+                pred_ensembled = SpectralClustering(n_clusters=args.dim_w, random_state=args.seed).fit(simmat).labels_
 
                 figure = plt.figure()
                 grid = ImageGrid(figure, 111, nrows_ncols=(2, 1), axes_pad=0.05)
