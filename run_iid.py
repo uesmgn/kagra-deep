@@ -103,6 +103,7 @@ def main(args):
     model = IIC(
         ch_in=args.ch_in,
         dim_w=args.dim_w,
+        dim_w_over=args.dim_w_over,
         dim_z=args.dim_z,
         num_heads=args.num_heads,
     ).to(device)
