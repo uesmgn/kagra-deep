@@ -239,7 +239,15 @@ def main(args):
                 cm = confusion_matrix(y, pred_ensembled, labels=list(range(args.dim_w)))
                 cm = cm[: args.num_classes, :]
                 cmn = normalize(cm, axis=0)
-                sns.heatmap(cmn, ax=ax, linewidths=0.1, cmap="Greens", cbar=True, yticklabels=targets, cbar_kws={"aspect": 10, "anchor": (0, 0.05)})
+                sns.heatmap(
+                    cmn,
+                    ax=ax,
+                    linewidths=0.1,
+                    cmap="Greens",
+                    cbar=True,
+                    yticklabels=targets,
+                    cbar_kws={"aspect": 50, "pad": 0.01, "anchor": (0, 0.05)},
+                )
                 plt.yticks(rotation=45)
                 plt.xlabel("ensemble predicted labels")
                 plt.ylabel("true labels")
@@ -255,7 +263,13 @@ def main(args):
                     cm = cm[: args.num_classes, :]
                     cmn = normalize(cm, axis=0)
                     sns.heatmap(
-                        cmn, ax=ax, linewidths=0.1, cmap="Greens", cbar=True, yticklabels=targets, cbar_kws={"aspect": 10, "anchor": (0, 0.05)}
+                        cmn,
+                        ax=ax,
+                        linewidths=0.1,
+                        cmap="Greens",
+                        cbar=True,
+                        yticklabels=targets,
+                        cbar_kws={"aspect": 50, "pad": 0.01, "anchor": (0, 0.05)},
                     )
                     plt.yticks(rotation=45)
                     plt.xlabel("predicted labels")
@@ -271,7 +285,13 @@ def main(args):
                     cm = cm[: args.num_classes, :]
                     cmn = normalize(cm, axis=0)
                     sns.heatmap(
-                        cmn, ax=ax, linewidths=0.1, cmap="Greens", cbar=True, yticklabels=targets, cbar_kws={"aspect": 10, "anchor": (0, 0.05)}
+                        cmn,
+                        ax=ax,
+                        linewidths=0.1,
+                        cmap="Greens",
+                        cbar=True,
+                        yticklabels=targets,
+                        cbar_kws={"aspect": 50, "pad": 0.01, "anchor": (0, 0.05)},
                     )
                     plt.yticks(rotation=45)
                     plt.xlabel("predicted labels (overclustering)")
