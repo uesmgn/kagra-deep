@@ -242,7 +242,7 @@ def main(args):
                 sns.heatmap(
                     cmn,
                     ax=ax,
-                    linewidths=0.05,
+                    linewidths=0.1,
                     linecolor="gray",
                     cmap="Greens",
                     cbar=True,
@@ -266,7 +266,7 @@ def main(args):
                     sns.heatmap(
                         cmn,
                         ax=ax,
-                        linewidths=0.05,
+                        linewidths=0.1,
                         linecolor="gray",
                         cmap="Greens",
                         cbar=True,
@@ -289,7 +289,7 @@ def main(args):
                     sns.heatmap(
                         cmn,
                         ax=ax,
-                        linewidths=0.05,
+                        linewidths=0.1,
                         linecolor="gray",
                         cmap="Greens",
                         cbar=True,
