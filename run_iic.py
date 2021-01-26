@@ -231,7 +231,7 @@ def main(args):
                 cmn = normalize(cm, axis=0)
                 sns.heatmap(cmn, ax=ax, annot=cm, fmt="d", linewidths=0.1, cmap="Greens", cbar=False, yticklabels=targets, annot_kws={"fontsize": 8})
                 plt.yticks(rotation=45)
-                ax.set_title(r"confusion matrix $\bm{y}$ with $q(\bm{y})$ ensembled with SC at epoch %d" % epoch)
+                ax.set_title(r"confusion matrix $\bm{y}$ with predicted labels at epoch %d" % epoch)
                 plt.tight_layout()
                 plt.savefig(f"cm_e{epoch}.png")
                 plt.close()
