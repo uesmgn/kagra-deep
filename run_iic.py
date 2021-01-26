@@ -200,6 +200,7 @@ def main(args):
                 )
                 im0.set_clim(-1, 1)
                 cb0 = plt.colorbar(im0, cax=axins0, orientation="horizontal")
+                cb0.set_ticks(np.linspace(-1, 1, 5))
                 axins0.xaxis.set_ticks_position("top")
 
                 im1 = grid[1].imshow(y[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(len(targets), "tab20b"))
