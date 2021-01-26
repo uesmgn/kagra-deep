@@ -244,7 +244,7 @@ def main(args):
                 for i in range(args.num_heads):
                     print(f"Plotting confusion matrix with predicted label as head {i}...")
                     fig, ax = plt.subplots()
-                    cm = confusion_matrix(y, pred[i], labels=list(range(args.dim_w)))
+                    cm = confusion_matrix(y, pred[..., i], labels=list(range(args.dim_w)))
                     cm = cm[: args.num_classes, :]
                     cmn = normalize(cm, axis=0)
                     sns.heatmap(
