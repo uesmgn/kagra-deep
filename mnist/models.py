@@ -343,8 +343,8 @@ class VAE(nn.Module):
         return x
 
     def get_params(self, x):
-        x = self.encoder(x)
-        z_mean = self.mean(x)
+        h = self.encoder(x)
+        z_mean = self.mean(h)
         return z_mean
 
     def bce(self, x, x_recon):
