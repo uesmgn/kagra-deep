@@ -219,7 +219,7 @@ def main(args):
                 cb1.set_ticklabels(targets[np.arange(0, len(targets), 2)])
                 plt.setp(axins1.get_xticklabels(), rotation=45, horizontalalignment="right")
                 axins1.xaxis.set_ticks_position("bottom")
-                plt.savefig(f"simmat_e{epoch}.png", bbox_inches="tight")
+                plt.savefig(f"simmat_e{epoch}.eps", bbox_inches="tight")
                 plt.close()
 
                 if epoch > 0:
@@ -231,7 +231,7 @@ def main(args):
                         plt.xlim((0, len(value) - 1))
                         fbase = key.replace(" ", "_")
                         plt.tight_layout()
-                        plt.savefig(f"{fbase}_e{epoch}.png")
+                        plt.savefig(f"{fbase}_e{epoch}.eps")
                         plt.close()
 
                 print(f"Plotting confusion matrix with ensembled label as head {i}...")
@@ -254,7 +254,7 @@ def main(args):
                 plt.ylabel("true labels")
                 ax.set_title(r"confusion matrix at epoch %d with ensemble classifier" % (epoch))
                 plt.tight_layout()
-                plt.savefig(f"cm_ensembled_e{epoch}.png")
+                plt.savefig(f"cm_ensembled_e{epoch}.eps")
                 plt.close()
 
                 for i in range(args.num_heads):
@@ -278,7 +278,7 @@ def main(args):
                     plt.ylabel("true labels")
                     ax.set_title(r"confusion matrix at epoch %d with classifier %d" % (epoch, i))
                     plt.tight_layout()
-                    plt.savefig(f"cm_c{i}_e{epoch}.png")
+                    plt.savefig(f"cm_c{i}_e{epoch}.eps")
                     plt.close()
 
                     print(f"Plotting confusion matrix with predicted label for overclustering as head {i}...")
@@ -301,7 +301,7 @@ def main(args):
                     plt.ylabel("true labels")
                     ax.set_title(r"confusion matrix for overclustering at epoch %d with classifier %d" % (epoch, i))
                     plt.tight_layout()
-                    plt.savefig(f"cm_over_c{i}_e{epoch}.png")
+                    plt.savefig(f"cm_over_c{i}_e{epoch}.eps")
                     plt.close()
 
                 print("t-SNE decomposing...")
@@ -319,7 +319,7 @@ def main(args):
                 ax.set_title(r"t-SNE 2D plot of $q(\bm{z})$ with true labels at epoch %d" % (epoch))
                 ax.set_aspect(1.0 / ax.get_data_ratio())
                 plt.tight_layout()
-                plt.savefig(f"qz_tsne_true_e{epoch}.png")
+                plt.savefig(f"qz_tsne_true_e{epoch}.eps")
                 plt.close()
 
                 # print(f"Plotting t-SNE 2D latent features with pred labels...")
@@ -334,7 +334,7 @@ def main(args):
                 # ax.set_title(r"t-SNE 2D plot  of latent codes with ensemble predicted labels at epoch %d" % (epoch))
                 # ax.set_aspect(1.0 / ax.get_data_ratio())
                 # plt.tight_layout()
-                # plt.savefig(f"qz_tsne_pred_e{epoch}.png")
+                # plt.savefig(f"qz_tsne_pred_e{epoch}.eps")
                 # plt.close()
 
         if epoch % args.save_interval == 0:
