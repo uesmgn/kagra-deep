@@ -39,8 +39,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
 from mpl_toolkits.axes_grid1 import ImageGrid
-from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
-from mpl_toolkits.axes_grid1.colorbar import colorbar
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 plt.style.use("seaborn-poster")
 plt.rcParams["text.latex.preamble"] = r"\usepackage{bm}"
@@ -72,7 +71,7 @@ def main(args):
     alt = -1 if args.use_other else None
     target_transform_fn = transforms.ToIndex(args.targets, alt=alt)
 
-    targets = [acronym(target) for target in args.targets]
+    targets = np.array([acronym(target) for target in args.targets])
 
     dataset = datasets.HDF5(args.dataset_root, transform_fn, target_transform_fn)
     train_set, test_set = copy.copy(dataset), dataset.sample(args.num_test_samples, stratify=dataset.targets)
@@ -173,27 +172,37 @@ def main(args):
                 _, reordered, _ = compute_serial_matrix(simmat)
                 simmat_reordered = simmat[reordered][:, reordered]
 
-                fig = plt.figure()
-                fig.subplots_adjust(hspace=0.1)
-                ax0, ax1 = ImageGrid(fig, 111, nrows_ncols=(2, 1), axes_pad=0, cbar_mode="each")
-                im0 = ax0.imshow(simmat_reordered, aspect=1)
-                ax0.set_xticklabels([])
-                ax0.set_yticklabels([])
-                ax0.set_ylabel("cosine similarity")
-                im1 = ax1.imshow(y[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(len(targets), "tab20b"))
-                ax1.set_xticklabels([])
-                ax1.set_yticklabels([])
-                ax1.set_ylabel("label")
+                figure = plt.figure()
+                grid = ImageGrid(figure, 111, nrows_ncols=(2, 1), axes_pad=0.05)
+                im0 = grid[0].imshow(simmat_reordered, aspect=1)
+                grid[0].set_xticklabels([])
+                grid[0].set_yticklabels([])
+                grid[0].set_ylabel("cosine similarity")
+                axins0 = inset_axes(
+                    grid[0], height=0.1, width="100%", loc="upper left", bbox_to_anchor=(0, 0.05, 1, 1), bbox_transform=grid[0].transAxes, borderpad=0
+                )
+                cb0 = plt.colorbar(im0, cax=axins0, orientation="horizontal")
+                axins0.xaxis.set_ticks_position("top")
 
-                ax0_divider = make_axes_locatable(ax0)
-                cax0 = ax0_divider.append_axes("top", size=0.2, pad=0.2)
-                cb0 = colorbar(im0, cax=cax0, orientation="horizontal")
-                cax0.xaxis.set_ticks_position("top")
-
-                ax1_divider = make_axes_locatable(ax1)
-                cax1 = ax1_divider.append_axes("bottom", size=0.2, pad=0.2)
-                cb1 = colorbar(im1, cax=cax1, orientation="horizontal")
-                cax1.xaxis.set_ticks_position("bottom")
+                im1 = grid[1].imshow(y[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(len(targets), "tab20b"))
+                grid[1].set_xticklabels([])
+                grid[1].set_yticklabels([])
+                grid[1].set_ylabel("label")
+                axins1 = inset_axes(
+                    grid[1],
+                    height=0.1,
+                    width="100%",
+                    loc="lower left",
+                    bbox_to_anchor=(0, -0.95, 1, 1),
+                    bbox_transform=grid[1].transAxes,
+                    borderpad=0,
+                )
+                cb1 = plt.colorbar(im1, cax=axins1, orientation="horizontal")
+                im1.set_clim(0 - 0.5, len(targets) - 0.5)
+                cb1.set_ticks(np.arange(0, len(targets), 5))
+                cb1.set_ticklabels(targets[np.arange(0, len(targets), 5)])
+                plt.setp(axins1.get_xticklabels(), rotation=45, horizontalalignment="center")
+                axins1.xaxis.set_ticks_position("bottom")
 
                 plt.savefig(f"simmat_e{epoch}.png")
                 plt.close()
