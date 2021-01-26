@@ -328,8 +328,8 @@ class VAE(nn.Module):
 
     def forward(self, x, l=10):
         b = x.shape[0]
-        x = self.encoder(x)
-        z_mean, z_logvar = self.mean(x), self.logvar(x)
+        h = self.encoder(x)
+        z_mean, z_logvar = self.mean(h), self.logvar(h)
         z = self.reparameterize(z_mean, z_logvar)
         x_ = self.decoder(z)
         bce = self.bce(x, x_) / b
