@@ -170,12 +170,11 @@ def main(args):
                 print("Computing cosine similarity matrix...")
                 simmat = cosine_similarity(torch.from_numpy(hg))
                 print("Computing cosine distance reordered matrix...")
-                _, reordered, _ = compute_serial_matrix(simmat)
-                simmat_reordered = simmat[reordered][:, reordered]
+                dist_mat, reordered, _ = compute_serial_matrix(simmat)
 
                 figure = plt.figure()
                 grid = ImageGrid(figure, 111, nrows_ncols=(2, 1), axes_pad=0.05)
-                im0 = grid[0].imshow(simmat_reordered, aspect=1)
+                im0 = grid[0].imshow(dist_mat, aspect=1)
                 grid[0].set_xticklabels([])
                 grid[0].set_yticklabels([])
                 grid[0].set_ylabel("cosine similarity")
@@ -237,7 +236,7 @@ def main(args):
                 if len(idx) > 0:
                     c = cmap(i)
                     ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
-            ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
+            ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=len(targets) // 25)
             ax.set_title(r"t-SNE 2D plot of $q(\bm{z})$ with true labels at epoch %d" % (epoch))
             ax.set_aspect(1.0 / ax.get_data_ratio())
             plt.tight_layout()
@@ -252,7 +251,7 @@ def main(args):
                 if len(idx) > 0:
                     c = cmap(i)
                     ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=l, edgecolors=darken(c))
-            ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=len(np.unique(pred)) // 15)
+            ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=len(np.unique(pred)) // 25)
             ax.set_title(r"t-SNE 2D plot of $q(\bm{z})$ with pred labels at epoch %d" % (epoch))
             ax.set_aspect(1.0 / ax.get_data_ratio())
             plt.tight_layout()
