@@ -169,57 +169,21 @@ def main(args):
             pi = torch.cat(params["pi"]).numpy().astype(float)
             qz = torch.cat(params["qz"]).numpy().astype(float)
 
+            cms, cms_over = [], []
             for i in range(args.num_heads):
                 try:
                     pred_i, pred_over_i = pred[:, i], pred_over[:, i]
                 except:
                     pred_i, pred_over_i = pred, pred_over
-                print(f"Plotting confusion matrix with predicted label as head {i}...")
-                fig, ax = plt.subplots()
                 cm = confusion_matrix(y, pred_i, labels=list(range(args.dim_w)))
                 cm = cm[: args.num_classes, :]
-                cmn = normalize(cm, axis=0)
-                sns.heatmap(
-                    cmn,
-                    ax=ax,
-                    linewidths=0.1,
-                    linecolor="gray",
-                    cmap="Greens",
-                    cbar=True,
-                    yticklabels=targets,
-                    cbar_kws={"aspect": 50, "pad": 0.01, "anchor": (0, 0.05)},
-                )
-                plt.yticks(rotation=45)
-                plt.xlabel("predicted labels")
-                plt.ylabel("true labels")
-                ax.set_title(r"confusion matrix at epoch %d with classifier %d" % (epoch, i))
-                plt.tight_layout()
-                plt.savefig(f"cm_c{i}_e{epoch}.png", dpi=300)
-                plt.close()
-
-                print(f"Plotting confusion matrix with predicted label for overclustering as head {i}...")
-                fig, ax = plt.subplots()
+                cms.append(normalize(cm, axis=0))
                 cm_over = confusion_matrix(y, pred_over_i, labels=list(range(args.dim_w_over)))
                 cm_over = cm_over[: args.num_classes, :]
-                cmn_over = normalize(cm_over, axis=0)
-                sns.heatmap(
-                    cmn_over,
-                    ax=ax,
-                    linewidths=0.1,
-                    linecolor="gray",
-                    cmap="Greens",
-                    cbar=True,
-                    yticklabels=targets,
-                    cbar_kws={"aspect": 50, "pad": 0.01, "anchor": (0, 0.05)},
-                )
-                plt.yticks(rotation=45)
-                plt.xlabel("predicted labels (overclustering)")
-                plt.ylabel("true labels")
-                ax.set_title(r"confusion matrix for overclustering at epoch %d with classifier %d" % (epoch, i))
-                plt.tight_layout()
-                plt.savefig(f"cm_over_c{i}_e{epoch}.png", dpi=300)
-                plt.close()
+                cms_over.append(normalize(cm_over, axis=0))
 
+                # calculate accuracy
+                print("calculate accuracy...")
                 indices = np.argmax(cm, axis=0)
                 n_true, n_neg = 0, 0
                 accs = []
@@ -291,6 +255,45 @@ def main(args):
                 plt.close()
 
             if epoch % args.eval_interval == 0:
+                for i in range(args.num_heads):
+                    print(f"plotting confusion matrix of classifier {i}")
+                    cmn, cmn_over = cms[i], cms_over[i]
+                    sns.heatmap(
+                        cmn,
+                        ax=ax,
+                        linewidths=0.1,
+                        linecolor="gray",
+                        cmap="hot",
+                        cbar=True,
+                        yticklabels=targets,
+                        cbar_kws={"aspect": 50, "pad": 0.01, "anchor": (0, 0.05)},
+                    )
+                    plt.yticks(rotation=45)
+                    plt.xlabel("predicted labels")
+                    plt.ylabel("true labels")
+                    ax.set_title(r"confusion matrix at epoch %d with classifier %d" % (epoch, i))
+                    plt.tight_layout()
+                    plt.savefig(f"cm_c{i}_e{epoch}.png", dpi=300)
+                    plt.close()
+
+                    sns.heatmap(
+                        cmn_over,
+                        ax=ax,
+                        linewidths=0.1,
+                        linecolor="gray",
+                        cmap="Greens",
+                        cbar=True,
+                        yticklabels=targets,
+                        cbar_kws={"aspect": 50, "pad": 0.01, "anchor": (0, 0.05)},
+                    )
+                    plt.yticks(rotation=45)
+                    plt.xlabel("predicted labels (overclustering)")
+                    plt.ylabel("true labels")
+                    ax.set_title(r"confusion matrix for overclustering at epoch %d with classifier %d" % (epoch, i))
+                    plt.tight_layout()
+                    plt.savefig(f"cm_over_c{i}_e{epoch}.png", dpi=300)
+                    plt.close()
+
                 # caluculate cosine similarity matrix
                 if args.num_heads > 1:
                     hg = torch.cat(params["pi"]).view(num_samples, -1).numpy().astype(float)
