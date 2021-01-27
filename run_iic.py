@@ -169,17 +169,22 @@ def main(args):
                 pi = torch.cat(params["pi"]).numpy().astype(float)
                 qz = torch.cat(params["qz"]).numpy().astype(float)
 
-                hg = torch.cat(params["pi"]).view(num_samples, -1).numpy().astype(float)
-                try:
-                    hg = PCA(n_components=64).fit_transform(hg)
-                except:
-                    pass
-                print("Computing cosine similarity matrix...")
-                simmat = cosine_similarity(torch.from_numpy(hg))
-                print("Computing cosine distance reordered matrix...")
-                dist_mat, reordered, _ = compute_serial_matrix(simmat)
-                pred_ensembled = SpectralClustering(n_clusters=args.dim_w, random_state=args.seed).fit(simmat).labels_
-                simmat_reordered = simmat[reordered][:, reordered]
+                if args.num_heads > 1:
+                    hg = torch.cat(params["pi"]).view(num_samples, -1).numpy().astype(float)
+                    try:
+                        hg = PCA(n_components=64).fit_transform(hg)
+                    except:
+                        pass
+                    print("Computing cosine similarity matrix...")
+                    simmat = cosine_similarity(torch.from_numpy(hg))
+                    print("Computing cosine distance reordered matrix...")
+                    dist_mat, reordered, _ = compute_serial_matrix(simmat)
+                    pred_ensembled = SpectralClustering(n_clusters=args.dim_w, random_state=args.seed).fit(simmat).labels_
+                    simmat_reordered = simmat[reordered][:, reordered]
+                else:
+                    simmat = cosine_similarity(torch.from_numpy(qz))
+                    dist_mat, reordered, _ = compute_serial_matrix(simmat)
+                    simmat_reordered = simmat[reordered][:, reordered]
 
                 figure = plt.figure()
                 grid = ImageGrid(figure, 111, nrows_ncols=(2, 1), axes_pad=0.05)
@@ -235,28 +240,29 @@ def main(args):
                         plt.savefig(f"{fbase}_e{epoch}.png", dpi=300)
                         plt.close()
 
-                print(f"Plotting confusion matrix with ensembled label as head {i}...")
-                fig, ax = plt.subplots()
-                cm = confusion_matrix(y, pred_ensembled, labels=list(range(args.dim_w)))
-                cm = cm[: args.num_classes, :]
-                cmn = normalize(cm, axis=0)
-                sns.heatmap(
-                    cmn,
-                    ax=ax,
-                    linewidths=0.1,
-                    linecolor="gray",
-                    cmap="Greens",
-                    cbar=True,
-                    yticklabels=targets,
-                    cbar_kws={"aspect": 50, "pad": 0.01, "anchor": (0, 0.05)},
-                )
-                plt.yticks(rotation=45)
-                plt.xlabel("ensemble predicted labels")
-                plt.ylabel("true labels")
-                ax.set_title(r"confusion matrix at epoch %d with ensemble classifier" % (epoch))
-                plt.tight_layout()
-                plt.savefig(f"cm_ensembled_e{epoch}.png", dpi=300)
-                plt.close()
+                if args.num_heads > 1:
+                    print(f"Plotting confusion matrix with ensembled label as head {i}...")
+                    fig, ax = plt.subplots()
+                    cm = confusion_matrix(y, pred_ensembled, labels=list(range(args.dim_w)))
+                    cm = cm[: args.num_classes, :]
+                    cmn = normalize(cm, axis=0)
+                    sns.heatmap(
+                        cmn,
+                        ax=ax,
+                        linewidths=0.1,
+                        linecolor="gray",
+                        cmap="Greens",
+                        cbar=True,
+                        yticklabels=targets,
+                        cbar_kws={"aspect": 50, "pad": 0.01, "anchor": (0, 0.05)},
+                    )
+                    plt.yticks(rotation=45)
+                    plt.xlabel("ensemble predicted labels")
+                    plt.ylabel("true labels")
+                    ax.set_title(r"confusion matrix at epoch %d with ensemble classifier" % (epoch))
+                    plt.tight_layout()
+                    plt.savefig(f"cm_ensembled_e{epoch}.png", dpi=300)
+                    plt.close()
 
                 for i in range(args.num_heads):
                     print(f"Plotting confusion matrix with predicted label as head {i}...")
