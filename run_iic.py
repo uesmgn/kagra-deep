@@ -210,7 +210,7 @@ def main(args):
                 im1 = grid[1].imshow(y[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(len(targets), "tab20b"))
                 grid[1].set_xticklabels([])
                 grid[1].set_yticklabels([])
-                grid[1].set_ylabel("label")
+                grid[1].set_ylabel("true labels")
                 axins1 = inset_axes(
                     grid[1],
                     height=0.2,
@@ -339,6 +339,7 @@ def main(args):
                         except:
                             new_labels.append(f"{l}:Unknown")
                             accs.append(0)
+                    new_labels = np.array(new_labels)
                     acc = n_true / cm.sum()
                     print(f"acc: {acc:.3f}")
                     stats_test["test accuracy"].append(acc)
@@ -362,6 +363,48 @@ def main(args):
                     plt.savefig(f"acc_c{i}_e{epoch}.png", dpi=300)
                     plt.close()
 
+                    figure = plt.figure()
+                    grid = ImageGrid(figure, 111, nrows_ncols=(2, 1), axes_pad=0.05)
+                    im0 = grid[0].imshow(simmat_reordered, aspect=1)
+                    grid[0].set_xticklabels([])
+                    grid[0].set_yticklabels([])
+                    grid[0].set_ylabel("cosine similarity")
+                    axins0 = inset_axes(
+                        grid[0],
+                        height=0.2,
+                        width="100%",
+                        loc="upper left",
+                        bbox_to_anchor=(0, 0.05, 1, 1),
+                        bbox_transform=grid[0].transAxes,
+                        borderpad=0,
+                    )
+                    im0.set_clim(0, 1)
+                    cb0 = plt.colorbar(im0, cax=axins0, orientation="horizontal")
+                    cb0.set_ticks(np.linspace(-1, 1, 5))
+                    axins0.xaxis.set_ticks_position("top")
+
+                    im1 = grid[1].imshow(pred_i[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(len(new_labels), "tab20b"))
+                    grid[1].set_xticklabels([])
+                    grid[1].set_yticklabels([])
+                    grid[1].set_ylabel("new labels")
+                    axins1 = inset_axes(
+                        grid[1],
+                        height=0.2,
+                        width="100%",
+                        loc="lower left",
+                        bbox_to_anchor=(0, -0.95, 1, 1),
+                        bbox_transform=grid[1].transAxes,
+                        borderpad=0,
+                    )
+                    im1.set_clim(0 - 0.5, len(new_labels) - 0.5)
+                    cb1 = plt.colorbar(im1, cax=axins1, orientation="horizontal")
+                    cb1.set_ticks(np.arange(0, len(new_labels), 5))
+                    cb1.set_ticklabels(new_labels[np.arange(0, len(new_labels), 5)])
+                    plt.setp(axins1.get_xticklabels(), rotation=45, horizontalalignment="right")
+                    axins1.xaxis.set_ticks_position("bottom")
+                    plt.savefig(f"simmat_pred_c{i}_e{epoch}.png", bbox_inches="tight", dpi=300)
+                    plt.close()
+
                 print("t-SNE decomposing...")
                 qz_tsne = TSNE(n_components=2, random_state=args.seed).fit(qz).embedding_
 
@@ -382,7 +425,7 @@ def main(args):
 
                 if epoch > 0:
                     for key, value in stats_test.items():
-                        xx = np.arange(0, epoch + 1, args.eval_interval)
+                        xx = np.linspace(0, epoch, len(value)).astype(int)
                         plt.plot(xx, value)
                         plt.ylabel(key)
                         plt.xlabel("epoch")
