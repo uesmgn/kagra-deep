@@ -207,7 +207,7 @@ def main(args):
                         accs.append(0)
                 new_labels = np.array(new_labels)
                 acc = n_true / cm.sum()
-                print(f"acc: {acc:.3f}")
+                print(f"acc= {acc:.3f} on classifier {i}")
                 stats_test_acc[f"classifier {i}"].append(acc)
 
                 fig, ax = plt.subplots(figsize=(20, 8))
