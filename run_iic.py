@@ -265,9 +265,13 @@ def main(args):
                     plt.close()
 
                 for i in range(args.num_heads):
+                    try:
+                        pred_i, pred_over_i = pred[..., i], pred_over[..., i]
+                    except:
+                        pred_i, pred_over_i = pred, pred_over
                     print(f"Plotting confusion matrix with predicted label as head {i}...")
                     fig, ax = plt.subplots()
-                    cm = confusion_matrix(y, pred[..., i], labels=list(range(args.dim_w)))
+                    cm = confusion_matrix(y, pred_i, labels=list(range(args.dim_w)))
                     cm = cm[: args.num_classes, :]
                     cmn = normalize(cm, axis=0)
                     sns.heatmap(
@@ -290,7 +294,7 @@ def main(args):
 
                     print(f"Plotting confusion matrix with predicted label for overclustering as head {i}...")
                     fig, ax = plt.subplots()
-                    cm = confusion_matrix(y, pred_over[..., i], labels=list(range(args.dim_w_over)))
+                    cm = confusion_matrix(y, pred_over_i, labels=list(range(args.dim_w_over)))
                     cm = cm[: args.num_classes, :]
                     cmn = normalize(cm, axis=0)
                     sns.heatmap(
