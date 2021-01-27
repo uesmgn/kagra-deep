@@ -182,7 +182,8 @@ def main(args):
                     pred_ensembled = SpectralClustering(n_clusters=args.dim_w, random_state=args.seed).fit(simmat).labels_
                     simmat_reordered = simmat[reordered][:, reordered]
                 else:
-                    simmat = cosine_similarity(torch.from_numpy(qz))
+                    hg = torch.cat(params["pi"]).view(num_samples, -1).numpy().astype(float)
+                    simmat = cosine_similarity(torch.from_numpy(hg))
                     dist_mat, reordered, _ = compute_serial_matrix(simmat)
                     simmat_reordered = simmat[reordered][:, reordered]
 
