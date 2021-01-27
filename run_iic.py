@@ -252,7 +252,7 @@ def main(args):
                         ax=ax,
                         linewidths=0.1,
                         linecolor="gray",
-                        cmap="Greens",
+                        cmap="hot",
                         cbar=True,
                         yticklabels=targets,
                         cbar_kws={"aspect": 50, "pad": 0.01, "anchor": (0, 0.05)},
