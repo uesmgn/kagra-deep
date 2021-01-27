@@ -330,7 +330,7 @@ def main(args):
                             new_labels_counter[label] += 1
                             accs.append(cmi[m] / cmi.sum())
                         else:
-                            new_labels.append("-")
+                            new_labels.append("Unknown")
                             accs.append(0)
                     acc = n_true / cm.sum()
                     print(f"acc: {acc:.3f}")
@@ -341,7 +341,8 @@ def main(args):
                     plt.xticks(rotation=45, ha="right")
                     plt.xlabel("new labels")
                     plt.ylabel("accuracy")
-                    ax.set_title(r"accuracy with new labels at epoch %d with classifier %d" % (epoch, i))
+                    plt.xlim([0, len(new_labels) - 1])
+                    ax.set_title(r"accuracy with new labels")
                     ax.legend(
                         [
                             Line2D([0], [0], c="r", linestyle="dashed", linewidth=2.0),
