@@ -207,7 +207,7 @@ def main(args):
                 cb0.set_ticks(np.linspace(-1, 1, 5))
                 axins0.xaxis.set_ticks_position("top")
 
-                im1 = grid[1].imshow(y[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(len(targets), "tab20b"))
+                im1 = grid[1].imshow(y[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(len(targets), "hsv"))
                 grid[1].set_xticklabels([])
                 grid[1].set_yticklabels([])
                 grid[1].set_ylabel("true labels")
@@ -222,8 +222,8 @@ def main(args):
                 )
                 im1.set_clim(0 - 0.5, len(targets) - 0.5)
                 cb1 = plt.colorbar(im1, cax=axins1, orientation="horizontal")
-                cb1.set_ticks(np.arange(0, len(targets), 2))
-                cb1.set_ticklabels(targets[np.arange(0, len(targets), 2)])
+                cb1.set_ticks(np.linspace(0, len(targets), len(targets) // 2))
+                cb1.set_ticklabels(targets[np.linspace(0, len(targets), len(targets) // 2)])
                 plt.setp(axins1.get_xticklabels(), rotation=45, horizontalalignment="right")
                 axins1.xaxis.set_ticks_position("bottom")
                 plt.savefig(f"simmat_e{epoch}.png", bbox_inches="tight", dpi=300)
@@ -383,7 +383,7 @@ def main(args):
                     cb0.set_ticks(np.linspace(-1, 1, 5))
                     axins0.xaxis.set_ticks_position("top")
 
-                    im1 = grid[1].imshow(pred_i[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(len(new_labels), "tab20b"))
+                    im1 = grid[1].imshow(pred_i[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(len(new_labels), "hsv"))
                     grid[1].set_xticklabels([])
                     grid[1].set_yticklabels([])
                     grid[1].set_ylabel("new labels")
@@ -398,8 +398,8 @@ def main(args):
                     )
                     im1.set_clim(0 - 0.5, len(new_labels) - 0.5)
                     cb1 = plt.colorbar(im1, cax=axins1, orientation="horizontal")
-                    cb1.set_ticks(np.arange(0, len(new_labels), 5))
-                    cb1.set_ticklabels(new_labels[np.arange(0, len(new_labels), 5)])
+                    cb1.set_ticks(np.linspace(0, len(new_labels), len(new_labels) // 5))
+                    # cb1.set_ticklabels(new_labels[np.arange(0, len(new_labels), 5)])
                     plt.setp(axins1.get_xticklabels(), rotation=45, horizontalalignment="right")
                     axins1.xaxis.set_ticks_position("bottom")
                     plt.savefig(f"simmat_pred_c{i}_e{epoch}.png", bbox_inches="tight", dpi=300)
@@ -410,7 +410,7 @@ def main(args):
 
                 print(f"Plotting t-SNE 2D latent features with true labels...")
                 fig, ax = plt.subplots()
-                cmap = segmented_cmap(args.num_classes, "tab20b")
+                cmap = segmented_cmap(args.num_classes, "hsv")
                 for i in range(args.num_classes):
                     idx = np.where(y == i)[0]
                     if len(idx) > 0:
@@ -438,7 +438,7 @@ def main(args):
 
                 # print(f"Plotting t-SNE 2D latent features with pred labels...")
                 # fig, ax = plt.subplots()
-                # cmap = segmented_cmap(len(np.unique(pred_ensembled)), "tab20b")
+                # cmap = segmented_cmap(len(np.unique(pred_ensembled)), "hsv")
                 # for i, l in enumerate(np.unique(pred_ensembled)):
                 #     idx = np.where(pred == l)[0]
                 #     if len(idx) > 0:
