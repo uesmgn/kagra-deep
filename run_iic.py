@@ -323,10 +323,14 @@ def main(args):
                         cmi = cm[:, l]
                         n_true += cmi[m]
                         n_neg += np.take(cmi, [t for t in range(len(targets)) if t != m]).sum()
-                        label = targets[m]
-                        new_labels.append(f"{label}_{new_labels_counter[label]}")
-                        new_labels_counter[label] += 1
-                        accs.append(n_true / cmi.sum())
+                        if cmi.sum() > 5:
+                            label = targets[m]
+                            new_labels.append(f"{label}_{new_labels_counter[label]}")
+                            new_labels_counter[label] += 1
+                            accs.append(n_true / cmi.sum())
+                        else:
+                            new_labels.append("-")
+                            accs.append(0)
                     acc = n_true / cm.sum()
                     print(f"acc: {acc:.3f}")
 
