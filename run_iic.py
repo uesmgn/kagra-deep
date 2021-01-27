@@ -44,9 +44,7 @@ from mpl_toolkits.axes_grid1 import ImageGrid
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 plt.style.use("seaborn-poster")
-plt.rcParams["text.latex.preamble"] = r"\usepackage{bm}"
 plt.rcParams["lines.markersize"] = 6.0
-plt.rcParams["text.usetex"] = True
 plt.rc("legend", fontsize=10)
 
 
@@ -362,7 +360,7 @@ def main(args):
                         c = cmap(i)
                         ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
                 ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=len(targets) // 25 + 1)
-                ax.set_title(r"t-SNE 2D plot of $q(\bm{z})$ with true labels at epoch %d" % (epoch))
+                ax.set_title(r"t-SNE 2D plot of latent code with true labels at epoch %d" % (epoch))
                 ax.set_aspect(1.0 / ax.get_data_ratio())
                 plt.tight_layout()
                 plt.savefig(f"qz_tsne_true_e{epoch}.png", dpi=300)
