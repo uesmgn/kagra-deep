@@ -466,3 +466,127 @@ class IIC(nn.Module):
             pi = p.sum(dim=1).view(k, -1).expand(k, k, m).pow(lam)
             pj = p.sum(dim=0).view(k, -1).expand(k, k, m).pow(lam)
         return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum() / m
+
+
+class IIC_VAE(nn.Module):
+    def __init__(self, ch_in, dim_w=30, dim_w_over=100, dim_z=512, num_heads=10):
+        super().__init__()
+        self.use_multi_heads = num_heads > 1
+        self.num_heads = num_heads
+        self.encoder = Encoder(ch_in, 1024)
+        self.mean = nn.Sequential(
+            nn.Linear(1024, dim_z, bias=False),
+            nn.BatchNorm1d(dim_z),
+            nn.LeakyReLU(0.2, inplace=True),
+        )
+        self.logvar = nn.Sequential(
+            nn.Linear(1024, dim_z, bias=False),
+            nn.BatchNorm1d(dim_z),
+            nn.LeakyReLU(0.2, inplace=True),
+        )
+
+        if self.use_multi_heads:
+            self.classifier = nn.ModuleList([self.gen_classifier(dim_z, dim_w) for _ in range(self.num_heads)])
+        else:
+            self.classifier = self.gen_classifier(dim_z, dim_w)
+
+        if self.use_multi_heads:
+            self.over_classifier = nn.ModuleList([self.gen_classifier(dim_z, dim_w_over) for _ in range(self.num_heads)])
+        else:
+            self.over_classifier = self.gen_classifier(dim_z, dim_w_over)
+
+        self.weight_init()
+
+    def gen_classifier(self, dim_in, dim_out):
+        return nn.Sequential(
+            nn.Linear(dim_in, 1024, bias=False),
+            nn.BatchNorm1d(1024),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(1024, dim_out),
+        )
+
+    def load_state_dict_part(self, state_dict):
+        own_state = self.state_dict()
+        for name, param in state_dict.items():
+            if name not in own_state:
+                continue
+            print(f"load state dict: {name}")
+            own_state[name].copy_(param)
+
+    def weight_init(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.xavier_normal_(m.weight)
+            elif isinstance(m, (nn.BatchNorm1d, nn.BatchNorm2d)):
+                nn.init.normal_(m.weight, mean=1, std=0.02)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.xavier_normal_(m.weight)
+                try:
+                    nn.init.zeros_(m.bias)
+                except:
+                    continue
+
+    def forward(self, x, lam=1.0):
+        h = self.encoder(x)
+        z_mean, z_logvar = self.mean(h), self.logvar(h)
+        z = self.reparameterize(z_mean, z_logvar)
+        w_v, w_u = self.clustering(z_mean), self.clustering(z)
+        w_v_over, w_u_over = self.over_clustering(z_mean), self.over_clustering(z)
+        mi = self.mutual_info(w_v, w_u, lam=lam)
+        mi_over = self.mutual_info(w_v_over, w_u_over, lam=lam)
+        return mi, mi_over
+
+    def get_params(self, x):
+        assert not self.training
+        h = self.encoder(x)
+        z_mean = self.mean(h)
+        w = self.clustering(z_mean)
+        w_over = self.over_clustering(z_mean)
+        return z, w, w_over
+
+    def clustering(self, x):
+        if self.use_multi_heads:
+            tmp = []
+            for classifier in self.classifier:
+                w = F.softmax(classifier(x), dim=-1)
+                tmp.append(w)
+            return torch.stack(tmp, dim=-1)
+        else:
+            w = F.softmax(self.classifier(x), dim=-1)
+            return w
+
+    def over_clustering(self, x):
+        if self.use_multi_heads:
+            tmp = []
+            for classifier in self.over_classifier:
+                w = F.softmax(classifier(x), dim=-1)
+                tmp.append(w)
+            return torch.stack(tmp, dim=-1)
+        else:
+            w = F.softmax(self.over_classifier(x), dim=-1)
+            return w
+
+    def reparameterize(self, mean, logvar):
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(mean)
+        x = mean + eps * std
+        return x
+
+    def mutual_info(self, x, y, lam=1.0, eps=1e-8):
+        if x.ndim == 2:
+            m = 1
+            p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(0)
+            p = ((p + p.t()) / 2) / p.sum()
+            _, k = x.shape
+            p[(p < eps).data] = eps
+            pi = p.sum(dim=1).view(k, 1).expand(k, k).pow(lam)
+            pj = p.sum(dim=0).view(1, k).expand(k, k).pow(lam)
+        elif x.ndim == 3:
+            p = (x.unsqueeze(2) * y.unsqueeze(1)).sum(0)
+            p = ((p + p.permute(1, 0, 2)) / 2) / p.sum()
+            p[(p < eps).data] = eps
+            _, k, m = x.shape
+            pi = p.sum(dim=1).view(k, -1).expand(k, k, m).pow(lam)
+            pj = p.sum(dim=0).view(k, -1).expand(k, k, m).pow(lam)
+        return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum() / m
