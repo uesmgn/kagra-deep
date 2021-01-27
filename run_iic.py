@@ -266,7 +266,7 @@ def main(args):
 
                 for i in range(args.num_heads):
                     try:
-                        pred_i, pred_over_i = pred[:, :, i], pred_over[:, :, i]
+                        pred_i, pred_over_i = pred[:, i], pred_over[:, i]
                     except:
                         pred_i, pred_over_i = pred, pred_over
                     print(f"Plotting confusion matrix with predicted label as head {i}...")
