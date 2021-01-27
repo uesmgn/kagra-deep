@@ -324,24 +324,27 @@ def main(args):
                         cmi = cm[:, l]
                         n_true += cmi[m]
                         n_neg += np.take(cmi, [t for t in range(len(targets)) if t != m]).sum()
-                        if cmi.sum() > 5:
+                        try:
+                            a = cmi[m] / cmi.sum()
+                            if a < 0.7:
+                                raise
                             label = targets[m]
-                            new_labels.append(f"{i}:{label}-{new_labels_counter[label]}")
+                            new_labels.append(f"{l}:{label}-{new_labels_counter[label]}")
                             new_labels_counter[label] += 1
                             accs.append(cmi[m] / cmi.sum())
-                        else:
+                        except:
                             new_labels.append("Unknown")
                             accs.append(0)
                     acc = n_true / cm.sum()
                     print(f"acc: {acc:.3f}")
 
-                    fig, ax = plt.subplots(figsize=(16, 8))
+                    fig, ax = plt.subplots(figsize=(20, 8))
                     ax.bar(np.arange(len(new_labels)), accs, tick_label=new_labels, align="center", color="cadetblue")
                     ax.axhline(acc, linewidth=2.0, color="r", linestyle="dashed")
                     plt.xticks(rotation=45, ha="right")
                     plt.xlabel("new labels")
                     plt.ylabel("accuracy")
-                    plt.xlim([0, len(new_labels) - 1])
+                    plt.xlim([0 - 1, len(new_labels)])
                     ax.set_title(r"accuracy with new labels")
                     ax.legend(
                         [
