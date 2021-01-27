@@ -207,7 +207,7 @@ def main(args):
                 cb0.set_ticks(np.linspace(-1, 1, 5))
                 axins0.xaxis.set_ticks_position("top")
 
-                im1 = grid[1].imshow(y[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(len(targets), "hsv"))
+                im1 = grid[1].imshow(y[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(len(targets), "tab20"))
                 grid[1].set_xticklabels([])
                 grid[1].set_yticklabels([])
                 grid[1].set_ylabel("true labels")
@@ -383,7 +383,7 @@ def main(args):
                     cb0.set_ticks(np.linspace(-1, 1, 5))
                     axins0.xaxis.set_ticks_position("top")
 
-                    im1 = grid[1].imshow(pred_i[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(len(new_labels), "hsv"))
+                    im1 = grid[1].imshow(pred_i[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(len(new_labels), "tab20"))
                     grid[1].set_xticklabels([])
                     grid[1].set_yticklabels([])
                     grid[1].set_ylabel("new labels")
@@ -410,7 +410,7 @@ def main(args):
 
                 print(f"Plotting t-SNE 2D latent features with true labels...")
                 fig, ax = plt.subplots()
-                cmap = segmented_cmap(args.num_classes, "hsv")
+                cmap = segmented_cmap(args.num_classes, "tab20")
                 for i in range(args.num_classes):
                     idx = np.where(y == i)[0]
                     if len(idx) > 0:
@@ -438,7 +438,7 @@ def main(args):
 
                 # print(f"Plotting t-SNE 2D latent features with pred labels...")
                 # fig, ax = plt.subplots()
-                # cmap = segmented_cmap(len(np.unique(pred_ensembled)), "hsv")
+                # cmap = segmented_cmap(len(np.unique(pred_ensembled)), "tab20")
                 # for i, l in enumerate(np.unique(pred_ensembled)):
                 #     idx = np.where(pred == l)[0]
                 #     if len(idx) > 0:
