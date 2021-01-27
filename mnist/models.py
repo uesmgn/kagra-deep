@@ -530,7 +530,7 @@ class IIC_VAE(nn.Module):
     def forward(self, x, lam=1.0):
         h = self.encoder(x)
         z_mean, z_logvar = self.mean(h), self.logvar(h)
-        z = self.reparameterize(z_mean, z_logvar)
+        z = self.reparameterize(z_mean, z_logvar.detach())
         w_v, w_u = self.clustering(z_mean), self.clustering(z)
         w_v_over, w_u_over = self.over_clustering(z_mean), self.over_clustering(z)
         mi = self.mutual_info(w_v, w_u, lam=lam)
