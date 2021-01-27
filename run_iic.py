@@ -336,12 +336,12 @@ def main(args):
                             new_labels_counter[label] += 1
                             accs.append(a)
                         except:
-                            new_labels.append("Unknown")
+                            new_labels.append(f"{l}:Unknown")
                             accs.append(0)
                     acc = n_true / cm.sum()
                     print(f"acc: {acc:.3f}")
 
-                    fig, ax = plt.subplots(figsize=(10, 4))
+                    fig, ax = plt.subplots(figsize=(30, 12))
                     ax.bar(np.arange(len(new_labels)), accs, tick_label=new_labels, align="center", color="cadetblue")
                     ax.axhline(acc, linewidth=2.0, color="r", linestyle="dashed")
                     plt.xticks(rotation=45, ha="right")
