@@ -367,14 +367,14 @@ class IIC(nn.Module):
         )
 
         if self.use_multi_heads:
-            self.classifier = nn.ModuleList([self.gen_classifier(1024, dim_w) for _ in range(self.num_heads)])
+            self.classifier = nn.ModuleList([self.gen_classifier(dim_z, dim_w) for _ in range(self.num_heads)])
         else:
-            self.classifier = self.gen_classifier(1024, dim_w)
+            self.classifier = self.gen_classifier(dim_z, dim_w)
 
         if self.use_multi_heads:
-            self.over_classifier = nn.ModuleList([self.gen_classifier(1024, dim_w_over) for _ in range(self.num_heads)])
+            self.over_classifier = nn.ModuleList([self.gen_classifier(dim_z, dim_w_over) for _ in range(self.num_heads)])
         else:
-            self.over_classifier = self.gen_classifier(1024, dim_w_over)
+            self.over_classifier = self.gen_classifier(dim_z, dim_w_over)
 
         self.weight_init()
 
@@ -410,7 +410,7 @@ class IIC(nn.Module):
 
     def forward(self, x, y, lam=1.0, detach=True):
         z_x, z_y = self.encoder(x), self.encoder(y)
-        # z_x, z_y = self.mean(z_x), self.mean(z_y)
+        z_x, z_y = self.mean(z_x), self.mean(z_y)
         if detach:
             z_x, z_y = z_x.detach(), z_y.detach()
         w_v, w_u = self.clustering(z_x), self.clustering(z_y)
@@ -421,10 +421,10 @@ class IIC(nn.Module):
 
     def get_params(self, x):
         assert not self.training
-        x = self.encoder(x)
-        z = self.mean(x)
-        w = self.clustering(x)
-        w_over = self.over_clustering(x)
+        z = self.encoder(x)
+        z = self.mean(z)
+        w = self.clustering(z)
+        w_over = self.over_clustering(z)
         return z, w, w_over
 
     def clustering(self, x):
