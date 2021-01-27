@@ -258,6 +258,7 @@ def main(args):
                 for i in range(args.num_heads):
                     print(f"plotting confusion matrix of classifier {i}")
                     cmn, cmn_over = cms[i], cms_over[i]
+                    fig, ax = plt.subplots()
                     sns.heatmap(
                         cmn,
                         ax=ax,
@@ -276,6 +277,7 @@ def main(args):
                     plt.savefig(f"cm_c{i}_e{epoch}.png", dpi=300)
                     plt.close()
 
+                    fig, ax = plt.subplots()
                     sns.heatmap(
                         cmn_over,
                         ax=ax,
