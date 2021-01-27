@@ -10,7 +10,7 @@ use_other: False
 load_state_dict: True
 z_detach: True
 num_test_samples: 2000
-lam: 1.2
+lam: 1.1
 use_multi_heads: True
 num_ranking: 5
 num_heads: 1
