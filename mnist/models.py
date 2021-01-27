@@ -412,11 +412,9 @@ class IIC(nn.Module):
         z_x, z_y = self.encoder(x), self.encoder(y)
         z_x, z_y = self.mean(z_x), self.mean(z_y)
         if detach:
-            w_v, w_u = self.clustering(z_x.detach()), self.clustering(z_y.detach())
-            w_v_over, w_u_over = self.over_clustering(z_x.detach()), self.over_clustering(z_y.detach())
-        else:
-            w_v, w_u = self.clustering(z_x), self.clustering(z_y)
-            w_v_over, w_u_over = self.over_clustering(z_x), self.over_clustering(z_y)
+            z_x, z_y = z_x.detach(), z_y.detach()
+        w_v, w_u = self.clustering(z_x), self.clustering(z_y)
+        w_v_over, w_u_over = self.over_clustering(z_x), self.over_clustering(z_y)
         mi = self.mutual_info(w_v, w_u, lam=lam)
         mi_over = self.mutual_info(w_v_over, w_u_over, lam=lam)
         return mi, mi_over
