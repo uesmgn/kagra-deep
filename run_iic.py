@@ -119,6 +119,7 @@ def main(args):
     # scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=10, T_mult=2)
 
     stats = defaultdict(lambda: [])
+    stats_test = defaultdict(lambda: [])
 
     for epoch in range(args.num_epochs):
         print(f"----- training at epoch {epoch} -----")
@@ -340,8 +341,9 @@ def main(args):
                             accs.append(0)
                     acc = n_true / cm.sum()
                     print(f"acc: {acc:.3f}")
+                    stats_test["test accuracy"].append(acc)
 
-                    fig, ax = plt.subplots(figsize=(30, 12))
+                    fig, ax = plt.subplots(figsize=(20, 8))
                     ax.bar(np.arange(len(new_labels)), accs, tick_label=new_labels, align="center", color="cadetblue")
                     ax.axhline(acc, linewidth=2.0, color="r", linestyle="dashed")
                     plt.xticks(rotation=45, ha="right")
@@ -377,6 +379,19 @@ def main(args):
                 plt.tight_layout()
                 plt.savefig(f"qz_tsne_true_e{epoch}.png", dpi=300)
                 plt.close()
+
+                if epoch > 0:
+                    for key, value in stats_test.items():
+                        xx = np.arange(0, epoch + 1, args.eval_interval)
+                        plt.plot(xx, value)
+                        plt.ylabel(key)
+                        plt.xlabel("epoch")
+                        plt.title(key)
+                        plt.xlim((0, epoch))
+                        fbase = key.replace(" ", "_")
+                        plt.tight_layout()
+                        plt.savefig(f"{fbase}_e{epoch}.png", dpi=300)
+                        plt.close()
 
                 # print(f"Plotting t-SNE 2D latent features with pred labels...")
                 # fig, ax = plt.subplots()
