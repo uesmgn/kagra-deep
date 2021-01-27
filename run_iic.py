@@ -293,11 +293,11 @@ def main(args):
 
                     print(f"Plotting confusion matrix with predicted label for overclustering as head {i}...")
                     fig, ax = plt.subplots()
-                    cm = confusion_matrix(y, pred_over_i, labels=list(range(args.dim_w_over)))
-                    cm = cm[: args.num_classes, :]
-                    cmn = normalize(cm, axis=0)
+                    cm_over = confusion_matrix(y, pred_over_i, labels=list(range(args.dim_w_over)))
+                    cm_over = cm_over[: args.num_classes, :]
+                    cmn_over = normalize(cm_over, axis=0)
                     sns.heatmap(
-                        cmn,
+                        cmn_over,
                         ax=ax,
                         linewidths=0.1,
                         linecolor="gray",
