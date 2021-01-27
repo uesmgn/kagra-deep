@@ -344,7 +344,7 @@ def main(args):
                     height=0.2,
                     width="100%",
                     loc="lower left",
-                    bbox_to_anchor=(0, -0.95, 1, 1),
+                    bbox_to_anchor=(0, -1.05, 1, 1),
                     bbox_transform=grid[1].transAxes,
                     borderpad=0,
                 )
@@ -357,23 +357,23 @@ def main(args):
                 plt.savefig(f"simmat_e{epoch}.png", bbox_inches="tight", dpi=300)
                 plt.close()
 
-                print("t-SNE decomposing...")
-                qz_tsne = TSNE(n_components=2, random_state=args.seed).fit(qz).embedding_
-
-                print(f"Plotting t-SNE 2D latent features with true labels...")
-                fig, ax = plt.subplots()
-                cmap = segmented_cmap(args.num_classes, "Paired")
-                for i in range(args.num_classes):
-                    idx = np.where(y == i)[0]
-                    if len(idx) > 0:
-                        c = cmap(i)
-                        ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
-                ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=len(targets) // 25 + 1)
-                ax.set_title(r"t-SNE 2D plot of latent code with true labels at epoch %d" % (epoch))
-                ax.set_aspect(1.0 / ax.get_data_ratio())
-                plt.tight_layout()
-                plt.savefig(f"qz_tsne_true_e{epoch}.png", dpi=300)
-                plt.close()
+                # print("t-SNE decomposing...")
+                # qz_tsne = TSNE(n_components=2, random_state=args.seed).fit(qz).embedding_
+                #
+                # print(f"Plotting t-SNE 2D latent features with true labels...")
+                # fig, ax = plt.subplots()
+                # cmap = segmented_cmap(args.num_classes, "Paired")
+                # for i in range(args.num_classes):
+                #     idx = np.where(y == i)[0]
+                #     if len(idx) > 0:
+                #         c = cmap(i)
+                #         ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
+                # ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=len(targets) // 25 + 1)
+                # ax.set_title(r"t-SNE 2D plot of latent code with true labels at epoch %d" % (epoch))
+                # ax.set_aspect(1.0 / ax.get_data_ratio())
+                # plt.tight_layout()
+                # plt.savefig(f"qz_tsne_true_e{epoch}.png", dpi=300)
+                # plt.close()
 
                 # if args.num_heads > 1:
                 #     print(f"Plotting confusion matrix with ensembled label as head {i}...")
