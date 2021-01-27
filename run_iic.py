@@ -338,7 +338,7 @@ def main(args):
                     acc = n_true / cm.sum()
                     print(f"acc: {acc:.3f}")
 
-                    fig, ax = plt.subplots(figsize=(20, 8))
+                    fig, ax = plt.subplots(figsize=(10, 4))
                     ax.bar(np.arange(len(new_labels)), accs, tick_label=new_labels, align="center", color="cadetblue")
                     ax.axhline(acc, linewidth=2.0, color="r", linestyle="dashed")
                     plt.xticks(rotation=45, ha="right")
