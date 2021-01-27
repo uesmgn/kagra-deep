@@ -44,10 +44,9 @@ from mpl_toolkits.axes_grid1 import ImageGrid
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 plt.style.use("seaborn-poster")
-plt.rcParams["text.latex.preamble"] = r"\usepackage{bm}"
 plt.rcParams["lines.markersize"] = 6.0
-plt.rcParams["text.usetex"] = True
 plt.rc("legend", fontsize=10)
+plt.rcParams["text.usetex"] = True
 
 
 @hydra.main(config_path="config", config_name="test")
@@ -120,6 +119,7 @@ def main(args):
     # scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=10, T_mult=2)
 
     stats = defaultdict(lambda: [])
+    stats_test_acc = defaultdict(lambda: [])
 
     for epoch in range(args.num_epochs):
         print(f"----- training at epoch {epoch} -----")
@@ -168,17 +168,23 @@ def main(args):
                 pi = torch.cat(params["pi"]).numpy().astype(float)
                 qz = torch.cat(params["qz"]).numpy().astype(float)
 
-                hg = torch.cat(params["pi"]).view(num_samples, -1).numpy().astype(float)
-                try:
-                    hg = PCA(n_components=64).fit_transform(hg)
-                except:
-                    pass
-                print("Computing cosine similarity matrix...")
-                simmat = cosine_similarity(torch.from_numpy(hg))
-                print("Computing cosine distance reordered matrix...")
-                dist_mat, reordered, _ = compute_serial_matrix(simmat)
-                pred_ensembled = SpectralClustering(n_clusters=args.dim_w, random_state=args.seed).fit(simmat).labels_
-                simmat_reordered = simmat[reordered][:, reordered]
+                if args.num_heads > 1:
+                    hg = torch.cat(params["pi"]).view(num_samples, -1).numpy().astype(float)
+                    try:
+                        hg = PCA(n_components=64).fit_transform(hg)
+                    except:
+                        pass
+                    print("Computing cosine similarity matrix...")
+                    simmat = cosine_similarity(torch.from_numpy(hg))
+                    print("Computing cosine distance reordered matrix...")
+                    dist_mat, reordered, _ = compute_serial_matrix(simmat)
+                    pred_ensembled = SpectralClustering(n_clusters=args.dim_w, random_state=args.seed).fit(simmat).labels_
+                    simmat_reordered = simmat[reordered][:, reordered]
+                else:
+                    hg = torch.cat(params["pi"]).view(num_samples, -1).numpy().astype(float)
+                    simmat = cosine_similarity(torch.from_numpy(hg))
+                    dist_mat, reordered, _ = compute_serial_matrix(simmat)
+                    simmat_reordered = simmat[reordered][:, reordered]
 
                 figure = plt.figure()
                 grid = ImageGrid(figure, 111, nrows_ncols=(2, 1), axes_pad=0.05)
@@ -200,10 +206,10 @@ def main(args):
                 cb0.set_ticks(np.linspace(-1, 1, 5))
                 axins0.xaxis.set_ticks_position("top")
 
-                im1 = grid[1].imshow(y[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(len(targets), "tab20b"))
+                im1 = grid[1].imshow(y[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(len(targets), "Paired"))
                 grid[1].set_xticklabels([])
                 grid[1].set_yticklabels([])
-                grid[1].set_ylabel("label")
+                grid[1].set_ylabel("true labels")
                 axins1 = inset_axes(
                     grid[1],
                     height=0.2,
@@ -234,33 +240,38 @@ def main(args):
                         plt.savefig(f"{fbase}_e{epoch}.png", dpi=300)
                         plt.close()
 
-                print(f"Plotting confusion matrix with ensembled label as head {i}...")
-                fig, ax = plt.subplots()
-                cm = confusion_matrix(y, pred_ensembled, labels=list(range(args.dim_w)))
-                cm = cm[: args.num_classes, :]
-                cmn = normalize(cm, axis=0)
-                sns.heatmap(
-                    cmn,
-                    ax=ax,
-                    linewidths=0.1,
-                    linecolor="gray",
-                    cmap="Greens",
-                    cbar=True,
-                    yticklabels=targets,
-                    cbar_kws={"aspect": 50, "pad": 0.01, "anchor": (0, 0.05)},
-                )
-                plt.yticks(rotation=45)
-                plt.xlabel("ensemble predicted labels")
-                plt.ylabel("true labels")
-                ax.set_title(r"confusion matrix at epoch %d with ensemble classifier" % (epoch))
-                plt.tight_layout()
-                plt.savefig(f"cm_ensembled_e{epoch}.png", dpi=300)
-                plt.close()
+                if args.num_heads > 1:
+                    print(f"Plotting confusion matrix with ensembled label as head {i}...")
+                    fig, ax = plt.subplots()
+                    cm = confusion_matrix(y, pred_ensembled, labels=list(range(args.dim_w)))
+                    cm = cm[: args.num_classes, :]
+                    cmn = normalize(cm, axis=0)
+                    sns.heatmap(
+                        cmn,
+                        ax=ax,
+                        linewidths=0.1,
+                        linecolor="gray",
+                        cmap="Greens",
+                        cbar=True,
+                        yticklabels=targets,
+                        cbar_kws={"aspect": 50, "pad": 0.01, "anchor": (0, 0.05)},
+                    )
+                    plt.yticks(rotation=45)
+                    plt.xlabel("ensemble predicted labels")
+                    plt.ylabel("true labels")
+                    ax.set_title(r"confusion matrix at epoch %d with ensemble classifier" % (epoch))
+                    plt.tight_layout()
+                    plt.savefig(f"cm_ensembled_e{epoch}.png", dpi=300)
+                    plt.close()
 
                 for i in range(args.num_heads):
+                    try:
+                        pred_i, pred_over_i = pred[:, i], pred_over[:, i]
+                    except:
+                        pred_i, pred_over_i = pred, pred_over
                     print(f"Plotting confusion matrix with predicted label as head {i}...")
                     fig, ax = plt.subplots()
-                    cm = confusion_matrix(y, pred[..., i], labels=list(range(args.dim_w)))
+                    cm = confusion_matrix(y, pred_i, labels=list(range(args.dim_w)))
                     cm = cm[: args.num_classes, :]
                     cmn = normalize(cm, axis=0)
                     sns.heatmap(
@@ -283,11 +294,11 @@ def main(args):
 
                     print(f"Plotting confusion matrix with predicted label for overclustering as head {i}...")
                     fig, ax = plt.subplots()
-                    cm = confusion_matrix(y, pred_over[..., i], labels=list(range(args.dim_w_over)))
-                    cm = cm[: args.num_classes, :]
-                    cmn = normalize(cm, axis=0)
+                    cm_over = confusion_matrix(y, pred_over_i, labels=list(range(args.dim_w_over)))
+                    cm_over = cm_over[: args.num_classes, :]
+                    cmn_over = normalize(cm_over, axis=0)
                     sns.heatmap(
-                        cmn,
+                        cmn_over,
                         ax=ax,
                         linewidths=0.1,
                         linecolor="gray",
@@ -304,27 +315,128 @@ def main(args):
                     plt.savefig(f"cm_over_c{i}_e{epoch}.png", dpi=300)
                     plt.close()
 
+                    indices = np.argmax(cm, axis=0)
+                    n_true, n_neg = 0, 0
+                    accs = []
+                    new_labels = []
+                    new_labels_counter = defaultdict(lambda: 0)
+                    for l, m in enumerate(indices):
+                        cmi = cm[:, l]
+                        n_true += cmi[m]
+                        n_neg += np.take(cmi, [t for t in range(len(targets)) if t != m]).sum()
+                        try:
+                            if cmi.sum() > 5:
+                                a = cmi[m] / cmi.sum()
+                            else:
+                                raise
+                            label = targets[m]
+                            new_labels.append(f"{l}:{label}-{new_labels_counter[label]}")
+                            new_labels_counter[label] += 1
+                            accs.append(a)
+                        except:
+                            new_labels.append(f"{l}:Unknown")
+                            accs.append(0)
+                    new_labels = np.array(new_labels)
+                    acc = n_true / cm.sum()
+                    print(f"acc: {acc:.3f}")
+                    stats_test_acc[f"classifier {i}"].append(acc)
+
+                    fig, ax = plt.subplots(figsize=(20, 8))
+                    ax.bar(np.arange(len(new_labels)), accs, tick_label=new_labels, align="center", color="cadetblue")
+                    ax.axhline(acc, linewidth=2.0, color="r", linestyle="dashed")
+                    plt.xticks(rotation=45, ha="right")
+                    plt.xlabel("new labels")
+                    plt.ylabel("accuracy")
+                    plt.xlim([0 - 1, len(new_labels)])
+                    ax.set_title(r"accuracy with new labels")
+                    ax.legend(
+                        [
+                            Line2D([0], [0], c="r", linestyle="dashed", linewidth=2.0),
+                        ],
+                        ["global accuracy"],
+                        loc="upper right",
+                    )
+                    plt.tight_layout()
+                    plt.savefig(f"acc_c{i}_e{epoch}.png", dpi=300)
+                    plt.close()
+
+                    # figure = plt.figure()
+                    # grid = ImageGrid(figure, 111, nrows_ncols=(2, 1), axes_pad=0.05)
+                    # im0 = grid[0].imshow(simmat_reordered, aspect=1)
+                    # grid[0].set_xticklabels([])
+                    # grid[0].set_yticklabels([])
+                    # grid[0].set_ylabel("cosine similarity")
+                    # axins0 = inset_axes(
+                    #     grid[0],
+                    #     height=0.2,
+                    #     width="100%",
+                    #     loc="upper left",
+                    #     bbox_to_anchor=(0, 0.05, 1, 1),
+                    #     bbox_transform=grid[0].transAxes,
+                    #     borderpad=0,
+                    # )
+                    # im0.set_clim(0, 1)
+                    # cb0 = plt.colorbar(im0, cax=axins0, orientation="horizontal")
+                    # cb0.set_ticks(np.linspace(-1, 1, 5))
+                    # axins0.xaxis.set_ticks_position("top")
+                    #
+                    # im1 = grid[1].imshow(pred_i[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(len(new_labels), "Paired"))
+                    # grid[1].set_xticklabels([])
+                    # grid[1].set_yticklabels([])
+                    # grid[1].set_ylabel("new labels")
+                    # axins1 = inset_axes(
+                    #     grid[1],
+                    #     height=0.2,
+                    #     width="100%",
+                    #     loc="lower left",
+                    #     bbox_to_anchor=(0, -0.95, 1, 1),
+                    #     bbox_transform=grid[1].transAxes,
+                    #     borderpad=0,
+                    # )
+                    # im1.set_clim(0 - 0.5, len(new_labels) - 0.5)
+                    # cb1 = plt.colorbar(im1, cax=axins1, orientation="horizontal")
+                    # cb1.set_ticks(np.arange(0, len(new_labels), 5))
+                    # # cb1.set_ticklabels(new_labels[np.arange(0, len(new_labels), 5)])
+                    # plt.setp(axins1.get_xticklabels(), rotation=45, horizontalalignment="right")
+                    # axins1.xaxis.set_ticks_position("bottom")
+                    # plt.savefig(f"simmat_pred_c{i}_e{epoch}.png", bbox_inches="tight", dpi=300)
+                    # plt.close()
+
                 print("t-SNE decomposing...")
                 qz_tsne = TSNE(n_components=2, random_state=args.seed).fit(qz).embedding_
 
                 print(f"Plotting t-SNE 2D latent features with true labels...")
                 fig, ax = plt.subplots()
-                cmap = segmented_cmap(args.num_classes, "tab20b")
+                cmap = segmented_cmap(args.num_classes, "Paired")
                 for i in range(args.num_classes):
                     idx = np.where(y == i)[0]
                     if len(idx) > 0:
                         c = cmap(i)
                         ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
                 ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=len(targets) // 25 + 1)
-                ax.set_title(r"t-SNE 2D plot of $q(\bm{z})$ with true labels at epoch %d" % (epoch))
+                ax.set_title(r"t-SNE 2D plot of latent code with true labels at epoch %d" % (epoch))
                 ax.set_aspect(1.0 / ax.get_data_ratio())
                 plt.tight_layout()
                 plt.savefig(f"qz_tsne_true_e{epoch}.png", dpi=300)
                 plt.close()
 
+                if epoch > 0:
+                    fig, ax = plt.subplots()
+                    for key, value in stats_test_acc.items():
+                        xx = np.linspace(0, epoch, len(value)).astype(int)
+                        plt.plot(xx, value, linewidth=2.0, label=key)
+                    plt.legend(loc="upper left")
+                    plt.ylabel("test accuracy")
+                    plt.xlabel("epoch")
+                    plt.title("test accuracy")
+                    plt.xlim((0, epoch))
+                    plt.tight_layout()
+                    plt.savefig(f"test_acc_e{epoch}.png", dpi=300)
+                    plt.close()
+
                 # print(f"Plotting t-SNE 2D latent features with pred labels...")
                 # fig, ax = plt.subplots()
-                # cmap = segmented_cmap(len(np.unique(pred_ensembled)), "tab20b")
+                # cmap = segmented_cmap(len(np.unique(pred_ensembled)), "Paired")
                 # for i, l in enumerate(np.unique(pred_ensembled)):
                 #     idx = np.where(pred == l)[0]
                 #     if len(idx) > 0:
@@ -338,7 +450,7 @@ def main(args):
                 # plt.close()
 
         if epoch % args.save_interval == 0:
-            torch.save(model.state_dict(), os.path.join(args.model_dir, "model_iicvae.pt"))
+            torch.save(model.state_dict(), os.path.join(args.model_dir, "model_iic.pt"))
 
 
 if __name__ == "__main__":
