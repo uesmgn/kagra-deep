@@ -46,6 +46,7 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 plt.style.use("seaborn-poster")
 plt.rcParams["lines.markersize"] = 6.0
 plt.rc("legend", fontsize=10)
+plt.rcParams["text.usetex"] = True
 
 
 @hydra.main(config_path="config", config_name="test")
@@ -325,7 +326,7 @@ def main(args):
                         n_neg += np.take(cmi, [t for t in range(len(targets)) if t != m]).sum()
                         if cmi.sum() > 5:
                             label = targets[m]
-                            new_labels.append(f"{label}_{new_labels_counter[label]}")
+                            new_labels.append(f"{label}-{new_labels_counter[label]}")
                             new_labels_counter[label] += 1
                             accs.append(n_true / cmi.sum())
                         else:
@@ -334,7 +335,7 @@ def main(args):
                     acc = n_true / cm.sum()
                     print(f"acc: {acc:.3f}")
 
-                    fig, ax = plt.subplots()
+                    fig, ax = plt.subplots(figsize=(16, 8))
                     ax.bar(np.arange(len(new_labels)), accs, tick_label=new_labels, align="center", color="cadetblue")
                     ax.axhline(acc, linewidth=2.0, color="r", linestyle="dashed")
                     plt.xticks(rotation=45, ha="right")
