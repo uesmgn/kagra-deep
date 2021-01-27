@@ -316,6 +316,40 @@ def main(args):
                     plt.savefig(f"cm_over_c{i}_e{epoch}.png", dpi=300)
                     plt.close()
 
+                    indices = np.argmax(cm, axis=0)
+                    n_true, n_neg = 0, 0
+                    accs = []
+                    new_labels = []
+                    new_labels_counter = defaultdict(lambda: 0)
+                    for l, m in enumerate(indices):
+                        cmi = cm[:, l]
+                        n_true += cmi[m]
+                        n_neg += np.take(cmi, [t for t in range(len(targets)) if t != m]).sum()
+                        label = targets[m]
+                        new_labels.append(f"{label}_{new_labels_counter[label]}")
+                        new_labels_counter[label] += 1
+                        accs.append(n_true / cmi.sum())
+                    acc = n_true / cm.sum()
+                    print(f"acc: {acc:.3f}")
+
+                    fig, ax = plt.subplots()
+                    ax.bar(np.arange(len(new_labels)), accs, tick_label=new_labels, align="center", color="cadetblue")
+                    ax.axhline(acc, linewidth=2.0, color="r", linestyle="dashed")
+                    plt.xticks(rotation=45, ha="right")
+                    plt.xlabel("new labels")
+                    plt.ylabel("accuracy")
+                    ax.set_title(r"accuracy with new labels at epoch %d with classifier %d" % (epoch, i))
+                    ax.legend(
+                        [
+                            Line2D([0], [0], c="r", linestyle="dashed", linewidth=2.0),
+                        ],
+                        ["global accuracy"],
+                        loc="upper right",
+                    )
+                    plt.tight_layout()
+                    plt.savefig(f"acc_c{i}_e{epoch}.png", dpi=300)
+                    plt.close()
+
                 print("t-SNE decomposing...")
                 qz_tsne = TSNE(n_components=2, random_state=args.seed).fit(qz).embedding_
 
