@@ -328,7 +328,7 @@ def main(args):
                             label = targets[m]
                             new_labels.append(f"{label}-{new_labels_counter[label]}")
                             new_labels_counter[label] += 1
-                            accs.append(n_true / cmi.sum())
+                            accs.append(cmi[m] / cmi.sum())
                         else:
                             new_labels.append("-")
                             accs.append(0)
