@@ -325,13 +325,16 @@ def main(args):
                         n_true += cmi[m]
                         n_neg += np.take(cmi, [t for t in range(len(targets)) if t != m]).sum()
                         try:
-                            a = cmi[m] / cmi.sum()
-                            if a < 0.7:
+                            if cmi.sum() > 5:
+                                a = cmi[m] / cmi.sum()
+                                if a < 0.7:
+                                    raise
+                            else:
                                 raise
                             label = targets[m]
                             new_labels.append(f"{l}:{label}-{new_labels_counter[label]}")
                             new_labels_counter[label] += 1
-                            accs.append(cmi[m] / cmi.sum())
+                            accs.append(a)
                         except:
                             new_labels.append("Unknown")
                             accs.append(0)
