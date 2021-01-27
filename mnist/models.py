@@ -543,7 +543,7 @@ class IIC_VAE(nn.Module):
         z_mean = self.mean(h)
         w = self.clustering(z_mean)
         w_over = self.over_clustering(z_mean)
-        return z, w, w_over
+        return z_mean, w, w_over
 
     def clustering(self, x):
         if self.use_multi_heads:
