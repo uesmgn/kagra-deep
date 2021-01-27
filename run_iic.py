@@ -326,7 +326,7 @@ def main(args):
                         n_neg += np.take(cmi, [t for t in range(len(targets)) if t != m]).sum()
                         if cmi.sum() > 5:
                             label = targets[m]
-                            new_labels.append(f"{label}-{new_labels_counter[label]}")
+                            new_labels.append(f"{i}:{label}-{new_labels_counter[label]}")
                             new_labels_counter[label] += 1
                             accs.append(cmi[m] / cmi.sum())
                         else:
