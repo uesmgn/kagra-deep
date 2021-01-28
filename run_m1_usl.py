@@ -134,7 +134,7 @@ def main(args):
 
         # scheduler.step()
 
-        if epoch % args.eval_interval == 0:
+        if epoch % args.test_interval == 0:
             print(f"----- evaluating at epoch {epoch} -----")
             model.eval()
             params = defaultdict(lambda: torch.tensor([]))
@@ -176,6 +176,7 @@ def main(args):
                     plt.savefig(f"{fbase}_e{epoch}_100.png")
                     plt.close()
 
+        if epoch % args.eval_interval == 0:
             y_lower = 10
             cmap = segmented_cmap(len(args.targets), "tab20b")
             fig, ax = plt.subplots(figsize=[12, 18])
