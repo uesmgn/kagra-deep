@@ -368,14 +368,14 @@ class IIC(nn.Module):
         self.sub_encoder = Encoder(ch_in, dim_z)
 
         if self.use_multi_heads:
-            self.classifier = nn.ModuleList([self.gen_classifier(dim_z * 2, dim_w) for _ in range(self.num_heads)])
+            self.classifier = nn.ModuleList([self.gen_classifier(dim_z, dim_w) for _ in range(self.num_heads)])
         else:
-            self.classifier = self.gen_classifier(dim_z * 2, dim_w)
+            self.classifier = self.gen_classifier(dim_z, dim_w)
 
         if self.use_multi_heads:
-            self.over_classifier = nn.ModuleList([self.gen_classifier(dim_z * 2, dim_w_over) for _ in range(self.num_heads)])
+            self.over_classifier = nn.ModuleList([self.gen_classifier(dim_z, dim_w_over) for _ in range(self.num_heads)])
         else:
-            self.over_classifier = self.gen_classifier(dim_z * 2, dim_w_over)
+            self.over_classifier = self.gen_classifier(dim_z, dim_w_over)
 
         self.weight_init()
 
