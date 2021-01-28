@@ -290,7 +290,17 @@ class VAE(nn.Module):
         dim_z=512,
     ):
         super().__init__()
-        self.encoder = Encoder(ch_in, dim_z * 2)
+        self.encoder = Encoder(ch_in, 1024)
+        self.mean = nn.Sequential(
+            nn.Linear(1024, dim_z, bias=False),
+            nn.BatchNorm1d(dim_z),
+            nn.LeakyReLU(0.2, inplace=True),
+        )
+        self.logvar = nn.Sequential(
+            nn.Linear(1024, dim_z, bias=False),
+            nn.BatchNorm1d(dim_z),
+            nn.LeakyReLU(0.2, inplace=True),
+        )
         self.decoder = Decoder(ch_in, dim_z)
         self.weight_init()
 
@@ -316,10 +326,10 @@ class VAE(nn.Module):
                 except:
                     continue
 
-    def forward(self, x):
+    def forward(self, x, l=10):
         b = x.shape[0]
-        logits = self.encoder(x)
-        z_mean, z_logvar = torch.split(logits, logits.shape[-1] // 2, -1)
+        h = self.encoder(x)
+        z_mean, z_logvar = self.mean(h), self.logvar(h)
         z = self.reparameterize(z_mean, z_logvar)
         x_ = self.decoder(z)
         bce = self.bce(x, x_) / b
@@ -333,8 +343,8 @@ class VAE(nn.Module):
         return x
 
     def get_params(self, x):
-        logits = self.encoder(x)
-        z_mean, _ = torch.split(logits, logits.shape[-1] // 2, -1)
+        h = self.encoder(x)
+        z_mean = self.mean(h)
         return z_mean
 
     def bce(self, x, x_recon):
