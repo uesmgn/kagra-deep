@@ -282,7 +282,8 @@ class AE(nn.Module):
         return bce
 
     def get_params(self, x):
-        z = self.encoder(x)
+        logits = self.encoder(x)
+        z = self.mean(logits)
         return z
 
     def bce(self, x, x_recon):

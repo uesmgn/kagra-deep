@@ -7,7 +7,7 @@ targets: [1080Lines, 1400Ripples, Air_Compressor, Blip,
           Scattered_Light, Scratchy, Tomte, Violin_Mode,
           Wandering_Line, Whistle]
 use_other: False
-load_state_dict: True
+load_state_dict: False
 z_detach: True
 num_test_samples: 2000
 lam: 1.2
