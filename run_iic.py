@@ -210,9 +210,6 @@ def main(args):
                 print(f"acc= {acc:.3f} on classifier {i}")
                 stats_test_acc[f"classifier {i}"].append(acc)
 
-                top3 = np.argsort(pred_i, axis=1)[:, -3:]
-                top5 = np.argsort(pred_i, axis=1)[:, -5:]
-
                 fig, ax = plt.subplots(figsize=(20, 8))
                 ax.bar(np.arange(len(new_labels)), accs, tick_label=new_labels, align="center", color="cadetblue")
                 ax.axhline(acc, linewidth=2.0, color="r", linestyle="dashed")
