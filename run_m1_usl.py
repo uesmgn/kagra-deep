@@ -103,7 +103,10 @@ def main(args):
         torch.backends.cudnn.benchmark = True
     model = VAE(ch_in=args.ch_in, dim_z=args.dim_z).to(device)
     if args.load_state_dict:
-        model.load_state_dict_part(torch.load(args.model_path))
+        try:
+            model.load_state_dict_part(torch.load(os.path.join(args.model_dir, "model_m1_usl.pt")))
+        except:
+            pass
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
     # scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=10, T_mult=2)
 
@@ -165,13 +168,12 @@ def main(args):
                 for key, value in stats.items():
                     plt.plot(value)
                     plt.ylabel(key)
-                    plt.yscale("log")
                     plt.xlabel("epoch")
                     plt.title(key)
-                    plt.xlim((0, len(value) - 1))
+                    plt.xlim((max(0, len(value) - 100), len(value) - 1))
                     fbase = key.replace(" ", "_")
                     plt.tight_layout()
-                    plt.savefig(f"{fbase}_e{epoch}_log.png")
+                    plt.savefig(f"{fbase}_e{epoch}_100.png")
                     plt.close()
 
             y_lower = 10
