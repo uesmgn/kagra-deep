@@ -210,6 +210,9 @@ def main(args):
                 print(f"acc= {acc:.3f} on classifier {i}")
                 stats_test_acc[f"classifier {i}"].append(acc)
 
+                top3 = np.argsort(pred_i, axis=1)[:, -3:]
+                top5 = np.argsort(pred_i, axis=1)[:, -5:]
+
                 fig, ax = plt.subplots(figsize=(20, 8))
                 ax.bar(np.arange(len(new_labels)), accs, tick_label=new_labels, align="center", color="cadetblue")
                 ax.axhline(acc, linewidth=2.0, color="r", linestyle="dashed")
@@ -245,7 +248,7 @@ def main(args):
                 for key, value in stats_test_acc.items():
                     xx = np.linspace(0, epoch, len(value)).astype(int)
                     plt.plot(xx, value, linewidth=2.0, label=key)
-                plt.legend(loc="upper left")
+                plt.legend(loc="lower right")
                 plt.ylabel("test accuracy")
                 plt.xlabel("epoch")
                 plt.title("test accuracy")
