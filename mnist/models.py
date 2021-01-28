@@ -242,7 +242,12 @@ class AE(nn.Module):
         dim_z=512,
     ):
         super().__init__()
-        self.encoder = Encoder(ch_in, dim_z)
+        self.encoder = Encoder(ch_in, 1024)
+        self.mean = nn.Sequential(
+            nn.Linear(1024, dim_z, bias=False),
+            nn.BatchNorm1d(dim_z),
+            nn.LeakyReLU(0.2, inplace=True),
+        )
         self.decoder = Decoder(ch_in, dim_z)
         self.weight_init()
 
@@ -270,7 +275,8 @@ class AE(nn.Module):
 
     def forward(self, x):
         b = x.shape[0]
-        z = self.encoder(x)
+        logits = self.encoder(x)
+        z = self.mean(logits)
         x_ = self.decoder(z)
         bce = self.bce(x, x_) / b
         return bce
