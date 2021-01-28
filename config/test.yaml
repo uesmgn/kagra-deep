@@ -28,7 +28,7 @@ train_size: 0.7
 labeled_size: 0.1
 batch_size: 128
 num_workers: 4
-lr: 1e-4
+lr: 1e-3
 num_train_steps: 100
 test_interval: 10
 eval_interval: 50
