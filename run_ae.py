@@ -39,8 +39,9 @@ import seaborn as sns
 
 plt.style.use("seaborn-poster")
 plt.rcParams["text.latex.preamble"] = r"\usepackage{bm}"
-plt.rcParams["lines.markersize"] = 5.0
+plt.rcParams["lines.markersize"] = 6.0
 plt.rcParams["text.usetex"] = True
+plt.rc("legend", fontsize=10)
 
 
 @hydra.main(config_path="config", config_name="test")
@@ -101,7 +102,10 @@ def main(args):
 
     model = AE(ch_in=args.ch_in, dim_z=args.dim_z).to(device)
     if args.load_state_dict:
-        model.load_state_dict_part(torch.load(args.model_path))
+        try:
+            model.load_state_dict_part(torch.load(os.path.join(args.model_dir, "model_ae.pt")))
+        except:
+            pass
     optim = torch.optim.Adam(model.parameters(), lr=args.lr)
     # scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optim, T_0=10, T_mult=2)
 
@@ -126,7 +130,7 @@ def main(args):
 
         # scheduler.step()
 
-        if epoch % args.eval_interval == 0:
+        if epoch % args.test_interval == 0:
             print(f"----- evaluating at epoch {epoch} -----")
             model.eval()
             params = defaultdict(lambda: torch.tensor([]))
@@ -157,6 +161,18 @@ def main(args):
                     plt.savefig(f"{fbase}_e{epoch}.png")
                     plt.close()
 
+                for key, value in stats.items():
+                    plt.plot(value)
+                    plt.ylabel(key)
+                    plt.xlabel("epoch")
+                    plt.title(key)
+                    plt.xlim((max(0, len(value) - 100), len(value) - 1))
+                    fbase = key.replace(" ", "_")
+                    plt.tight_layout()
+                    plt.savefig(f"{fbase}_e{epoch}_100.png")
+                    plt.close()
+
+        if epoch % args.eval_interval == 0:
             y_lower = 10
             cmap = segmented_cmap(len(args.targets), "tab20b")
             fig, ax = plt.subplots(figsize=[12, 18])
@@ -220,7 +236,7 @@ def main(args):
                     c = cmap(i)
                     ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
             ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-            ax.set_title(r"t-SNE 2D plot of $q(\bm{z})$ at epoch %d" % (epoch))
+            ax.set_title(r"t-SNE 2D plot of latent code at epoch %d" % (epoch))
             ax.set_aspect(1.0 / ax.get_data_ratio())
             plt.tight_layout()
             plt.savefig(f"qz_true_e{epoch}.png")
@@ -234,14 +250,14 @@ def main(args):
                     c = cmap(i)
                     ax.scatter(qz_umap[idx, 0], qz_umap[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
             ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left")
-            ax.set_title(r"UMAP 2D plot of $q(\bm{z})$ at epoch %d" % (epoch))
+            ax.set_title(r"UMAP 2D plot of latent code at epoch %d" % (epoch))
             ax.set_aspect(1.0 / ax.get_data_ratio())
             plt.tight_layout()
             plt.savefig(f"qz_umap_e{epoch}.png")
             plt.close()
 
         if epoch % args.save_interval == 0:
-            torch.save(model.state_dict(), os.path.join(args.model_dir, "model_autoencoder.pt"))
+            torch.save(model.state_dict(), os.path.join(args.model_dir, "model_ae.pt"))
 
 
 if __name__ == "__main__":

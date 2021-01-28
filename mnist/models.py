@@ -264,8 +264,8 @@ class AE(nn.Module):
             if isinstance(m, nn.Conv2d):
                 nn.init.xavier_normal_(m.weight)
             elif isinstance(m, (nn.BatchNorm1d, nn.BatchNorm2d)):
-                nn.init.normal_(m.weight, mean=1, std=0.02)
-                nn.init.constant_(m.bias, 0)
+                nn.init.xavier_normal_(m.weight)
+                nn.init.zeros_(m.bias)
             elif isinstance(m, nn.Linear):
                 nn.init.xavier_normal_(m.weight)
                 try:
