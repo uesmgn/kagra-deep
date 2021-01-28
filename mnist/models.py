@@ -287,7 +287,7 @@ class AE(nn.Module):
         return z
 
     def bce(self, x, x_recon):
-        return F.binary_cross_entropy(x_recon, x, reduction="sum")
+        return F.binary_cross_entropy(x_recon, x, reduction="mean")
 
 
 class VAE(nn.Module):
@@ -325,7 +325,7 @@ class VAE(nn.Module):
                 nn.init.xavier_normal_(m.weight)
             elif isinstance(m, (nn.BatchNorm1d, nn.BatchNorm2d)):
                 nn.init.normal_(m.weight, mean=1, std=0.02)
-                nn.init.constant_(m.bias, 0)
+                nn.init.zeros_(m.bias)
             elif isinstance(m, nn.Linear):
                 nn.init.xavier_normal_(m.weight)
                 try:
@@ -339,8 +339,8 @@ class VAE(nn.Module):
         z_mean, z_logvar = self.mean(h), self.logvar(h)
         z = self.reparameterize(z_mean, z_logvar)
         x_ = self.decoder(z)
-        bce = self.bce(x, x_) / b
-        kl_gauss = self.kl_gauss(z_mean, z_logvar, torch.zeros_like(z_mean), torch.ones_like(z_logvar)) / b
+        bce = self.bce(x, x_)
+        kl_gauss = self.kl_gauss(z_mean, z_logvar, torch.zeros_like(z_mean), torch.ones_like(z_logvar))
         return bce, kl_gauss
 
     def reparameterize(self, mean, logvar):
@@ -355,10 +355,10 @@ class VAE(nn.Module):
         return z_mean
 
     def bce(self, x, x_recon):
-        return F.binary_cross_entropy(x_recon, x, reduction="sum")
+        return F.binary_cross_entropy(x_recon, x, reduction="mean")
 
     def kl_gauss(self, mean_p, logvar_p, mean_q, logvar_q):
-        return -0.5 * torch.sum(logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp())
+        return -0.5 * torch.mean(logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp())
 
 
 class IIC(nn.Module):
@@ -408,7 +408,7 @@ class IIC(nn.Module):
                 nn.init.xavier_normal_(m.weight)
             elif isinstance(m, (nn.BatchNorm1d, nn.BatchNorm2d)):
                 nn.init.normal_(m.weight, mean=1, std=0.02)
-                nn.init.constant_(m.bias, 0)
+                nn.init.zeros_(m.bias)
             elif isinstance(m, nn.Linear):
                 nn.init.xavier_normal_(m.weight)
                 try:
@@ -527,7 +527,7 @@ class IIC_VAE(nn.Module):
                 nn.init.xavier_normal_(m.weight)
             elif isinstance(m, (nn.BatchNorm1d, nn.BatchNorm2d)):
                 nn.init.normal_(m.weight, mean=1, std=0.02)
-                nn.init.constant_(m.bias, 0)
+                nn.init.zeros_(m.bias)
             elif isinstance(m, nn.Linear):
                 nn.init.xavier_normal_(m.weight)
                 try:
