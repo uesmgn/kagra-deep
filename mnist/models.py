@@ -290,17 +290,7 @@ class VAE(nn.Module):
         dim_z=512,
     ):
         super().__init__()
-        self.encoder = Encoder(ch_in, 1024)
-        self.mean = nn.Sequential(
-            nn.Linear(1024, dim_z, bias=False),
-            nn.BatchNorm1d(dim_z),
-            nn.LeakyReLU(0.2, inplace=True),
-        )
-        self.logvar = nn.Sequential(
-            nn.Linear(1024, dim_z, bias=False),
-            nn.BatchNorm1d(dim_z),
-            nn.LeakyReLU(0.2, inplace=True),
-        )
+        self.encoder = Encoder(ch_in, dim_z * 2)
         self.decoder = Decoder(ch_in, dim_z)
         self.weight_init()
 
@@ -326,10 +316,10 @@ class VAE(nn.Module):
                 except:
                     continue
 
-    def forward(self, x, l=10):
+    def forward(self, x):
         b = x.shape[0]
-        h = self.encoder(x)
-        z_mean, z_logvar = self.mean(h), self.logvar(h)
+        logits = self.encoder(x)
+        z_mean, z_logvar = torch.split(logits, logits.shape[-1] // 2, -1)
         z = self.reparameterize(z_mean, z_logvar)
         x_ = self.decoder(z)
         bce = self.bce(x, x_) / b
@@ -343,8 +333,8 @@ class VAE(nn.Module):
         return x
 
     def get_params(self, x):
-        h = self.encoder(x)
-        z_mean = self.mean(h)
+        logits = self.encoder(x)
+        z_mean, _ = torch.split(logits, logits.shape[-1] // 2, -1)
         return z_mean
 
     def bce(self, x, x_recon):
@@ -365,16 +355,17 @@ class IIC(nn.Module):
             nn.BatchNorm1d(dim_z),
             nn.LeakyReLU(0.2, inplace=True),
         )
+        self.sub_encoder = Encoder(ch_in, dim_z)
 
         if self.use_multi_heads:
-            self.classifier = nn.ModuleList([self.gen_classifier(dim_z, dim_w) for _ in range(self.num_heads)])
+            self.classifier = nn.ModuleList([self.gen_classifier(dim_z * 2, dim_w) for _ in range(self.num_heads)])
         else:
-            self.classifier = self.gen_classifier(dim_z, dim_w)
+            self.classifier = self.gen_classifier(dim_z * 2, dim_w)
 
         if self.use_multi_heads:
-            self.over_classifier = nn.ModuleList([self.gen_classifier(dim_z, dim_w_over) for _ in range(self.num_heads)])
+            self.over_classifier = nn.ModuleList([self.gen_classifier(dim_z * 2, dim_w_over) for _ in range(self.num_heads)])
         else:
-            self.over_classifier = self.gen_classifier(dim_z, dim_w_over)
+            self.over_classifier = self.gen_classifier(dim_z * 2, dim_w_over)
 
         self.weight_init()
 
