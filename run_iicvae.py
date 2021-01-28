@@ -128,8 +128,8 @@ def main(args):
         total_dict = defaultdict(lambda: 0)
         for x, _ in tqdm(train_loader):
             x = x.to(device)
-            mi, mi_over = model(x, lam=args.lam, detach=args.z_detach)
-            loss = sum([mi, mi_over])
+            mi, mi_over, kl_gauss = model(x, lam=args.lam)
+            loss = sum([mi, mi_over, kl_gauss])
             optim.zero_grad()
             loss.backward()
             optim.step()
@@ -137,6 +137,7 @@ def main(args):
             total_dict["total loss"] += loss.item()
             total_dict["mutual information loss"] += mi.item()
             total_dict["mutual information loss for overclustering"] += mi_over.item()
+            total_dict["gaussian kl divergence"] += kl_gauss.item()
         for key, value in total_dict.items():
             print("{}: {:.3f} at epoch: {}".format(key, value, epoch))
             stats[key].append(value)

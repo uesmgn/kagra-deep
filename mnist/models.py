@@ -535,7 +535,8 @@ class IIC_VAE(nn.Module):
                 except:
                     continue
 
-    def forward(self, x, lam=1.0, detach=True):
+    def forward(self, x, lam=1.0, detach=False):
+        b = x.shape[0]
         h = self.encoder(x)
         z_mean, z_logvar = self.mean(h), self.logvar(h)
         if detach:
@@ -545,7 +546,8 @@ class IIC_VAE(nn.Module):
         w_v_over, w_u_over = self.over_clustering(z_mean), self.over_clustering(z)
         mi = self.mutual_info(w_v, w_u, lam=lam)
         mi_over = self.mutual_info(w_v_over, w_u_over, lam=lam)
-        return mi, mi_over
+        kl_gauss = self.kl_gauss(z_mean, z_logvar, torch.zeros_like(z_mean), torch.ones_like(z_logvar)) / b
+        return mi, mi_over, kl_gauss
 
     def get_params(self, x):
         assert not self.training
@@ -582,6 +584,9 @@ class IIC_VAE(nn.Module):
         eps = torch.randn_like(mean)
         x = mean + eps * std
         return x
+
+    def kl_gauss(self, mean_p, logvar_p, mean_q, logvar_q):
+        return -0.5 * torch.sum(logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp())
 
     def mutual_info(self, x, y, lam=1.0, eps=1e-8):
         if x.ndim == 2:
