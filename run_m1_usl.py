@@ -95,12 +95,11 @@ def main(args):
 
     if torch.cuda.is_available():
         device = torch.device("cuda")
-        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = True
+        # torch.backends.cudnn.deterministic = True
     else:
         device = torch.device("cpu")
 
-    if torch.cuda.is_available():
-        torch.backends.cudnn.benchmark = True
     model = VAE(ch_in=args.ch_in, dim_z=args.dim_z).to(device)
     if args.load_state_dict:
         try:

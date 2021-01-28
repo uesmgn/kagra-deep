@@ -100,12 +100,11 @@ def main(args):
 
     if torch.cuda.is_available():
         device = torch.device("cuda")
-        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = True
+        # torch.backends.cudnn.deterministic = True
     else:
         device = torch.device("cpu")
 
-    if torch.cuda.is_available():
-        torch.backends.cudnn.benchmark = True
     model = IIC(
         ch_in=args.ch_in,
         dim_w=args.dim_w,

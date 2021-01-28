@@ -93,13 +93,12 @@ def main(args):
     )
 
     if torch.cuda.is_available():
-        device = torch.device("cuda:1")
-        torch.backends.cudnn.deterministic = True
+        device = torch.device("cuda")
+        torch.backends.cudnn.benchmark = True
+        # torch.backends.cudnn.deterministic = True
     else:
         device = torch.device("cpu")
 
-    if torch.cuda.is_available():
-        torch.backends.cudnn.benchmark = True
     model = AE(ch_in=args.ch_in, dim_z=args.dim_z).to(device)
     if args.load_state_dict:
         model.load_state_dict_part(torch.load(args.model_path))
