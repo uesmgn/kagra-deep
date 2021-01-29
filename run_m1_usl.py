@@ -119,7 +119,7 @@ def main(args):
         for x, _ in tqdm(train_loader):
             x = x.to(device)
             bce, kl_gauss = model(x)
-            loss = sum([bce, args.beta * 0.005 * kl_gauss])
+            loss = sum([bce, args.beta * kl_gauss])
             optim.zero_grad()
             loss.backward()
             optim.step()
