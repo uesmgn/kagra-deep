@@ -27,10 +27,10 @@ dim_z: 256
 beta: 1
 train_size: 0.7
 labeled_size: 0.1
-batch_size: 144
+batch_size: 192
 num_workers: 4
 lr: 5e-4
-num_train_steps: 100
+num_train_steps: 500
 test_interval: 10
 eval_interval: 20
 save_interval: 20
