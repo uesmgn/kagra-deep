@@ -349,8 +349,7 @@ def main(args):
                     simmat = cosine_similarity(torch.from_numpy(hg)).numpy()
                     print("Computing cosine distance reordered matrix...")
                     dist_mat, reordered, _ = compute_serial_matrix(simmat)
-                    simmat[simmat == np.nan] = 0
-                    simmat[simmat == np.inf] = 0
+                    simmat = simmat[(np.isnan(simmat) == False) & (np.isinf(simmat) == False)]
                     pred_ensembled = sc.fit(simmat).labels_
                     simmat_reordered = simmat[reordered][:, reordered]
                 else:
