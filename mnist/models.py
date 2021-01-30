@@ -333,13 +333,13 @@ class VAE(nn.Module):
                 except:
                     continue
 
-    def forward(self, x):
+    def forward(self, x, x_):
         b = x.shape[0]
-        h = self.encoder(x)
+        h = self.encoder(x_)
         z_mean, z_logvar = self.mean(h), self.logvar(h)
         z = self.reparameterize(z_mean, z_logvar)
-        x_ = self.decoder(z)
-        bce = self.bce(x, x_) / b
+        x_reconst = self.decoder(z)
+        bce = self.bce(x, x_reconst) / b
         kl_gauss = self.kl_gauss(z_mean, z_logvar) / b
         return bce, kl_gauss
 
