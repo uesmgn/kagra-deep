@@ -286,10 +286,10 @@ def main(args):
                     pred_classes = np.unique(pred_i)
                     fig, ax = plt.subplots()
                     cmap = segmented_cmap(len(pred_classes), "Paired")
-                    for k in pred_classes:
+                    for l, k in enumerate(pred_classes):
                         idx = np.where(pred_i == k)[0]
                         if len(idx) > 0:
-                            c = cmap(k)
+                            c = cmap(l)
                             ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=k, edgecolors=darken(c))
                     ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=len(pred_classes) // 25 + 1)
                     ax.set_title(r"t-SNE 2D plot of latent code with classifier %d at epoch %d" % (i, epoch))
