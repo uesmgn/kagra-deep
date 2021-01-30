@@ -212,6 +212,7 @@ def main(args):
                 acc = n_true / cm.sum()
                 print(f"acc= {acc:.3f} on classifier {i}")
                 stats_test_acc[f"classifier {i}"].append(acc)
+                top_i = np.argmax(accs)
 
                 fig, ax = plt.subplots(figsize=(20, 8))
                 ax.bar(np.arange(len(new_labels)), accs, tick_label=new_labels, align="center", color="cadetblue")
@@ -311,7 +312,7 @@ def main(args):
                         cbar_kws={"aspect": 50, "pad": 0.01, "anchor": (0, 0.05)},
                     )
                     plt.yticks(rotation=45)
-                    plt.xlabel("predicted labels")
+                    plt.xlabel("new labels")
                     plt.ylabel("true labels")
                     ax.set_title(r"confusion matrix at epoch %d with classifier %d" % (epoch, i))
                     plt.tight_layout()
@@ -330,7 +331,7 @@ def main(args):
                         cbar_kws={"aspect": 50, "pad": 0.01, "anchor": (0, 0.05)},
                     )
                     plt.yticks(rotation=45)
-                    plt.xlabel("predicted labels (overclustering)")
+                    plt.xlabel("new labels (overclustering)")
                     plt.ylabel("true labels")
                     ax.set_title(r"confusion matrix for overclustering at epoch %d with classifier %d" % (epoch, i))
                     plt.tight_layout()
@@ -372,7 +373,7 @@ def main(args):
                     cbar_kws={"aspect": 50, "pad": 0.01, "anchor": (0, 0.05)},
                 )
                 plt.yticks(rotation=45)
-                plt.xlabel("ensemble predicted labels")
+                plt.xlabel("ensemble new labels")
                 plt.ylabel("true labels")
                 ax.set_title(r"confusion matrix at epoch %d with ensemble" % (epoch))
                 plt.tight_layout()
@@ -453,7 +454,7 @@ def main(args):
                 im1 = grid[1].imshow(pred_ensemble[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(len(pred_classes), "Paired"))
                 grid[1].set_xticklabels([])
                 grid[1].set_yticklabels([])
-                grid[1].set_ylabel("predicted")
+                grid[1].set_ylabel("new labels")
                 axins1 = inset_axes(
                     grid[1],
                     height=0.2,
@@ -469,6 +470,110 @@ def main(args):
                 # plt.setp(axins1.get_xticklabels(), rotation=45, horizontalalignment="right")
                 axins1.xaxis.set_ticks_position("bottom")
                 plt.savefig(f"simmat_ensemble_e{epoch}.png", bbox_inches="tight", dpi=300)
+                plt.close()
+
+                silhouette_vals = silhouette_samples(qz, pred)
+                cmap = segmented_cmap(len(args.targets), "Paired")
+                fig, ax = plt.subplots(figsize=[12, 18])
+                y_ax_lower, y_ax_upper = 0, 0
+                yticks = []
+                silhouette_means = []
+                silhouette_positions = []
+                silhouette_colors = []
+                for i in np.unique(y)[::-1]:
+                    silhouette_vals_i = silhouette_vals[y == i]
+                    silhouette_vals_i.sort()
+                    silhouette_means.append(np.mean(silhouette_vals_i))
+                    y_ax_upper = y_ax_lower + len(silhouette_vals_i)
+                    c = cmap(i)
+                    plt.barh(
+                        range(y_ax_lower, y_ax_upper),
+                        silhouette_vals_i,
+                        height=1.0,
+                        edgecolor="none",
+                        color=c,
+                        alpha=0.8,
+                        zorder=1,
+                    )
+                    pos = (y_ax_lower + y_ax_upper) / 2
+                    silhouette_positions.append(pos)
+                    silhouette_colors.append(darken(c))
+
+                    y_ax_lower = y_ax_upper + 50  # 10 for the 0 samples
+
+                ax.set_title("silhouette coefficient at epoch %d" % (epoch))
+                ax.set_xlabel("silhouette coefficient")
+                ax.set_ylabel("labels")
+                ax.plot(silhouette_means, silhouette_positions, c="k", linestyle="dashed", linewidth=2.0, zorder=2)
+                # ax.scatter(silhouette_means, silhouette_positions, c=silhouette_colors, zorder=4)
+                ax.axvline(np.mean(silhouette_vals), c="r", linestyle="dashed", linewidth=2.0, zorder=3)
+                ax.legend(
+                    [
+                        Line2D([0], [0], c="r", linestyle="dashed", linewidth=2.0),
+                        Line2D([0], [0], color="k", linestyle="dashed", linewidth=2.0),
+                    ],
+                    ["average", "average for each label"],
+                    loc="upper right",
+                )
+                ax.set_ylim([0, y_ax_upper])
+                plt.yticks(silhouette_positions, targets[::-1], rotation=45)
+                plt.tight_layout()
+                plt.savefig(f"silhouette_e{epoch}.png")
+                plt.close()
+
+                try:
+                    pred_i = pred[:, top_i]
+                except:
+                    pred_i = pred
+                new_labels = np.unique(pred_i)
+
+                silhouette_vals = silhouette_samples(qz, pred_i)
+                cmap = segmented_cmap(len(new_labels), "Paired")
+                fig, ax = plt.subplots(figsize=[12, 18])
+                y_ax_lower, y_ax_upper = 0, 0
+                yticks = []
+                silhouette_means = []
+                silhouette_positions = []
+                silhouette_colors = []
+                for i in new_labels[::-1]:
+                    silhouette_vals_i = silhouette_vals[pred_i == i]
+                    silhouette_vals_i.sort()
+                    silhouette_means.append(np.mean(silhouette_vals_i))
+                    y_ax_upper = y_ax_lower + len(silhouette_vals_i)
+                    c = cmap(i)
+                    plt.barh(
+                        range(y_ax_lower, y_ax_upper),
+                        silhouette_vals_i,
+                        height=1.0,
+                        edgecolor="none",
+                        color=c,
+                        alpha=0.8,
+                        zorder=1,
+                    )
+                    pos = (y_ax_lower + y_ax_upper) / 2
+                    silhouette_positions.append(pos)
+                    silhouette_colors.append(darken(c))
+
+                    y_ax_lower = y_ax_upper + 50  # 10 for the 0 samples
+
+                ax.set_title("silhouette coefficient at epoch %d" % (epoch))
+                ax.set_xlabel("silhouette coefficient")
+                ax.set_ylabel("new labels")
+                ax.plot(silhouette_means, silhouette_positions, c="k", linestyle="dashed", linewidth=2.0, zorder=2)
+                # ax.scatter(silhouette_means, silhouette_positions, c=silhouette_colors, zorder=4)
+                ax.axvline(np.mean(silhouette_vals), c="r", linestyle="dashed", linewidth=2.0, zorder=3)
+                ax.legend(
+                    [
+                        Line2D([0], [0], c="r", linestyle="dashed", linewidth=2.0),
+                        Line2D([0], [0], color="k", linestyle="dashed", linewidth=2.0),
+                    ],
+                    ["average", "average for each label"],
+                    loc="upper right",
+                )
+                ax.set_ylim([0, y_ax_upper])
+                plt.yticks(silhouette_positions, new_labels[::-1], rotation=45)
+                plt.tight_layout()
+                plt.savefig(f"silhouette_new_e{epoch}.png")
                 plt.close()
 
                 # if args.num_heads > 1:
