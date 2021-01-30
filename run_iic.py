@@ -341,53 +341,24 @@ def main(args):
 
                 # caluculate cosine similarity matrix
                 if args.num_heads > 1:
-                    hg = torch.cat(params["pi"]).view(num_samples, -1).numpy().astype(float)
-                    try:
-                        hg = PCA(n_components=64).fit_transform(hg)
-                    except:
-                        pass
+                    hg = torch.cat(params["pi"])[..., top_i]
+                    # hg = torch.cat(params["pi"]).view(num_samples, -1).numpy().astype(float)
+                    # try:
+                    #     hg = PCA(n_components=64).fit_transform(hg)
+                    # except:
+                    #     pass
                     print("Computing cosine similarity matrix...")
-                    simmat = cosine_similarity(torch.from_numpy(hg)).numpy()
+                    simmat = cosine_similarity(hg).numpy()
                     print("Computing cosine distance reordered matrix...")
                     dist_mat, reordered, _ = compute_serial_matrix(simmat)
-                    pred_ensemble = sc.fit(simmat).labels_
+                    pred_top_i = pred[:, top_i]
                     simmat_reordered = simmat[reordered][:, reordered]
                 else:
                     hg = torch.cat(params["pi"]).view(num_samples, -1).numpy().astype(float)
                     simmat = cosine_similarity(torch.from_numpy(hg))
                     dist_mat, reordered, _ = compute_serial_matrix(simmat)
                     simmat_reordered = simmat[reordered][:, reordered]
-
-                cm = confusion_matrix(y, pred_ensemble, labels=list(range(args.dim_w)))
-                cm = cm[: args.num_classes, :]
-                cmn = normalize(cm, axis=0)
-                print(f"plotting confusion matrix of classifier {i}")
-                fig, ax = plt.subplots()
-                sns.heatmap(
-                    cmn,
-                    ax=ax,
-                    linewidths=0.1,
-                    linecolor="gray",
-                    cmap="afmhot_r",
-                    cbar=True,
-                    yticklabels=targets,
-                    cbar_kws={"aspect": 50, "pad": 0.01, "anchor": (0, 0.05)},
-                )
-                plt.yticks(rotation=45)
-                plt.xlabel("ensemble new labels")
-                plt.ylabel("true labels")
-                ax.set_title(r"confusion matrix at epoch %d with ensemble" % (epoch))
-                plt.tight_layout()
-                plt.savefig(f"cm_ensemble_e{epoch}.png", dpi=300)
-                plt.close()
-
-                indices = np.argmax(cm, axis=0)
-                n_true = 0
-                for l, m in enumerate(indices):
-                    cmi = cm[:, l]
-                    n_true += cmi[m]
-                acc = n_true / cm.sum()
-                print(f"acc= {acc:.3f} on ensemble")
+                    pred_top_i = pred
 
                 figure = plt.figure()
                 grid = ImageGrid(figure, 111, nrows_ncols=(2, 1), axes_pad=0.05)
@@ -451,8 +422,8 @@ def main(args):
                 cb0.set_ticks(np.linspace(-1, 1, 5))
                 axins0.xaxis.set_ticks_position("top")
 
-                pred_classes = np.unique(pred_ensemble)
-                im1 = grid[1].imshow(pred_ensemble[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(len(pred_classes), "Paired"))
+                pred_classes = np.unique(pred_top_i)
+                im1 = grid[1].imshow(pred_top_i[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(len(pred_classes), "Paired"))
                 grid[1].set_xticklabels([])
                 grid[1].set_yticklabels([])
                 grid[1].set_ylabel("new labels")
@@ -470,7 +441,7 @@ def main(args):
                 cb1.set_ticks(np.arange(0, len(pred_classes), 5))
                 # plt.setp(axins1.get_xticklabels(), rotation=45, horizontalalignment="right")
                 axins1.xaxis.set_ticks_position("bottom")
-                plt.savefig(f"simmat_ensemble_e{epoch}.png", bbox_inches="tight", dpi=300)
+                plt.savefig(f"simmat_top_i_e{epoch}.png", bbox_inches="tight", dpi=300)
                 plt.close()
 
                 silhouette_vals = silhouette_samples(qz, y)
