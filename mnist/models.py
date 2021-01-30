@@ -437,7 +437,7 @@ class IIC(nn.Module):
     def get_params(self, x):
         assert not self.training
         z = self.encoder(x)
-        z = self.mean(z)
+        z = self.fc(z)
         w = self.clustering(z)
         w_over = self.over_clustering(z)
         return z, w, w_over
