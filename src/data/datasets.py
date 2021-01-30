@@ -130,7 +130,7 @@ class HDF5(data.Dataset):
         return x
 
 
-def co(ds, tansform, augment):
+def co(ds, tansform, augment, l=5):
     assert hasattr(ds, "transform")
-    ds.transform = tf.Lambda(lambda x: (tansform(x), augment(x)))
+    ds.transform = tf.Lambda(lambda x: (tansform(x), *[augment(x) for _ in range(l)]))
     return ds

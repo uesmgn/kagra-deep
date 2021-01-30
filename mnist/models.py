@@ -363,7 +363,7 @@ class VAE(nn.Module):
 
 
 class IIC(nn.Module):
-    def __init__(self, ch_in, dim_w=30, dim_w_over=100, dim_z=512, num_heads=10, transform_fn=None, augment_fn=None):
+    def __init__(self, ch_in, dim_w=30, dim_w_over=100, dim_z=512, num_heads=10):
         super().__init__()
         self.use_multi_heads = num_heads > 1
         self.num_heads = num_heads
@@ -374,9 +374,6 @@ class IIC(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
         )
         self.sub_encoder = Encoder(ch_in, dim_z)
-
-        self.transform_fn = transform_fn
-        self.augment_fn = augment_fn
 
         if self.use_multi_heads:
             self.classifier = nn.ModuleList([self.gen_classifier(dim_z, dim_w) for _ in range(self.num_heads)])
@@ -420,15 +417,13 @@ class IIC(nn.Module):
                 except:
                     continue
 
-    def forward(self, data, lam=1.0, l=5):
+    def forward(self, x, *args, lam=1.0, l=5):
         mi, mi_over = 0, 0
-        x = self.transform_fn(data)
         z_x = self.encoder(x)
         z_x = self.mean(z_x).detach()
         w_v = self.clustering(z_x)
         w_v_over = self.over_clustering(z_x)
-        for i in range(l):
-            y = self.augment_fn(data)
+        for y in args:
             z_y = self.encoder(y)
             z_y = self.mean(z_y).detach()
             w_u = self.clustering(z_y)
