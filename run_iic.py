@@ -349,7 +349,7 @@ def main(args):
                     simmat = cosine_similarity(torch.from_numpy(hg)).numpy()
                     print("Computing cosine distance reordered matrix...")
                     dist_mat, reordered, _ = compute_serial_matrix(simmat)
-                    pred_ensembled = sc.fit(simmat).labels_
+                    pred_ensemble = sc.fit(simmat).labels_
                     simmat_reordered = simmat[reordered][:, reordered]
                 else:
                     hg = torch.cat(params["pi"]).view(num_samples, -1).numpy().astype(float)
@@ -357,7 +357,7 @@ def main(args):
                     dist_mat, reordered, _ = compute_serial_matrix(simmat)
                     simmat_reordered = simmat[reordered][:, reordered]
 
-                cm = confusion_matrix(y, pred_ensembled, labels=list(range(args.dim_w)))
+                cm = confusion_matrix(y, pred_ensemble, labels=list(range(args.dim_w)))
                 cm = cm[: args.num_classes, :]
                 cmn = normalize(cm, axis=0)
                 print(f"plotting confusion matrix of classifier {i}")
@@ -475,7 +475,7 @@ def main(args):
                 # if args.num_heads > 1:
                 #     print(f"Plotting confusion matrix with ensembled label as head {i}...")
                 #     fig, ax = plt.subplots()
-                #     cm = confusion_matrix(y, pred_ensembled, labels=list(range(args.dim_w)))
+                #     cm = confusion_matrix(y, pred_ensemble, labels=list(range(args.dim_w)))
                 #     cm = cm[: args.num_classes, :]
                 #     cmn = normalize(cm, axis=0)
                 #     sns.heatmap(
@@ -540,13 +540,13 @@ def main(args):
 
                 # print(f"Plotting t-SNE 2D latent features with pred labels...")
                 # fig, ax = plt.subplots()
-                # cmap = segmented_cmap(len(np.unique(pred_ensembled)), "Paired")
-                # for i, l in enumerate(np.unique(pred_ensembled)):
+                # cmap = segmented_cmap(len(np.unique(pred_ensemble)), "Paired")
+                # for i, l in enumerate(np.unique(pred_ensemble)):
                 #     idx = np.where(pred == l)[0]
                 #     if len(idx) > 0:
                 #         c = cmap(i)
                 #         ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=l, edgecolors=darken(c))
-                # ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=len(np.unique(pred_ensembled)) // 25 + 1)
+                # ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=len(np.unique(pred_ensemble)) // 25 + 1)
                 # ax.set_title(r"t-SNE 2D plot  of latent codes with ensemble predicted labels at epoch %d" % (epoch))
                 # ax.set_aspect(1.0 / ax.get_data_ratio())
                 # plt.tight_layout()
