@@ -178,7 +178,7 @@ def main(args):
 
         if epoch % args.eval_interval == 0:
             y_lower = 10
-            cmap = segmented_cmap(len(args.targets), "Paired")
+            cmap = segmented_cmap(len(args.targets), "tab10")
             fig, ax = plt.subplots(figsize=[12, 18])
             y_ax_lower, y_ax_upper = 0, 0
             yticks = []
@@ -233,7 +233,7 @@ def main(args):
 
             print(f"Plotting 2D latent features with true labels...")
             fig, ax = plt.subplots()
-            cmap = segmented_cmap(args.num_classes, "Paired")
+            cmap = segmented_cmap(args.num_classes, "tab10")
             for i in range(args.num_classes):
                 idx = np.where(y == i)[0]
                 if len(idx) > 0:
@@ -247,7 +247,7 @@ def main(args):
             plt.close()
 
             fig, ax = plt.subplots()
-            cmap = segmented_cmap(args.num_classes, "Paired")
+            cmap = segmented_cmap(args.num_classes, "tab10")
             for i in range(args.num_classes):
                 idx = np.where(y == i)[0]
                 if len(idx) > 0:
