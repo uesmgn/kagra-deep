@@ -227,9 +227,9 @@ def main(args):
             plt.close()
 
             print("t-SNE decomposing...")
-            qz_tsne = TSNE(n_components=2, random_state=args.seed).fit(qz).embedding_
+            qz_tsne = TSNE(n_components=2, metric="cosine", random_state=args.seed).fit(qz).embedding_
             print("UMAP decomposing...")
-            qz_umap = UMAP(n_components=2, min_dist=0.2, random_state=args.seed).fit(qz).embedding_
+            qz_umap = UMAP(n_components=2, metric="cosine", random_state=args.seed).fit(qz).embedding_
 
             print(f"Plotting 2D latent features with true labels...")
             fig, ax = plt.subplots()
