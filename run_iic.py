@@ -380,6 +380,14 @@ def main(args):
                 plt.savefig(f"cm_ensemble_e{epoch}.png", dpi=300)
                 plt.close()
 
+                indices = np.argmax(cm, axis=0)
+                n_true = 0
+                for l, m in enumerate(indices):
+                    cmi = cm[:, l]
+                    n_true += cmi[m]
+                acc = n_true / cm.sum()
+                print(f"acc= {acc:.3f} on ensemble")
+
                 figure = plt.figure()
                 grid = ImageGrid(figure, 111, nrows_ncols=(2, 1), axes_pad=0.05)
                 im0 = grid[0].imshow(simmat_reordered, aspect=1)
@@ -420,6 +428,48 @@ def main(args):
                 plt.setp(axins1.get_xticklabels(), rotation=45, horizontalalignment="right")
                 axins1.xaxis.set_ticks_position("bottom")
                 plt.savefig(f"simmat_e{epoch}.png", bbox_inches="tight", dpi=300)
+                plt.close()
+
+                figure = plt.figure()
+                grid = ImageGrid(figure, 111, nrows_ncols=(2, 1), axes_pad=0.05)
+                im0 = grid[0].imshow(simmat_reordered, aspect=1)
+                grid[0].set_xticklabels([])
+                grid[0].set_yticklabels([])
+                grid[0].set_ylabel("cosine similarity")
+                axins0 = inset_axes(
+                    grid[0],
+                    height=0.2,
+                    width="100%",
+                    loc="upper left",
+                    bbox_to_anchor=(0, 0.05, 1, 1),
+                    bbox_transform=grid[0].transAxes,
+                    borderpad=0,
+                )
+                im0.set_clim(0, 1)
+                cb0 = plt.colorbar(im0, cax=axins0, orientation="horizontal")
+                cb0.set_ticks(np.linspace(-1, 1, 5))
+                axins0.xaxis.set_ticks_position("top")
+
+                pred_classes = np.unique(pred_ensemble)
+                im1 = grid[1].imshow(pred_ensemble[reordered][np.newaxis, :], aspect=100, cmap=segmented_cmap(len(pred_classes), "Paired"))
+                grid[1].set_xticklabels([])
+                grid[1].set_yticklabels([])
+                grid[1].set_ylabel("predicted")
+                axins1 = inset_axes(
+                    grid[1],
+                    height=0.2,
+                    width="100%",
+                    loc="lower left",
+                    bbox_to_anchor=(0, -0.95, 1, 1),
+                    bbox_transform=grid[1].transAxes,
+                    borderpad=0,
+                )
+                im1.set_clim(0 - 0.5, len(pred_classes) - 0.5)
+                cb1 = plt.colorbar(im1, cax=axins1, orientation="horizontal")
+                cb1.set_ticks(np.arange(0, len(pred_classes), 5))
+                # plt.setp(axins1.get_xticklabels(), rotation=45, horizontalalignment="right")
+                axins1.xaxis.set_ticks_position("bottom")
+                plt.savefig(f"simmat_ensemble_e{epoch}.png", bbox_inches="tight", dpi=300)
                 plt.close()
 
                 # if args.num_heads > 1:
