@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import numpy as np
+import random
 from collections import abc
 
 
@@ -335,7 +336,10 @@ class VAE(nn.Module):
 
     def forward(self, x):
         b = x.shape[0]
-        h = self.encoder(x)
+        j = random.randint(0, 48)
+        x_ = x[:, :, j : 224 + j, :]
+        x = x[:, :, 24 : 224 + 24, :]
+        h = self.encoder(x_)
         z_mean, z_logvar = self.mean(h), self.logvar(h)
         z = self.reparameterize(z_mean, z_logvar)
         x_reconst = self.decoder(z)
