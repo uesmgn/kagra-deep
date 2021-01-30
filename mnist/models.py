@@ -358,7 +358,7 @@ class VAE(nn.Module):
         return F.binary_cross_entropy(x_recon, x, reduction="sum")
 
     def kl_gauss(self, mu, logvar):
-        return -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp())
+        return -0.5 * torch.sum(1 + logvar - mu ** 2 - logvar.exp())
         # return -0.5 * torch.sum(logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp())
 
 
