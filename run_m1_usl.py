@@ -72,7 +72,7 @@ def main(args):
 
     dataset = datasets.HDF5(args.dataset_root, transform_fn, target_transform_fn)
     train_set, test_set = copy.copy(dataset), dataset.sample(args.num_test_samples, stratify=dataset.targets)
-    train_set.transform = datasets.co(transform_fn, augment_fn, l=1)
+    train_set = datasets.co(train_set, transform_fn, augment_fn, l=1)
 
     def sampler_callback(ds, num_samples):
         return samplers.Upsampler(ds, num_samples)
