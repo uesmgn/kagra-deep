@@ -368,7 +368,7 @@ class IIC(nn.Module):
         self.use_multi_heads = num_heads > 1
         self.num_heads = num_heads
         self.encoder = Encoder(ch_in, 1024)
-        self.fc = nn.Sequential(
+        self.mean = nn.Sequential(
             nn.Linear(1024, dim_z, bias=False),
             nn.BatchNorm1d(dim_z),
             nn.LeakyReLU(0.2, inplace=True),
@@ -420,13 +420,13 @@ class IIC(nn.Module):
 
     def forward(self, x, *args, lam=1.0, l=5, detach=False):
         mi, mi_over = 0, 0
-        z_x = self.encoder(x).detach() if detach else self.encoder(x)
-        z_x = self.fc(z_x)
+        z_x = self.encoder(x)
+        z_x = self.mean(z_x).detach() if detach else self.mean(z_x)
         w_v = self.clustering(z_x)
         w_v_over = self.over_clustering(z_x)
         for y in args:
-            z_y = self.encoder(y.to(x.device)).detach() if detach else self.encoder(y.to(x.device))
-            z_y = self.fc(z_y)
+            z_y = self.encoder(y.to(x.device))
+            z_y = self.mean(z_y).detach() if detach else self.mean(z_y)
             w_u = self.clustering(z_y)
             w_u_over = self.over_clustering(z_y)
             mi += self.mutual_info(w_v, w_u, lam=lam)
@@ -437,7 +437,7 @@ class IIC(nn.Module):
     def get_params(self, x):
         assert not self.training
         z = self.encoder(x)
-        z = self.fc(z)
+        z = self.mean(z)
         w = self.clustering(z)
         w_over = self.over_clustering(z)
         return z, w, w_over
