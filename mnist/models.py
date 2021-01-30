@@ -363,7 +363,7 @@ class VAE(nn.Module):
 
 
 class IIC(nn.Module):
-    def __init__(self, ch_in, dim_w=30, dim_w_over=100, dim_z=512, num_heads=10):
+    def __init__(self, ch_in, dim_w=30, dim_w_over=100, dim_z=512, num_heads=10, tranform_fn=None, augment_fn=None):
         super().__init__()
         self.use_multi_heads = num_heads > 1
         self.num_heads = num_heads
@@ -374,6 +374,9 @@ class IIC(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
         )
         self.sub_encoder = Encoder(ch_in, dim_z)
+
+        self.tranform_fn = tranform_fn
+        self.augment_fn = augment_fn
 
         if self.use_multi_heads:
             self.classifier = nn.ModuleList([self.gen_classifier(dim_z, dim_w) for _ in range(self.num_heads)])
@@ -417,15 +420,22 @@ class IIC(nn.Module):
                 except:
                     continue
 
-    def forward(self, x, y, lam=1.0, detach=True):
-        z_x, z_y = self.encoder(x), self.encoder(y)
-        z_x, z_y = self.mean(z_x), self.mean(z_y)
-        if detach:
-            z_x, z_y = z_x.detach(), z_y.detach()
-        w_v, w_u = self.clustering(z_x), self.clustering(z_y)
-        w_v_over, w_u_over = self.over_clustering(z_x), self.over_clustering(z_y)
-        mi = self.mutual_info(w_v, w_u, lam=lam)
-        mi_over = self.mutual_info(w_v_over, w_u_over, lam=lam)
+    def forward(self, data, lam=1.0, l=5):
+        mi, mi_over = 0, 0
+        x = self.tranform_fn(data)
+        z_x = self.encoder(x)
+        z_x = self.mean(z_x).detach()
+        w_v = self.clustering(z_x)
+        w_v_over = self.over_clustering(z_x)
+        for i in range(l):
+            y = self.augment_fn(data)
+            z_y = self.encoder(y)
+            z_y = self.mean(z_y).detach()
+            w_u = self.clustering(z_y)
+            w_u_over = self.over_clustering(z_y)
+            mi += self.mutual_info(w_v, w_u, lam=lam)
+            mi_over += self.mutual_info(w_v_over, w_u_over, lam=lam)
+        mi, mi_over = mi / l, mi_over / l
         return mi, mi_over
 
     def get_params(self, x):
