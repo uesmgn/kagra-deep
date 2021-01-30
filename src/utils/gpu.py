@@ -5,6 +5,7 @@ import time
 def getTemp():
     cmd = "nvidia-smi", "--query-gpu=temperature.gpu", "--format=csv,noheader"
     temperature = int(subprocess.check_output(cmd))
+    maxtemp = max([int(tmp) for tmp in subprocess.check_output(cmd).split()])
     return temperature
 
 
