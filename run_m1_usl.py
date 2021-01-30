@@ -117,6 +117,7 @@ def main(args):
         model.train()
         total = 0
         total_dict = defaultdict(lambda: 0)
+        step = 0
         for (x, x_), _ in tqdm(train_loader):
             x = x.to(device)
             x_ = x_.to(device)
@@ -130,8 +131,9 @@ def main(args):
             total_dict["binary cross entropy"] += bce.item()
             total_dict["gaussian kl divergence"] += kl_gauss.item()
 
-            if i % 20 == 0:
+            if step % 20 == 0:
                 gpu.coolGPU()
+            step += 1
 
         for key, value in total_dict.items():
             print("{}: {:.3f} at epoch: {}".format(key, value, epoch))
