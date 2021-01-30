@@ -11,7 +11,7 @@ load_state_dict: False
 z_detach: True
 num_test_samples: 2000
 l: 5
-lam: 1.1
+lam: 1.2
 use_multi_heads: True
 num_ranking: 5
 num_heads: 5
@@ -24,13 +24,13 @@ num_classes: 22
 num_pred_classes: 50
 dim_w: 50
 dim_w_over: 250
-dim_z: 256
+dim_z: 512
 beta: 1
 train_size: 0.7
 labeled_size: 0.1
-batch_size: 256
+batch_size: 128
 num_workers: 4
-lr: 3e-4
+lr: 1e-4
 num_train_steps: 100
 test_interval: 10
 eval_interval: 50
