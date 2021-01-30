@@ -122,6 +122,8 @@ def main(args):
 
     stats = defaultdict(lambda: [])
     stats_test_acc = defaultdict(lambda: [])
+    sc = SpectralClustering(n_clusters=args.dim_w, random_state=args.seed, assign_labels="discretize", n_jobs=-1)
+    tsne = TSNE(n_components=2, random_state=args.seed)
 
     for epoch in range(args.num_epochs):
         print(f"----- training at epoch {epoch} -----")
@@ -257,7 +259,45 @@ def main(args):
                 plt.close()
 
             if epoch % args.eval_interval == 0:
+                print("t-SNE decomposing...")
+                qz_tsne = tsne.fit(qz).embedding_
+
+                print(f"Plotting t-SNE 2D latent features with true labels...")
+                fig, ax = plt.subplots()
+                cmap = segmented_cmap(args.num_classes, "Paired")
+                for i in range(args.num_classes):
+                    idx = np.where(y == i)[0]
+                    if len(idx) > 0:
+                        c = cmap(i)
+                        ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
+                ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=len(targets) // 25 + 1)
+                ax.set_title(r"t-SNE 2D plot of latent code with true labels at epoch %d" % (epoch))
+                ax.set_aspect(1.0 / ax.get_data_ratio())
+                plt.tight_layout()
+                plt.savefig(f"qz_tsne_true_e{epoch}.png", dpi=300)
+                plt.close()
+
                 for i in range(args.num_heads):
+                    print(f"Plotting t-SNE 2D latent features with classifier {i}...")
+                    try:
+                        pred_i = pred[:, i]
+                    except:
+                        pred_i = pred
+                    pred_classes = np.unique(pred_i)
+                    fig, ax = plt.subplots()
+                    cmap = segmented_cmap(len(pred_classes), "Paired")
+                    for i in pred_classes:
+                        idx = np.where(pred_i == i)[0]
+                        if len(idx) > 0:
+                            c = cmap(i)
+                            ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=i, edgecolors=darken(c))
+                    ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=len(pred_classes) // 25 + 1)
+                    ax.set_title(r"t-SNE 2D plot of latent code with classifier %d at epoch %d" % (i, epoch))
+                    ax.set_aspect(1.0 / ax.get_data_ratio())
+                    plt.tight_layout()
+                    plt.savefig(f"qz_tsne_c{i}_e{epoch}.png", dpi=300)
+                    plt.close()
+
                     print(f"plotting confusion matrix of classifier {i}")
                     cmn, cmn_over = cms[i], cms_over[i]
                     fig, ax = plt.subplots()
@@ -309,13 +349,36 @@ def main(args):
                     simmat = cosine_similarity(torch.from_numpy(hg))
                     print("Computing cosine distance reordered matrix...")
                     dist_mat, reordered, _ = compute_serial_matrix(simmat)
-                    pred_ensembled = SpectralClustering(n_clusters=args.dim_w, random_state=args.seed).fit(simmat).labels_
+                    pred_ensembled = sc.fit(simmat).labels_
                     simmat_reordered = simmat[reordered][:, reordered]
                 else:
                     hg = torch.cat(params["pi"]).view(num_samples, -1).numpy().astype(float)
                     simmat = cosine_similarity(torch.from_numpy(hg))
                     dist_mat, reordered, _ = compute_serial_matrix(simmat)
                     simmat_reordered = simmat[reordered][:, reordered]
+
+                cm = confusion_matrix(y, pred_i, labels=list(range(args.dim_w)))
+                cm = cm[: args.num_classes, :]
+                cmn = normalize(cm, axis=0)
+                print(f"plotting confusion matrix of classifier {i}")
+                fig, ax = plt.subplots()
+                sns.heatmap(
+                    cmn,
+                    ax=ax,
+                    linewidths=0.1,
+                    linecolor="gray",
+                    cmap="afmhot_r",
+                    cbar=True,
+                    yticklabels=targets,
+                    cbar_kws={"aspect": 50, "pad": 0.01, "anchor": (0, 0.05)},
+                )
+                plt.yticks(rotation=45)
+                plt.xlabel("ensemble predicted labels")
+                plt.ylabel("true labels")
+                ax.set_title(r"confusion matrix at epoch %d with ensemble" % (epoch))
+                plt.tight_layout()
+                plt.savefig(f"cm_ensemble_e{epoch}.png", dpi=300)
+                plt.close()
 
                 figure = plt.figure()
                 grid = ImageGrid(figure, 111, nrows_ncols=(2, 1), axes_pad=0.05)
@@ -357,24 +420,6 @@ def main(args):
                 plt.setp(axins1.get_xticklabels(), rotation=45, horizontalalignment="right")
                 axins1.xaxis.set_ticks_position("bottom")
                 plt.savefig(f"simmat_e{epoch}.png", bbox_inches="tight", dpi=300)
-                plt.close()
-
-                print("t-SNE decomposing...")
-                qz_tsne = TSNE(n_components=2, random_state=args.seed).fit(qz).embedding_
-
-                print(f"Plotting t-SNE 2D latent features with true labels...")
-                fig, ax = plt.subplots()
-                cmap = segmented_cmap(args.num_classes, "Paired")
-                for i in range(args.num_classes):
-                    idx = np.where(y == i)[0]
-                    if len(idx) > 0:
-                        c = cmap(i)
-                        ax.scatter(qz_tsne[idx, 0], qz_tsne[idx, 1], color=c, label=targets[i], edgecolors=darken(c))
-                ax.legend(bbox_to_anchor=(1.01, 1.0), loc="upper left", ncol=len(targets) // 25 + 1)
-                ax.set_title(r"t-SNE 2D plot of latent code with true labels at epoch %d" % (epoch))
-                ax.set_aspect(1.0 / ax.get_data_ratio())
-                plt.tight_layout()
-                plt.savefig(f"qz_tsne_true_e{epoch}.png", dpi=300)
                 plt.close()
 
                 # if args.num_heads > 1:
