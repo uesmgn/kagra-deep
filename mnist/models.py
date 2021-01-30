@@ -333,9 +333,9 @@ class VAE(nn.Module):
                 except:
                     continue
 
-    def forward(self, x, x_):
+    def forward(self, x):
         b = x.shape[0]
-        h = self.encoder(x_)
+        h = self.encoder(x)
         z_mean, z_logvar = self.mean(h), self.logvar(h)
         z = self.reparameterize(z_mean, z_logvar)
         x_reconst = self.decoder(z)

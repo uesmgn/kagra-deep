@@ -24,8 +24,8 @@ num_classes: 22
 num_pred_classes: 50
 dim_w: 50
 dim_w_over: 250
-dim_z: 512
-beta: 1
+dim_z: 256
+beta: 2
 train_size: 0.7
 labeled_size: 0.1
 batch_size: 128
@@ -33,8 +33,8 @@ num_workers: 4
 lr: 1e-4
 num_train_steps: 100
 test_interval: 10
-eval_interval: 50
-save_interval: 50
+eval_interval: 20
+save_interval: 20
 model_dir: /home/gen.ueshima/gen/workspace/github/
 dataset_root: /home/gen.ueshima/gen/workspace/github/GravitySpy/processed/dataset_small.h5
 weights: [1., 1., 10.]
