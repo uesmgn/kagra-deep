@@ -16,5 +16,5 @@ def coolGPU(lower=50, upper=65):
         while temp > lower:
             temp = getTemp()
             print("GPU temperature: %d C" % temp)
-            time.sleep(10)
+            time.sleep(1)
         print("GPU temperature: %d C" % temp)
