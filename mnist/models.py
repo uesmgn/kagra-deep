@@ -333,13 +333,14 @@ class VAE(nn.Module):
                 except:
                     continue
 
-    def forward(self, x, x_, m_n=0.005):
+    def forward(self, x, x_):
+        b = x.shape[0]
         h = self.encoder(x_)
         z_mean, z_logvar = self.mean(h), self.logvar(h)
         z = self.reparameterize(z_mean, z_logvar)
         x_reconst = self.decoder(z)
-        bce = self.bce(x, x_reconst)
-        kl_gauss = m_n * self.kl_gauss(z_mean, z_logvar)
+        bce = self.bce(x, x_reconst) / b
+        kl_gauss = self.kl_gauss(z_mean, z_logvar) / b
         return bce, kl_gauss
 
     def reparameterize(self, mean, logvar):
@@ -354,10 +355,10 @@ class VAE(nn.Module):
         return z_mean
 
     def bce(self, x, x_recon):
-        return F.binary_cross_entropy(x_recon, x, reduction="mean")
+        return F.binary_cross_entropy(x_recon, x, reduction="sum")
 
     def kl_gauss(self, mu, logvar):
-        return torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim=1), dim=0)
+        return -0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp())
         # return -0.5 * torch.sum(logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp())
 
 
