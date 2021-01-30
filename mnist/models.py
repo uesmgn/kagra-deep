@@ -363,7 +363,7 @@ class VAE(nn.Module):
 
 
 class IIC(nn.Module):
-    def __init__(self, ch_in, dim_w=30, dim_w_over=100, dim_z=512, num_heads=10, tranform_fn=None, augment_fn=None):
+    def __init__(self, ch_in, dim_w=30, dim_w_over=100, dim_z=512, num_heads=10, transform_fn=None, augment_fn=None):
         super().__init__()
         self.use_multi_heads = num_heads > 1
         self.num_heads = num_heads
@@ -375,7 +375,7 @@ class IIC(nn.Module):
         )
         self.sub_encoder = Encoder(ch_in, dim_z)
 
-        self.tranform_fn = tranform_fn
+        self.transform_fn = transform_fn
         self.augment_fn = augment_fn
 
         if self.use_multi_heads:
@@ -422,7 +422,7 @@ class IIC(nn.Module):
 
     def forward(self, data, lam=1.0, l=5):
         mi, mi_over = 0, 0
-        x = self.tranform_fn(data)
+        x = self.transform_fn(data)
         z_x = self.encoder(x)
         z_x = self.mean(z_x).detach()
         w_v = self.clustering(z_x)
