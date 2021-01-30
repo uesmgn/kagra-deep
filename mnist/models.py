@@ -69,12 +69,12 @@ class Encoder(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
             ResBlock(32, 64, stride=2),
-            ResBlock(64, 128, stride=2),
-            ResBlock(128, 256, stride=2),
+            ResBlock(64, 94, stride=2),
+            ResBlock(94, 128, stride=2),
         )
         self.fc = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(256 * 7 * 7, dim_out, bias=False),
+            nn.Linear(128 * 7 * 7, dim_out, bias=False),
             nn.BatchNorm1d(dim_out),
             nn.LeakyReLU(0.2, inplace=True),
         )
@@ -89,21 +89,21 @@ class Decoder(nn.Module):
     def __init__(self, ch_in=3, dim_in=1024):
         super().__init__()
         self.head = nn.Sequential(
-            nn.Linear(dim_in, 256 * 7 * 7, bias=False),
-            nn.BatchNorm1d(256 * 7 * 7),
+            nn.Linear(dim_in, 128 * 7 * 7, bias=False),
+            nn.BatchNorm1d(128 * 7 * 7),
             nn.LeakyReLU(0.2, inplace=True),
         )
         self.blocks = nn.Sequential(
             nn.Upsample(scale_factor=2),
-            ResBlockDec(256, 128),
-            ResBlockDec(128, 64),
+            ResBlockDec(128, 94),
+            ResBlockDec(94, 64),
             ResBlockDec(64, 32),
             ResBlockDec(32, ch_in, activation=nn.Sigmoid()),
         )
 
     def forward(self, x):
         x = self.head(x)
-        x = x.view(x.shape[0], 256, 7, 7)
+        x = x.view(x.shape[0], 128, 7, 7)
         x = self.blocks(x)
         return x
 
