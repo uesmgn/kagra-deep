@@ -472,7 +472,7 @@ def main(args):
                 plt.savefig(f"simmat_ensemble_e{epoch}.png", bbox_inches="tight", dpi=300)
                 plt.close()
 
-                silhouette_vals = silhouette_samples(qz, pred)
+                silhouette_vals = silhouette_samples(qz, y)
                 cmap = segmented_cmap(len(args.targets), "Paired")
                 fig, ax = plt.subplots(figsize=[12, 18])
                 y_ax_lower, y_ax_upper = 0, 0
@@ -535,12 +535,12 @@ def main(args):
                 silhouette_means = []
                 silhouette_positions = []
                 silhouette_colors = []
-                for i in new_labels[::-1]:
+                for l, i in enumerate(new_labels[::-1]):
                     silhouette_vals_i = silhouette_vals[pred_i == i]
                     silhouette_vals_i.sort()
                     silhouette_means.append(np.mean(silhouette_vals_i))
                     y_ax_upper = y_ax_lower + len(silhouette_vals_i)
-                    c = cmap(i)
+                    c = cmap(l)
                     plt.barh(
                         range(y_ax_lower, y_ax_upper),
                         silhouette_vals_i,
