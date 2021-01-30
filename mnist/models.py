@@ -373,6 +373,7 @@ class IIC(nn.Module):
             nn.BatchNorm1d(dim_z),
             nn.LeakyReLU(0.2, inplace=True),
         )
+
         self.sub_encoder = Encoder(ch_in, dim_z)
 
         if self.use_multi_heads:
@@ -499,6 +500,8 @@ class IIC_VAE(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
         )
 
+        self.sub_encoder = Encoder(ch_in, dim_z)
+
         if self.use_multi_heads:
             self.classifier = nn.ModuleList([self.gen_classifier(dim_z, dim_w) for _ in range(self.num_heads)])
         else:
@@ -541,27 +544,29 @@ class IIC_VAE(nn.Module):
                 except:
                     continue
 
-    def forward(self, x, lam=1.0, detach=False):
-        b = x.shape[0]
+    def forward(self, x, lam=1.0, l=5):
+        mi, mi_over = 0, 0
         h = self.encoder(x)
-        z_mean, z_logvar = self.mean(h), self.logvar(h)
-        if detach:
-            z_mean, z_logvar = z_mean.detach(), z_logvar.detach()
-        z = self.reparameterize(z_mean, z_logvar)
-        w_v, w_u = self.clustering(z_mean), self.clustering(z)
-        w_v_over, w_u_over = self.over_clustering(z_mean), self.over_clustering(z)
-        mi = self.mutual_info(w_v, w_u, lam=lam)
-        mi_over = self.mutual_info(w_v_over, w_u_over, lam=lam)
-        kl_gauss = self.kl_gauss(z_mean, z_logvar, torch.zeros_like(z_mean), torch.ones_like(z_logvar)) / b
+        mean, logvar = self.mean(h), self.logvar(h)
+        w_v = self.clustering(mean)
+        w_v_over = self.over_clustering(mean)
+        for y in range(l):
+            z_x = self.reparameterize(mean, logvar)
+            w_u = self.clustering(z_x)
+            w_u_over = self.over_clustering(z_x)
+            mi += self.mutual_info(w_v, w_u, lam=lam)
+            mi_over += self.mutual_info(w_v_over, w_u_over, lam=lam)
+        mi, mi_over = mi / l, mi_over / l
+        kl_gauss = self.kl_gauss(mean, logvar)
         return mi, mi_over, kl_gauss
 
     def get_params(self, x):
         assert not self.training
-        h = self.encoder(x)
-        z_mean = self.mean(h)
-        w = self.clustering(z_mean)
-        w_over = self.over_clustering(z_mean)
-        return z_mean, w, w_over
+        z = self.encoder(x)
+        z = self.mean(z)
+        w = self.clustering(z)
+        w_over = self.over_clustering(z)
+        return z, w, w_over
 
     def clustering(self, x):
         if self.use_multi_heads:
@@ -585,15 +590,6 @@ class IIC_VAE(nn.Module):
             w = F.softmax(self.over_classifier(x), dim=-1)
             return w
 
-    def reparameterize(self, mean, logvar):
-        std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(mean)
-        x = mean + eps * std
-        return x
-
-    def kl_gauss(self, mean_p, logvar_p, mean_q, logvar_q):
-        return -0.5 * torch.sum(logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp())
-
     def mutual_info(self, x, y, lam=1.0, eps=1e-8):
         if x.ndim == 2:
             m = 1
@@ -611,3 +607,12 @@ class IIC_VAE(nn.Module):
             pi = p.sum(dim=1).view(k, -1).expand(k, k, m).pow(lam)
             pj = p.sum(dim=0).view(k, -1).expand(k, k, m).pow(lam)
         return (p * (torch.log(pi) + torch.log(pj) - torch.log(p))).sum() / m
+
+    def reparameterize(self, mean, logvar):
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(mean)
+        x = mean + eps * std
+        return x
+
+    def kl_gauss(self, mu, logvar):
+        return -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
