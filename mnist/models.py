@@ -4,6 +4,8 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import numpy as np
 from collections import abc
+import torchvision.transforms.functional as ttf
+import random
 
 
 class ResBlock(nn.Module):
@@ -333,7 +335,9 @@ class VAE(nn.Module):
                 except:
                     continue
 
-    def forward(self, x, x_):
+    def forward(self, x, device):
+        x = self.center_crop(x).to(device)
+        x_ = self.random_crop(x).to(device)
         b = x.shape[0]
         h = self.encoder(x_)
         z_mean, z_logvar = self.mean(h), self.logvar(h)
@@ -342,6 +346,17 @@ class VAE(nn.Module):
         bce = self.bce(x, x_reconst) / b
         kl_gauss = self.kl_gauss(z_mean, z_logvar) / b
         return bce, kl_gauss
+
+    def center_crop(x):
+        x = ttf.to_pil_image(x)
+        x = ttf.center_crop(x, 224)
+        return ttf.to_tensor(x)
+
+    def random_crop(x):
+        x = ttf.to_pil_image(x)
+        j = random.randint(-24, 24)
+        x = ttf.crop(x, 0, ((272 - 224) // 2) - j, 224, 224)
+        return ttf.to_tensor(x)
 
     def reparameterize(self, mean, logvar):
         std = torch.exp(0.5 * logvar)

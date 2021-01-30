@@ -54,26 +54,13 @@ def main(args):
     # Pytorch
     torch.manual_seed(args.seed)
 
-    transform_fn = transforms.Compose(
-        [
-            transforms.SelectIndices(args.use_channels, 0),
-            transforms.CenterMaximizedResizeCrop(224),
-        ]
-    )
-    augment_fn = transforms.Compose(
-        [
-            transforms.SelectIndices(args.use_channels, 0),
-            transforms.RandomMaximizedResizeCrop(224),
-        ]
-    )
     alt = -1 if args.use_other else None
-    target_transform_fn = transforms.ToIndex(args.targets, alt=alt)
 
     targets = [acronym(target) for target in args.targets]
 
-    dataset = datasets.HDF5(args.dataset_root, transform_fn, target_transform_fn)
+    dataset = datasets.HDF5(args.dataset_root, transforms.CenterMaximizedResizeCrop(224), transforms.ToIndex(args.targets, alt=alt))
     train_set, test_set = copy.copy(dataset), dataset.sample(args.num_test_samples, stratify=dataset.targets)
-    train_set = datasets.co(train_set, transform_fn, augment_fn, l=1)
+    train_set.transform = None
 
     def sampler_callback(ds, num_samples):
         return samplers.Upsampler(ds, num_samples)
@@ -118,10 +105,8 @@ def main(args):
         total = 0
         total_dict = defaultdict(lambda: 0)
         step = 0
-        for (x, x_), _ in tqdm(train_loader):
-            x = x.to(device)
-            x_ = x_.to(device)
-            bce, kl_gauss = model(x, x_)
+        for x, _ in tqdm(train_loader):
+            bce, kl_gauss = model(x, device)
             loss = sum([bce, args.beta * kl_gauss])
             optim.zero_grad()
             loss.backward()
