@@ -347,12 +347,12 @@ class VAE(nn.Module):
         kl_gauss = self.kl_gauss(z_mean, z_logvar) / b
         return bce, kl_gauss
 
-    def center_crop(x):
+    def center_crop(self, x):
         x = ttf.to_pil_image(x)
         x = ttf.center_crop(x, 224)
         return ttf.to_tensor(x)
 
-    def random_crop(x):
+    def random_crop(self, x):
         x = ttf.to_pil_image(x)
         j = random.randint(-24, 24)
         x = ttf.crop(x, 0, ((272 - 224) // 2) - j, 224, 224)
