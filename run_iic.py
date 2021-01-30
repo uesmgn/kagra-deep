@@ -130,10 +130,9 @@ def main(args):
         model.train()
         total = 0
         total_dict = defaultdict(lambda: 0)
-        for (x, x_), _ in tqdm(train_loader):
+        for (x, *ax), _ in tqdm(train_loader):
             x = x.to(device)
-            x_ = x_.to(device)
-            mi, mi_over = model(x, x_, lam=args.lam, detach=args.z_detach)
+            mi, mi_over = model(x, *ax, lam=args.lam, detach=args.z_detach)
             loss = sum([mi, mi_over])
             optim.zero_grad()
             loss.backward()

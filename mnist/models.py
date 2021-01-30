@@ -424,7 +424,7 @@ class IIC(nn.Module):
         w_v = self.clustering(z_x)
         w_v_over = self.over_clustering(z_x)
         for y in args:
-            z_y = self.encoder(y)
+            z_y = self.encoder(y.to(x.device))
             z_y = self.mean(z_y).detach()
             w_u = self.clustering(z_y)
             w_u_over = self.over_clustering(z_y)
