@@ -346,10 +346,11 @@ def main(args):
                     except:
                         pass
                     print("Computing cosine similarity matrix...")
-                    simmat = cosine_similarity(torch.from_numpy(hg))
+                    simmat = cosine_similarity(torch.from_numpy(hg)).numpy()
                     print("Computing cosine distance reordered matrix...")
                     dist_mat, reordered, _ = compute_serial_matrix(simmat)
-                    simmat = np.nan_to_num(simmat)
+                    simmat[simmat == np.nan] = 0
+                    simmat[simmat == np.inf] = 0
                     pred_ensembled = sc.fit(simmat).labels_
                     simmat_reordered = simmat[reordered][:, reordered]
                 else:
