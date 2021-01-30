@@ -10,8 +10,8 @@ def getTemp():
 
 def coolGPU(lower=50, upper=70):
     temp = getTemp()
+    print("GPU temperature: %d C" % temp)
     if temp > upper:
-        print("GPU temperature: %d C" % temp)
         print("cooling GPU...")
         while temp > lower:
             temp = getTemp()
