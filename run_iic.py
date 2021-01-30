@@ -181,10 +181,10 @@ def main(args):
                     pred_i, pred_over_i = pred, pred_over
                 cm = confusion_matrix(y, pred_i, labels=list(range(args.dim_w)))
                 cm = cm[: args.num_classes, :]
-                cms.append(np.nan_to_num(normalize(cm, axis=0)))
+                cms.append(normalize(cm, axis=0))
                 cm_over = confusion_matrix(y, pred_over_i, labels=list(range(args.dim_w_over)))
                 cm_over = cm_over[: args.num_classes, :]
-                cms_over.append(np.nan_to_num(normalize(cm_over, axis=0)))
+                cms_over.append(normalize(cm_over, axis=0))
 
                 # calculate accuracy
                 print("calculate accuracy...")
@@ -349,6 +349,7 @@ def main(args):
                     simmat = cosine_similarity(torch.from_numpy(hg))
                     print("Computing cosine distance reordered matrix...")
                     dist_mat, reordered, _ = compute_serial_matrix(simmat)
+                    simmat = np.nan_to_num(simmat)
                     pred_ensembled = sc.fit(simmat).labels_
                     simmat_reordered = simmat[reordered][:, reordered]
                 else:
@@ -359,7 +360,7 @@ def main(args):
 
                 cm = confusion_matrix(y, pred_ensembled, labels=list(range(args.dim_w)))
                 cm = cm[: args.num_classes, :]
-                cmn = np.nan_to_num(normalize(cm, axis=0))
+                cmn = normalize(cm, axis=0)
                 print(f"plotting confusion matrix of classifier {i}")
                 fig, ax = plt.subplots()
                 sns.heatmap(
