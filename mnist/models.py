@@ -337,6 +337,7 @@ class VAE(nn.Module):
     def forward(self, x):
         b = x.shape[0]
         j = random.randint(0, 48)
+        print(x.shape)
         x_ = x[:, :, j : 224 + j, :]
         x = x[:, :, 24 : 224 + 24, :]
         h = self.encoder(x_)
