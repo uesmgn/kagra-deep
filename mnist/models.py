@@ -368,7 +368,7 @@ class IIC(nn.Module):
         self.use_multi_heads = num_heads > 1
         self.num_heads = num_heads
         self.encoder = Encoder(ch_in, 1024)
-        self.mean = nn.Sequential(
+        self.fc = nn.Sequential(
             nn.Linear(1024, dim_z, bias=False),
             nn.BatchNorm1d(dim_z),
             nn.LeakyReLU(0.2, inplace=True),
@@ -418,15 +418,15 @@ class IIC(nn.Module):
                 except:
                     continue
 
-    def forward(self, x, *args, lam=1.0, l=5):
+    def forward(self, x, *args, lam=1.0, l=5, detach=False):
         mi, mi_over = 0, 0
-        z_x = self.encoder(x)
-        z_x = self.mean(z_x).detach()
+        z_x = self.encoder(x).detach() if detach else self.encoder(x)
+        z_x = self.fc(z_x)
         w_v = self.clustering(z_x)
         w_v_over = self.over_clustering(z_x)
         for y in args:
-            z_y = self.encoder(y.to(x.device))
-            z_y = self.mean(z_y).detach()
+            z_y = self.encoder(y.to(x.device)).detach() if detach else self.encoder(y.to(x.device))
+            z_y = self.fc(z_y)
             w_u = self.clustering(z_y)
             w_u_over = self.over_clustering(z_y)
             mi += self.mutual_info(w_v, w_u, lam=lam)
