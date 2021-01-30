@@ -122,7 +122,7 @@ def main(args):
 
     stats = defaultdict(lambda: [])
     stats_test_acc = defaultdict(lambda: [])
-    sc = SpectralClustering(n_clusters=args.dim_w, random_state=args.seed, assign_labels="discretize", n_jobs=-1)
+    sc = SpectralClustering(n_clusters=args.dim_w, random_state=args.seed, assign_labels="discretize", affinity="precomputed", n_jobs=-1)
     tsne = TSNE(n_components=2, random_state=args.seed)
 
     for epoch in range(args.num_epochs):
@@ -357,7 +357,7 @@ def main(args):
                     dist_mat, reordered, _ = compute_serial_matrix(simmat)
                     simmat_reordered = simmat[reordered][:, reordered]
 
-                cm = confusion_matrix(y, pred_i, labels=list(range(args.dim_w)))
+                cm = confusion_matrix(y, pred_ensembled, labels=list(range(args.dim_w)))
                 cm = cm[: args.num_classes, :]
                 cmn = normalize(cm, axis=0)
                 print(f"plotting confusion matrix of classifier {i}")
