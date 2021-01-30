@@ -90,7 +90,7 @@ class RandomMaximizedResizeCrop(object):
 class SelectIndices(object):
     def __init__(self, indices, dim=0):
         assert isinstance(indices, abc.Sequence)
-        self.select_indices = tt.Lambda(lambda x: x.index_select(dim, torch.LongTensor(indices)))
+        self.select_indices = tt.Lambda(lambda x: x.index_select(dim, torch.LongTensor(indices).to(x.device)))
 
     def __call__(self, x):
         x = _to_tensor(x)
