@@ -27,6 +27,7 @@ from src.utils.functional import (
     segmented_cmap,
 )
 from src.utils import transforms
+from src.utils import gpu
 from src.data import datasets
 from src.data import samplers
 from src import config
@@ -128,6 +129,10 @@ def main(args):
             total_dict["total loss"] += loss.item()
             total_dict["binary cross entropy"] += bce.item()
             total_dict["gaussian kl divergence"] += kl_gauss.item()
+
+            if i % 20 == 0:
+                gpu.coolGPU()
+
         for key, value in total_dict.items():
             print("{}: {:.3f} at epoch: {}".format(key, value, epoch))
             stats[key].append(value)
