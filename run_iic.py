@@ -171,7 +171,7 @@ def main(args):
             pred_over = torch.cat(params["pred_over"]).numpy().astype(int)
             pi = torch.cat(params["pi"]).numpy().astype(float)
             qz = torch.cat(params["qz"]).numpy().astype(float)
-
+            gaccs = []
             cms, cms_over = [], []
             for i in range(args.num_heads):
                 try:
@@ -210,9 +210,9 @@ def main(args):
                         accs.append(0)
                 new_labels = np.array(new_labels)
                 acc = n_true / cm.sum()
+                gaccs.append(acc)
                 print(f"acc= {acc:.3f} on classifier {i}")
                 stats_test_acc[f"classifier {i}"].append(acc)
-                top_i = np.argmax(accs)
 
                 fig, ax = plt.subplots(figsize=(20, 8))
                 ax.bar(np.arange(len(new_labels)), accs, tick_label=new_labels, align="center", color="cadetblue")
@@ -232,6 +232,7 @@ def main(args):
                 plt.tight_layout()
                 plt.savefig(f"acc_c{i}_e{epoch}.png", dpi=300)
                 plt.close()
+            top_i = np.argmax(gaccs)
 
             if epoch > 0:
                 for key, value in stats.items():
