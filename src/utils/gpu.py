@@ -8,7 +8,7 @@ def getTemp():
     return maxtemp
 
 
-def coolGPU(lower=50, upper=70):
+def coolGPU(lower=50, upper=65):
     temp = getTemp()
     print("GPU temperature: %d C" % temp)
     if temp > upper:
