@@ -122,7 +122,7 @@ def main(args):
 
     stats = defaultdict(lambda: [])
     stats_test_acc = defaultdict(lambda: [])
-    sc = SpectralClustering(n_clusters=args.dim_w, random_state=args.seed, assign_labels="discretize", affinity="precomputed", n_jobs=-1)
+    sc = SpectralClustering(n_clusters=args.dim_w, random_state=args.seed, assign_labels="discretize")
     tsne = TSNE(n_components=2, random_state=args.seed)
 
     for epoch in range(args.num_epochs):
@@ -349,7 +349,6 @@ def main(args):
                     simmat = cosine_similarity(torch.from_numpy(hg)).numpy()
                     print("Computing cosine distance reordered matrix...")
                     dist_mat, reordered, _ = compute_serial_matrix(simmat)
-                    simmat = simmat[(np.isnan(simmat) == False) & (np.isinf(simmat) == False)]
                     pred_ensembled = sc.fit(simmat).labels_
                     simmat_reordered = simmat[reordered][:, reordered]
                 else:
