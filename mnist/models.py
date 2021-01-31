@@ -336,12 +336,14 @@ class VAE(nn.Module):
 
     def forward(self, x, x_):
         b = x.shape[0]
-        h = self.encoder(x_)
+        h = self.encoder(x)
+        h_ = self.encoder(x_)
         z_mean, z_logvar = self.mean(h), self.logvar(h)
+        z_mean_, z_logvar_ = self.mean(h_), self.logvar(h_)
         z = self.reparameterize(z_mean, z_logvar)
         x_reconst = self.decoder(z)
         bce = self.bce(x, x_reconst) / b
-        kl_gauss = self.kl_gauss(z_mean, z_logvar) / b
+        kl_gauss = self.kl_gauss(z_mean, z_logvar, z_mean_, z_logvar_) / b
         return bce, kl_gauss
 
     def reparameterize(self, mean, logvar):
@@ -358,9 +360,10 @@ class VAE(nn.Module):
     def bce(self, x, x_recon):
         return F.binary_cross_entropy(x_recon, x, reduction="sum")
 
-    def kl_gauss(self, mu, logvar):
-        return -0.5 * torch.sum(1 + logvar - torch.pow(mu, 2) - logvar.exp())
-        # return -0.5 * torch.sum(logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp())
+    def kl_gauss(self, mean_p, logvar_p, mean_q=None, logvar_q=None):
+        if mean_q is None and logvar_q is None:
+            return -0.5 * torch.sum(1 + logvar_p - torch.pow(mean_p, 2) - logvar_p.exp())
+        return -0.5 * torch.sum(logvar_p - logvar_q + 1 - torch.pow(mean_p - mean_q, 2) / logvar_q.exp() - logvar_p.exp() / logvar_q.exp())
 
 
 class IIC(nn.Module):
