@@ -55,6 +55,7 @@ def main(args):
     torch.manual_seed(args.seed)
 
     transform_fn = transforms.CenterMaximizedResizeCrop(224)
+    augment_fn = transforms.RandomMaximizedResizeCrop(224)
     alt = -1 if args.use_other else None
     target_transform_fn = transforms.ToIndex(args.targets, alt=alt)
 
@@ -62,7 +63,7 @@ def main(args):
 
     dataset = datasets.HDF5(args.dataset_root, transform_fn, target_transform_fn)
     train_set, test_set = copy.copy(dataset), dataset.sample(args.num_test_samples, stratify=dataset.targets)
-    train_set.transform = None
+    train_set = datasets.co(train_set, transform_fn, augment_fn, l=1)
 
     def sampler_callback(ds, num_samples):
         return samplers.Upsampler(ds, num_samples)
@@ -107,9 +108,10 @@ def main(args):
         total = 0
         total_dict = defaultdict(lambda: 0)
         step = 0
-        for x, _ in tqdm(train_loader):
+        for (x, x_), _ in tqdm(train_loader):
             x = x.to(device)
-            bce, kl_gauss = model(x)
+            x_ = x_.to(device)
+            bce, kl_gauss = model(x, x_)
             loss = sum([bce, args.beta * kl_gauss])
             optim.zero_grad()
             loss.backward()

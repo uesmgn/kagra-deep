@@ -334,11 +334,8 @@ class VAE(nn.Module):
                 except:
                     continue
 
-    def forward(self, x):
+    def forward(self, x, x_):
         b = x.shape[0]
-        j = random.randint(0, 48)
-        x_ = x[..., j : 224 + j]
-        x = x[..., 24 : 224 + 24]
         h = self.encoder(x_)
         z_mean, z_logvar = self.mean(h), self.logvar(h)
         z = self.reparameterize(z_mean, z_logvar)
