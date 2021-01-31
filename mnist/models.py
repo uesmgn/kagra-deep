@@ -337,14 +337,14 @@ class VAE(nn.Module):
     def forward(self, x):
         b = x.shape[0]
         j = random.randint(0, 48)
-        print(x.shape)
+        # print(x.shape)
         x_ = x[:, :, j : 224 + j, :]
-        x = x[:, :, 24 : 224 + 24, :]
+        # x = x[:, :, 24 : 224 + 24, :]
         h = self.encoder(x_)
         z_mean, z_logvar = self.mean(h), self.logvar(h)
         z = self.reparameterize(z_mean, z_logvar)
         x_reconst = self.decoder(z)
-        bce = self.bce(x, x_reconst) / b
+        bce = self.bce(x_, x_reconst) / b
         kl_gauss = self.kl_gauss(z_mean, z_logvar) / b
         return bce, kl_gauss
 

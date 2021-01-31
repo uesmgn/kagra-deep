@@ -1,0 +1,20 @@
+\begin{table*}[htbp]
+\caption{実験で用いたVAEの各モデルの詳細}
+\begin{tabular}{ccc}
+\hline \hline
+Layer Name                & Input Shape       & Output Shape              \\ \hline \hline
+7x7conv                  & (4, 224, 224) & (32, 112, 112)   \\
+3x3pool                  & (32, 112, 112)  & (32, 56, 56)  \\
+conv\_3x                  & (32, 56, 56) & (64, 28, 28)  \\
+conv\_4x                  & (64, 28, 28) & (96, 14, 14)  \\
+conv\_5x                  & (96, 14, 14) & (128, 7, 7)  \\
+fc\_1                   & (128, 7, 7) & (1024)        \\
+gaussian                  & (64, 1024)        & (64, 512)          \\
+convt\_1x                 & (64, 512)         & (64, 512, 10, 10)  \\
+convt\_2x                 & (64, 512, 10, 10) & (64, 256, 20, 20)  \\
+convt\_3x                 & (64, 256, 20, 20) & (64, 128, 40, 40)  \\
+convt\_4x                 & (64, 128, 40, 40) & (64, 64, 80, 80)   \\
+output                    & (64, 64, 80, 80)  & (64, 1, 160, 160) \\
+\end{tabular}
+\label{table:vae_arch}
+\end{table*}
